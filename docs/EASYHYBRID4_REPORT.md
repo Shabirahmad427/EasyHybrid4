@@ -3,7 +3,7 @@
 **Report date:** 2026-10-17  
 **Purpose:** One consolidated source for repository, architecture, dependency,
 GTK/Python compatibility, parity, platform, testing, and known-limitation
-status. The permanent task queue remains [`docs/ROADMAP.md`](../docs/ROADMAP.md).
+status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).
 
 ## Topics
 
@@ -260,7 +260,7 @@ was changed in inventory/report tasks, so no new behavioral test was needed.
 
 ## 7. Contributor workflow
 
-1. Read root `AGENTS.md` and [`docs/ROADMAP.md`](../docs/ROADMAP.md) completely before a
+1. Read root `AGENTS.md` and [`ROADMAP.md`](ROADMAP.md) completely before a
    coding session. Work the first eligible task and do not bypass phase gates.
 2. Use an isolated Python environment with root `requirements.txt`, native
    GTK4/PyGObject, and a separately configured pDynamo3 environment. There is
@@ -478,7 +478,7 @@ or the URL in `.gitmodules`.
 
 ## 11.3 Contributor quick start
 
-Read [`../AGENTS.md`](../AGENTS.md) and [`docs/ROADMAP.md`](../docs/ROADMAP.md) before
+Read [`../AGENTS.md`](../AGENTS.md) and [`ROADMAP.md`](ROADMAP.md) before
 starting work. The roadmap is the task queue; update it with actual test
 evidence and commit each coherent task separately.
 
