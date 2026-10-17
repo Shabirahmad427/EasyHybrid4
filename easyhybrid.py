@@ -34,102 +34,12 @@
 
 from _version import EASYHYBRID_VERSION
 
-import os, sys, time, re, json
+import os, sys, time, re
 import logging
+from src.os_integration.gtk_startup import configure_startup_environment
 
-# --- Fix: engasgo de rotacao em GPUs integradas Intel (driver Mesa/GLX) ---
-# Em GPUs integradas Intel com driver Mesa, um frame que atrasa levemente
-# (jitter normal do loop do GTK/Python) perde a janela de vblank e o
-# driver trava o frame seguinte ate o PROXIMO vblank, dobrando a latencia
-# daquele frame. Isso aparece como engasgo aleatorio durante rotacao/pan/
-# zoom do mouse, mesmo com o custo de render() baixo e estavel (medido e
-# confirmado em testes). Desligar o vsync (vblank_mode=0) resolve, mas so
-# fazemos isso quando detectamos uma GPU Intel: em GPUs NVIDIA o problema
-# nao ocorre, entao nao vale a pena aceitar o tearing la sem necessidade.
-# CRITICO: essa variavel de ambiente so tem efeito se for definida ANTES
-# do contexto GL ser criado pelo Mesa - por isso essa deteccao roda aqui,
-# no topo do arquivo, antes de qualquer import do GTK/OpenGL.
-#
-# O usuario pode sobrepor esse auto-detect via Preferences > Startup >
-# "V-Sync (vblank_mode)" (ver setup_interface.py/.glade), que grava a
-# preferencia ('auto'/'on'/'off') em gl_parameters['vblank_mode'] e persiste
-# no .config.json (gui/config.py). Lemos esse arquivo aqui, como JSON cru
-# (sem importar gui.config), porque isso precisa rodar antes do GTK ser
-# importado -- so tem efeito na PROXIMA vez que o EasyHybrid for aberto.
-def _load_vblank_mode_preference():
-    """ Le a preferencia 'vblank_mode' salva em .config.json ('auto', 'on'
-        ou 'off'). Retorna 'auto' (comportamento padrao/legado) se o
-        arquivo nao existir, nao tiver a chave, ou nao puder ser lido.
-    """
-    try:
-        config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".config.json")
-        with open(config_path, "r", encoding="utf-8") as config_file:
-            data = json.load(config_file)
-        return data.get("vblank_mode", "auto")
-    except (OSError, ValueError):
-        return "auto"
-
-def _maybe_disable_vsync_for_intel_igpu():
-    if "vblank_mode" in os.environ:
-        return  # usuario ou launcher ja definiu explicitamente; respeita
-
-    preference = _load_vblank_mode_preference()
-    if preference == "off":
-        os.environ["vblank_mode"] = "0"
-        return
-    if preference == "on":
-        os.environ["vblank_mode"] = "1"
-        return
-    # preference == "auto" (default): mantem o auto-detect de GPU Intel abaixo.
-
-    if sys.platform != "linux":
-        return
-    try:
-        import glob
-        card_pattern = re.compile(r"^card\d+$")
-        for vendor_path in glob.glob("/sys/class/drm/card*/device/vendor"):
-            card_name = vendor_path.split("/")[-3]
-            if not card_pattern.match(card_name):
-                continue
-            with open(vendor_path) as f:
-                vendor_id = f.read().strip()
-            if vendor_id == "0x8086":  # Intel
-                os.environ["vblank_mode"] = "0"
-                return
-    except OSError:
-        pass  # falha na deteccao nao deve impedir o programa de iniciar
-
-_maybe_disable_vsync_for_intel_igpu()
-
-# On newer GTK4 releases, prefer GLX on X11 because some NVIDIA driver
-# combinations cannot create Gtk.GLArea contexts through EGL. These GDK_DEBUG
-# options are not recognized by early GTK4 releases, so detect the loaded GTK
-# runtime before adding them. Do not apply this on Wayland, Windows, or macOS.
-def _gtk4_runtime_version():
-    try:
-        import ctypes
-        import ctypes.util
-        library_path = ctypes.util.find_library("gtk-4")
-        if not library_path:
-            return None
-        gtk_library = ctypes.CDLL(library_path)
-        major = gtk_library.gtk_get_major_version
-        minor = gtk_library.gtk_get_minor_version
-        major.restype = minor.restype = ctypes.c_uint
-        return major(), minor()
-    except (AttributeError, OSError):
-        return None
-
-
-if (sys.platform.startswith("linux") and os.environ.get("DISPLAY")
-        and not os.environ.get("WAYLAND_DISPLAY")):
-    gtk_runtime = _gtk4_runtime_version()
-    if gtk_runtime is not None and gtk_runtime >= (4, 14):
-        gdk_debug_flags = os.environ.get("GDK_DEBUG", "").replace(",", ":").split(":")
-        for flag in ("gl-glx", "gl-prefer-gl"):
-            if flag not in gdk_debug_flags:
-                gdk_debug_flags.append(flag)
-        os.environ["GDK_DEBUG"] = ":".join(flag for flag in gdk_debug_flags if flag)
+# Prepare legacy graphics-driver environment before GTK/OpenGL imports.
+configure_startup_environment(os.path.dirname(os.path.abspath(__file__)))
 
 '''
 O módulo re é nativo do Python (faz parte da biblioteca padrão).  
@@ -219,6 +129,7 @@ elif os.path.isfile("paths.py"):
 import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gdk, GdkPixbuf, GLib, Gio
+from src.gtk4_compat import set_picture_contain
 
 
 #               Installation is not necessary anymore.
@@ -257,13 +168,7 @@ class SplashScreen(Gtk.ApplicationWindow):
             image = Gtk.Picture.new_for_filename(
                 os.path.join(EASYHYBRID_HOME, "splash.png")
             )
-            if hasattr(image, "set_content_fit"):
-                image.set_content_fit(Gtk.ContentFit.CONTAIN)
-            else:
-                # Gtk.ContentFit was added in GTK 4.8; this is its GTK 4.0
-                # equivalent for keeping the splash image inside the window.
-                image.set_can_shrink(True)
-                image.set_keep_aspect_ratio(True)
+            set_picture_contain(image, Gtk)
             self.set_child(image)
         except Exception as e:
             logging.warning('splash.png could not be loaded (%s) -- '

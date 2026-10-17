@@ -30,9 +30,13 @@ import pytest
 
 _TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 _REPO_ROOT = os.path.dirname(_TESTS_DIR)
+_GRAPHICS_SOURCE = os.environ.get(
+    "EASYHYBRID_GRAPHICS_SOURCE",
+    os.path.join(_REPO_ROOT, "src", "graphics_engine", "src"),
+)
 for _p in (
     os.path.join(_REPO_ROOT, "src"),
-    os.path.join(_REPO_ROOT, "src", "graphics_engine", "src"),
+    os.path.abspath(_GRAPHICS_SOURCE),
 ):
     if _p not in sys.path:
         sys.path.insert(0, _p)

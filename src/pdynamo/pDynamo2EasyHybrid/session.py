@@ -239,6 +239,7 @@ from pdynamo.pDynamo2EasyHybrid.io_data import LoadAndSaveData
 from pdynamo.pDynamo2EasyHybrid.import_trajectory import EasyHybridImportTrajectory
 from pdynamo.pDynamo2EasyHybrid.restraints import Restraints
 from pdynamo.pDynamo2EasyHybrid.helpers import Atom, generate_random_code, export_special_PDB
+from pdynamo.pDynamo2EasyHybrid.state import SessionState
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  C R Y S T A L   S Y S T E M S
@@ -291,9 +292,90 @@ for _name, _candidate_names, _free_parameters in _CRYSTAL_SYSTEM_CANDIDATES:
 
 class pDynamoSession (pSimulations, pAnalysis, ModifyRepInVismol, LoadAndSaveData, EasyHybridImportTrajectory, Restraints):
     """ Class doc """
+
+    @property
+    def psystem(self):
+        return self.state.systems
+
+    @psystem.setter
+    def psystem(self, value):
+        self.state.systems = value
+
+    @property
+    def active_id(self):
+        return self.state.active_id
+
+    @active_id.setter
+    def active_id(self, value):
+        self.state.active_id = value
+
+    @property
+    def psystem_name_list(self):
+        return self.state.psystem_name_list
+
+    @psystem_name_list.setter
+    def psystem_name_list(self, value):
+        self.state.psystem_name_list = value
+
+    @property
+    def psystem_name_counter(self):
+        return self.state.psystem_name_counter
+
+    @psystem_name_counter.setter
+    def psystem_name_counter(self, value):
+        self.state.psystem_name_counter = value
+
+    @property
+    def counter(self):
+        return self.state.counter
+
+    @counter.setter
+    def counter(self, value):
+        self.state.counter = value
+
+    @property
+    def color_palette_counter(self):
+        return self.state.color_palette_counter
+
+    @color_palette_counter.setter
+    def color_palette_counter(self, value):
+        self.state.color_palette_counter = value
+
+    @property
+    def random_code(self):
+        return self.state.random_code
+
+    @random_code.setter
+    def random_code(self, value):
+        self.state.random_code = value
+
+    @property
+    def changed(self):
+        return self.state.changed
+
+    @changed.setter
+    def changed(self, value):
+        self.state.changed = value
+
+    @property
+    def autosave_change_counter(self):
+        return self.state.autosave_change_counter
+
+    @autosave_change_counter.setter
+    def autosave_change_counter(self, value):
+        self.state.autosave_change_counter = value
+
+    @property
+    def process_pool(self):
+        return self.state.process_pool
+
+    @process_pool.setter
+    def process_pool(self, value):
+        self.state.process_pool = value
     
     def __init__ (self, vm_session = None):
         """ Class initialiser """
+        self.state = SessionState(random_code=generate_random_code(10))
         self.vm_session  = vm_session
         self.main        = self.vm_session.main
         self.name        = 'p_session'
@@ -302,64 +384,17 @@ class pDynamoSession (pSimulations, pAnalysis, ModifyRepInVismol, LoadAndSaveDat
         self.fixed_color             = [0.5, 0.5, 0.5]
         self.pdynamo_distance_safety = 0.5
         
-        '''self.active_id is the attribute that tells which 
-        system is active for calculations in pdynamo 
-        (always an integer value)'''
-        self.active_id       = 0
-        
-        
-        '''Now we can open more than one pdynamo system. 
-        Each new system loaded into memory is stored in 
-        the form of a dictionary, which has an int as 
-        an access key.'''
-        self.psystem =  {
-                         0:None
-                        }
-        self.psystem_name_list    = []
-        self.psystem_name_counter = 1
-        
-        self.counter      = 0
-        self.color_palette_counter = 0
-        
-        '''This attribute is checked by the session before 
-        closing it. If it is set to False, the session is 
-        closed without question. If it is set to True, the 
-        GUI asks the user if they want to save the session.
-        "'''
-        self.random_code = generate_random_code(10)
-        self.changed = False
-        # Contador de mudancas desde o ultimo autosave (criterio "a cada N
-        # eventos" -- ver register_change_and_maybe_autosave em io_data.py e
-        # gl_parameters['autosave_event_count']). Zerado a cada autosave
-        # (seja disparado pelo contador ou pelo timer periodico).
-        self.autosave_change_counter = 0
-        
-        '''
-        There is now a self.process_pool attribute (a dictionary),
-        which should store all generated processes, identified by the e_id
-        of each system. This allows multiple systems to run processes
-        simultaneously and be canceled if necessary.
-        
-        self.process_pool = {e_id_1 :  process_object_1, 
-                             e_id_2 :  process_object_2,}
-        
-        #'''
-        self.process_pool = {}
         self.GLib_monitor =None
         
     
     def set_active(self, system_e_id = None):
         """ Function doc """
-        if system_e_id != None:
-            self.active_id = system_e_id
+        self.state.set_active(system_e_id)
 
         
     def get_system (self, index = None):
         """ Function doc """
-        if index != None:
-            return self.psystem[index]
-        else:
-            return self.psystem[self.active_id]
+        return self.state.get_system(index)
         
     
     def _check_name (self, name):
@@ -386,17 +421,7 @@ class pDynamoSession (pSimulations, pAnalysis, ModifyRepInVismol, LoadAndSaveDat
     
     def restart (self):
         """ Function doc """
-        #-------------------------------------------
-        self.active_id = 0
-        self.psystem   =  {
-                        0:None
-                        }
-        self.psystem_name_list    = []
-        self.psystem_name_counter = 1
-        
-        self.counter      = 0
-        self.color_palette_counter = 0
-        #-------------------------------------------
+        self.state.reset_systems()
     
     
     def get_hamiltonian_type (self, e_id = None):

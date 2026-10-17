@@ -799,6 +799,7 @@ PYTHON_LIBRARIES = {
     "numpy":    "numpy",
     "scipy":    "scipy",
     "OpenGL":   "PyOpenGL",
+    "PIL":      "Pillow",
     "freetype": "freetype-py",
     "cairo":    "pycairo",
     "gi":       "PyGObject",

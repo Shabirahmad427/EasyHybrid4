@@ -26,7 +26,13 @@ from vismol.utils.debug import dprint
 import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gdk
-from src.gtk4_compat import GTK_INVALID_LIST_POSITION
+from src.gtk4_compat import (
+    GTK_INVALID_LIST_POSITION,
+    get_scroll_unit,
+    scroll_controller_flags,
+    set_gl_area_allowed_apis,
+    supports_scroll_unit,
+)
 from gi.repository import GdkPixbuf
 
 from logging import getLogger
@@ -42,7 +48,7 @@ import json
 import sys
 
 _IS_MACOS = sys.platform == "darwin"
-_HAS_SCROLL_UNIT_API = hasattr(Gtk.EventControllerScroll, "get_unit")
+_HAS_SCROLL_UNIT_API = supports_scroll_unit(Gtk)
 _WidgetBase = Gtk.GLArea
 
 def _patch_gl_line_width():
@@ -110,7 +116,7 @@ class VismolGTKWidget(_WidgetBase):
         # asks for exactly what #version 330 needs, on every platform,
         # instead of leaving it to a default that happens to work on
         # Linux by coincidence rather than by being explicitly correct.
-        self.set_allowed_apis(Gdk.GLAPI.GL)
+        set_gl_area_allowed_apis(self, Gdk)
         self.set_required_version(3, 3)
         self.connect("realize", self.initialize)
         self.connect("render", self.render)
@@ -131,12 +137,11 @@ class VismolGTKWidget(_WidgetBase):
         motion_controller.connect("motion", self._on_mouse_motion)
         self.add_controller(motion_controller)
 
-        scroll_flags = Gtk.EventControllerScrollFlags.BOTH_AXES
-        # GTK 4.8 added get_unit(), which lets macOS trackpad surface pixels
-        # be calibrated to wheel steps. Keep the controller discrete on
-        # earlier GTK4 releases, where GTK normalizes them itself.
-        if not (_IS_MACOS and _HAS_SCROLL_UNIT_API):
-            scroll_flags |= Gtk.EventControllerScrollFlags.DISCRETE
+        # Surface-unit processing is used only where the caller handles
+        # smooth deltas explicitly; other platforms get GTK-normalized steps.
+        scroll_flags = scroll_controller_flags(
+            Gtk, use_surface_units=_IS_MACOS and _HAS_SCROLL_UNIT_API
+        )
         scroll_controller = Gtk.EventControllerScroll.new(scroll_flags)
         scroll_controller.connect("scroll", self._on_mouse_scroll)
         self.add_controller(scroll_controller)
@@ -165,6 +170,11 @@ class VismolGTKWidget(_WidgetBase):
                          programs will be created and use system resources. If the OpenGL
                          program will be changed change this value to True
         """
+        # The GL context is created during realization, but GTK does not
+        # guarantee it is current merely because the realize signal fired.
+        # Make it current before any PyOpenGL calls; otherwise older GTK4
+        # runtimes can emit a render callback with no current GL context.
+        self.make_current()
         if self.get_error() != None:
             # Report GLArea context errors visibly instead of failing
             # without an explanation.
@@ -257,7 +267,7 @@ class VismolGTKWidget(_WidgetBase):
         if not np.isfinite(dy) or dy == 0:
             return True
 
-        unit = controller.get_unit()
+        unit = get_scroll_unit(controller)
         if unit == Gdk.ScrollUnit.SURFACE:
             # Quartz trackpads report surface pixels, often 1–20 per event.
             # Accumulate 30 pixels per wheel step to avoid runaway zoom and

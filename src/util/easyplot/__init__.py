@@ -1,51 +1,44 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-#  
-#  EasyHybrid: Python interface for QM/MM and molecular simulations using pDynamo3
-#  Module: Selection utilities for pDynamo systems
-#
-#  Copyright 2022-2025 Fernando Bachega
-#
-#  This program is free software; you can redistribute it and/or modify
-#  it under the terms of the GNU General Public License as published by
-#  the Free Software Foundation; either version 3 of the License, or
-#  (at your option) any later version.
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-#
-#  You should have received a copy of the GNU General Public License
-#  along with this program; if not, write to the Free Software
-#  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
-#  MA 02110-1301, USA.
-#
-#  Maintainer:
-#      Fernando Bachega <ferbachega@gmail.com> or <easyhybrid3@gmail.com>
-#
-#  Description:
-#      Provides functions for selecting atoms and residues in pDynamo systems
-#      to facilitate QM/MM partitioning and molecular simulations.
-#
-# -----------------------------------------------------------------------------
-#  easyplot/  --  layout apos refatoracao
-#
-#  src/util/
-#  +-- easyplot/                  (pacote; __init__.py e a fachada, re-exporta
-#      |                           tudo p/ manter os imports antigos funcionando)
-#      +-- color_utils.py          interpolate_color, get_color, bilinear_interpolation,
-#      |                           expand_array_size, ColorSquareBilinearInterpolation
-#      +-- canvas.py               Canvas (base, Gtk.DrawingArea)
-#      +-- image_plot.py           ImagePlot(Canvas)
-#      +-- xy_plots.py             XYPlot, XYScatterPlot
-#      +-- export_utils.py         export_plot_to_png -- exportacao em alta
-#                                  resolucao (redesenha via Cairo, nao e'
-#                                  screenshot) para qualquer plot acima
-# -----------------------------------------------------------------------------
+"""EasyHybrid plotting API with lazy GTK widget exports.
 
-from util.easyplot.color_utils import (interpolate_color, get_color, bilinear_interpolation, expand_array_size, ColorSquareBilinearInterpolation)
-from util.easyplot.canvas import Canvas
-from util.easyplot.image_plot import ImagePlot
-from util.easyplot.xy_plots import XYPlot, XYScatterPlot
-from util.easyplot.export_utils import export_plot_to_png
+Pure plotting calculations can be imported from this package without loading
+PyGObject. GTK-backed widgets are imported only when their public names are
+requested, preserving the historical ``from util.easyplot import XYPlot``
+interface for GUI callers.
+"""
+
+from importlib import import_module
+
+
+_EXPORTS = {
+    "interpolate_color": ("util.easyplot.color_math", "interpolate_color"),
+    "get_color": ("util.easyplot.color_math", "get_color"),
+    "bilinear_interpolation": ("util.easyplot.color_math", "bilinear_interpolation"),
+    "expand_array_size": ("util.easyplot.color_math", "expand_array_size"),
+    "ColorSquareBilinearInterpolation": (
+        "util.easyplot.color_utils",
+        "ColorSquareBilinearInterpolation",
+    ),
+    "Canvas": ("util.easyplot.canvas", "Canvas"),
+    "ImagePlot": ("util.easyplot.image_plot", "ImagePlot"),
+    "XYPlot": ("util.easyplot.xy_plots", "XYPlot"),
+    "XYScatterPlot": ("util.easyplot.xy_plots", "XYScatterPlot"),
+    "export_plot_to_png": ("util.easyplot.export_utils", "export_plot_to_png"),
+}
+
+__all__ = list(_EXPORTS)
+
+
+def __getattr__(name):
+    """Load a public plotting class/function on first access."""
+    try:
+        module_name, attribute_name = _EXPORTS[name]
+    except KeyError as error:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}") from error
+
+    value = getattr(import_module(module_name), attribute_name)
+    globals()[name] = value
+    return value
+
+
+def __dir__():
+    return sorted(set(globals()) | set(__all__))
