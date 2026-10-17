@@ -114,11 +114,13 @@ def configure_gl_context_environment(*, platform=None, environ=None,
         environ["GDK_DEBUG"] = ":".join(flag for flag in flags if flag)
 
     if version is not None and (4, 16) <= tuple(version[:2]) < (4, 18):
-        # GTK 4.16's new "ngl" renderer aborts in libepoxy when a window
-        # containing a Gtk.GLArea is closed: its frame teardown issues GL
-        # calls with no current context (removed upstream in 4.18). GTK 4.16
-        # still ships the previous OpenGL renderer under the name "gl".
-        environ.setdefault("GSK_RENDERER", "gl")
+        # With GTK 4.16's previous "gl" renderer, closing a window that
+        # contains a Gtk.GLArea aborts in libepoxy: gsk_renderer_unrealize
+        # drops the last frame's GLArea texture and its release callback
+        # (release_gl_texture, gtkglarea.c) calls glDeleteSync with no
+        # current context. GTK 4.16's new "ngl" renderer tears down safely
+        # (verified with debug symbols on Fedora 41 GTK 4.16.13).
+        environ.setdefault("GSK_RENDERER", "ngl")
 
     if needs_legacy_wgl_workaround(platform, version):
         # GSK's GL renderer would set the ARB-chosen pixel format on each
