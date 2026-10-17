@@ -67,13 +67,31 @@ jobs:
 
       - name: Record actual runtime and host
         run: |
-          python -c 'import gi, platform; from gi.repository import GLib, Gtk; print("OS=%s ARCH=%s PYTHON=%s PYGOBJECT=%s GTK=%s GLIB=%s" % (platform.platform(), platform.machine(), platform.python_version(), ".".join(map(str, gi.version_info)), ".".join(map(str, (Gtk.get_major_version(), Gtk.get_minor_version(), Gtk.get_micro_version()))), ".".join(map(str, (GLib.MAJOR_VERSION, GLib.MINOR_VERSION, GLib.MICRO_VERSION))))' | tee platform-results.txt
+          set -o pipefail
+          python - <<'PY' | tee platform-results.txt
+          import gi
+          import platform
+          from gi.repository import GLib, Gtk
+
+          gtk_version = ".".join(
+              map(str, (Gtk.get_major_version(), Gtk.get_minor_version(), Gtk.get_micro_version()))
+          )
+          glib_version = ".".join(
+              map(str, (GLib.MAJOR_VERSION, GLib.MINOR_VERSION, GLib.MICRO_VERSION))
+          )
+          pygobject_version = ".".join(map(str, gi.version_info))
+          print(
+              f"OS={platform.platform()} ARCH={platform.machine()} "
+              f"PYTHON={platform.python_version()} PYGOBJECT={pygobject_version} "
+              f"GTK={gtk_version} GLIB={glib_version}"
+          )
+          PY
 
       - name: Run native GTK window, Gio action, and real GLArea smoke
         run: |
           set -o pipefail
           if [[ "$RUNNER_OS" == "Linux" ]]; then
-            LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" python tests/test_gtk_icon_theme_smoke.py 2>&1 | tee -a platform-results.txt
+            LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe PYOPENGL_PLATFORM=glx xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" python tests/test_gtk_icon_theme_smoke.py 2>&1 | tee -a platform-results.txt
           else
             python tests/test_gtk_icon_theme_smoke.py 2>&1 | tee -a platform-results.txt
           fi
