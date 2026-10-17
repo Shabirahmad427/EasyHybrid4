@@ -1,0 +1,1713 @@
+# EasyHybrid4 Development and Compatibility Report
+
+**Report date:** 2026-10-17  
+**Purpose:** One consolidated source for repository, architecture, dependency,
+GTK/Python compatibility, parity, platform, testing, and known-limitation
+status. The permanent task queue remains [`docs/ROADMAP.md`](../docs/ROADMAP.md).
+
+## Topics
+
+1. [Current status and repository provenance](#1-current-status)
+2. [Architecture and dependencies](#2-architecture-and-dependencies)
+3. [GTK4, Python, and dependency compatibility](#3-gtk4-python-and-dependency-compatibility)
+4. [EasyHybrid3 feature parity](#4-easyhybrid3-feature-parity)
+5. [Platform and graphics requirements](#5-platform-and-graphics-requirements)
+6. [Reproducible test baseline](#6-reproducible-test-baseline)
+7. [Contributor workflow](#7-contributor-workflow)
+8. [Safe test-data policy](#8-safe-test-data-policy)
+9. [Known limitations](#9-known-limitations-and-follow-up)
+10. [Platform/version evidence](#10-evidence-and-limitations-by-platformversion)
+11. [Preserved detailed topic reports](#11-preserved-topic-reports-and-detailed-evidence)
+
+## 1. Current status
+
+- EH4-001 through EH4-005 are complete for their documented inventory,
+  baseline, parity, compatibility, and contributor/report deliverables.
+  EH4-000 remains incomplete because parent remote and graphics upstream
+  revision provenance are unavailable; these are provenance limitations.
+- This file is the single consolidated project status and technical report.
+  GTK/API/platform validations remain limited to the evidence actually run.
+- Recent task commits: `f69e4c4` (EH4-001), `d8fc403` (EH4-001 evidence),
+  `b15fa22` (EH4-002 baseline), `01a8f21` (EH4-003 parity), and `27a25b9`
+  (EH4-004 compatibility target). This report is part of the EH4-005 commit.
+- The initial verified clean baseline was branch `main`, commit
+  `bea94210ed7c23f71d2241f8abe3c849ade18561`.
+
+### 1.1 Provenance and repository record
+
+| Item | Verified information |
+|---|---|
+| EasyHybrid4 baseline | `main`, initial HEAD `bea94210ed7c23f71d2241f8abe3c849ade18561`, clean at the EH4-000 verification point, no tags, and no configured remote. No EasyHybrid4 fork URL is established. |
+| Graphics engine in EasyHybrid4 | `.gitmodules` declares `src/graphics_engine` at `https://github.com/casebor/graphics_engine`, branch `vismol_easyhybrid`; however the index/tree tracks ordinary files, `git submodule status --recursive` is empty, and there is no nested Git metadata. Its upstream SHA is unknown. Do not infer the SHA or repository from the declaration. |
+| EasyHybrid3 comparison checkout | `$HOME/software/EasyHybrid3`, branch `dev`, commit `b2113b8c11ba3dff51b93fd2f52fc1a7dc9d1098`; origin is `git@github.com:Shabirahmad427/EasyHybrid3.git`, tracking `origin/dev`, 18 commits ahead at inspection. Its working tree had pre-existing user changes and was not modified. |
+| EasyHybrid3 graphics submodule | Declared at `https://github.com/Shabirahmad427/Vismol`, branch `vismol_easyhybrid`; checked-out SHA `6a25a2eaf27c7627dba171104fc7fc8a4c9295fd`. This is comparison evidence only, not the missing EasyHybrid4 revision. |
+| Licenses | Root application `LICENSE`: GNU GPL v3. Vendored graphics `src/graphics_engine/LICENSE`: CC BY-NC 4.0. Preserve both notices; distribution implications need legal review before packaging. |
+
+These provenance limitations have already been recorded. Do not spend more
+cycles rechecking the same missing remote or historical SHA without new
+evidence. Phase 0 may continue on independent tasks.
+
+## 2. Architecture and dependencies
+
+### 2.1 Application boundaries
+
+- `easyhybrid.py` is the GTK4 application entrypoint. It creates a
+  `Gtk.Application`, configures startup, and creates the main window.
+- `activate_easyhybrid4.sh` selects the configured Python/pDynamo environment
+  and sets the application home. `install.py` checks prerequisites and builds
+  the graphics extensions; it may update an active pDynamo environment.
+- `src/gui/` contains the main window, GTK widgets, menus, builder, analysis,
+  import/setup, and simulation dialogs. The repository has 53 `.glade`
+  GtkBuilder resources and no `.ui` resources.
+- `src/pdynamo/pDynamo2EasyHybrid/` adapts GUI actions to pDynamo systems,
+  simulation, analysis, restraints, and I/O. `src/pdynamo/p_methods/` holds
+  numerical workflow implementations. Keep scientific computation separate
+  from GTK and operating-system integration.
+- `src/util/`, `src/pdynamo/opls/`, and `src/util/extras/` provide analysis,
+  force-field, and external QC adapters.
+- `src/graphics_engine/src/vismol/` contains molecular data/models/parsers,
+  GTK4 widget integration, OpenGL renderer/shaders, and seven Cython extension
+  sources. The graphics directory is vendored source, not a working Git
+  submodule in this checkout.
+
+### 2.2 Runtime dependencies
+
+The root `requirements.txt` lists NumPy, SciPy, PyOpenGL, Cython, freetype-py,
+pycairo, PyGObject, and psutil with lower bounds. It has no lock/constraints
+file. GTK4, GLib, typelibs, compiler toolchains, pDynamo3, and optional QC
+engines are native/external requirements and are not reproducibly installed by
+pip alone. The graphics package metadata separately declares NumPy, Cython,
+PyOpenGL and Cython build extensions; its Python/platform classifiers do not
+establish compatibility of the complete application.
+
+The configured launcher environment provides `pCore`, `pMolecule`,
+`pSimulation`, and `pScientific`. These resolve after sourcing the pDynamo
+environment script. Other pDynamo versions, Python versions, and native
+platforms have not been validated. Optional interfaces include ORCA, xTB,
+MOPAC, Sparrow, DFTB+, PySCF/GPU4PySCF and external simulation tools; each has
+its own binary and platform constraints.
+
+## 3. GTK4, Python, and dependency compatibility
+
+### 3.1 Selected target
+
+| Item | Target / evidence |
+|---|---|
+| GTK introspection namespace | `Gtk 4.0`; this is GTK's API namespace, not the installed runtime minor. |
+| `GTK_MIN` target | GTK 4.0, matching the installer check and source namespace. GTK 4.0 runtime is **NOT TESTED**. |
+| Highest project runtime verified | GTK 4.14.5 with GLib 2.80.0, on Linux x86_64. Existing data-logic tests pass; this is not a live GUI/GL test. |
+| Current upstream stable | GTK 4.22.5 as listed by the [GTK project](https://www.gtk.org/) on 2026-10-17. **NOT TESTED** in this checkout. |
+| Python target | Python >=3.10 candidate, because source uses evaluated PEP 604 annotations such as `Gtk.Window | None`. Only Python 3.12.3 was run; pDynamo/native compatibility on other versions is **NOT TESTED** and no maximum is approved. |
+
+The intended target is GTK 4.0 through current GTK4 stable, but it is not a
+verified interval or a claim for every GTK4 minor/future release. GTK 4.0 and
+GTK 4.22.5 need real CI jobs before the range can be described as verified.
+Raise the minimum only when a required API/dependency cannot be handled by a
+portable fallback, and record the evidence and migration plan.
+
+### 3.2 Version-sensitive API evidence
+
+- `easyhybrid.py` feature-detects `Gtk.Picture.set_content_fit()` (GTK 4.8+)
+  and falls back to `set_can_shrink()` / `set_keep_aspect_ratio()` on older
+  runtimes. GTK documents the older aspect-ratio method as deprecated since
+  4.8. See the [GTK Picture API](https://docs.gtk.org/gtk4/method.Picture.set_content_fit.html).
+- `vismol_gtkwidget.py` detects GTK 4.8's
+  `Gtk.EventControllerScroll.get_unit()` with `hasattr`; older versions request
+  discrete wheel events. See the [scroll controller API](https://docs.gtk.org/gtk4/method.EventControllerScroll.get_unit.html).
+- The source scan found no `Gtk.FileDialog` or `Gtk.AlertDialog` usage. Both
+  arrived in GTK 4.10; the application uses existing asynchronous chooser and
+  message-window helpers. See [`Gtk.FileDialog`](https://docs.gtk.org/gtk4/class.FileDialog.html).
+- The installer checks the loaded GTK version, but it does not statically
+  validate every Python symbol or GtkBuilder property. An exhaustive,
+  version-aware deprecation audit remains EH4-106.
+
+### 3.3 Dependency-resolution policy
+
+- GTK, GLib and typelibs are native OS dependencies, not pip packages. Install
+  them natively on each test runner and record loaded runtime versions.
+- Retain explicit lower bounds in `requirements.txt` and publish resolved
+  versions from CI. Add Python/platform constraints when a reproducible
+  incompatibility or dependency conflict is demonstrated.
+- Validate pDynamo and optional scientific binaries per OS/Python combination;
+  do not infer them from a successful graphics extension build.
+
+## 4. EasyHybrid3 feature parity
+
+Statuses apply to the named scope only: **WORKING** means a narrow
+non-GUI behavior has regression-test evidence; **BROKEN** means a known
+diagnostic/failure exists; **UNIMPLEMENTED** means no corresponding
+EasyHybrid4 implementation was found; **UNTESTED** means source is present or
+migration is claimed but end-to-end behavior is not demonstrated.
+
+| Workflow | EasyHybrid4 status | Evidence / remaining work |
+|---|---|---|
+| Atom/bond mutation and bond-order perception logic | **WORKING (logic slice only)** | 23 tests cover bond edits, valence/order handling, representations' bookkeeping, and frame-specific dynamic bonds. No GTK UI, GL rendering, or pDynamo sync claim. |
+| Interactive Builder (create/edit, undo, charges/hydrogens, fragments, structures, solvation, DYFF/OPLS) | **UNTESTED** | GTK4 source exists under `src/gui/windows/builder/`; current tests do not run the UI, full pDynamo editing, or round-trip persistence. |
+| VisMol viewer, picking, selection, representations, camera and playback | **UNTESTED** | Source exists under `src/graphics_engine/src/vismol/`; no real Gtk.GLArea context/render test. |
+| GTK widget startup/lifecycle | **BROKEN (diagnostic observed)** | User-provided launch output showed two `gtk_box_remove` parent assertion critical messages. Visible impact and responsible removal path are unknown. |
+| System import, force-field assignment, merge/prune, trajectory import, `.easy` save/load | **UNTESTED** | Matching dialogs/session/serialization code exists; no representative import or project round-trip fixture was run. |
+| MM/QC/QC-MM setup and calculations | **UNTESTED** | Setup modules and pDynamo dispatch exist; no calculation-level comparison was run. |
+| Single point, optimization, MD, normal modes, transition-state search | **UNTESTED** | GTK4 windows and dispatch are present; no sample scientific output comparison. |
+| PES scans, umbrella sampling, WHAM, NEB/reaction paths, CPR | **UNTESTED** | UI/methods are present; generated inputs and numerical outputs have not been compared. |
+| RDF, density, RMSD/RMSF, Ramachandran, surfaces, trajectory analysis | **UNTESTED** | Modules exist; no representative analysis-result fixtures were run. |
+| Infrared spectrum GUI | **UNIMPLEMENTED** | No matching EasyHybrid4 spectrum window/menu workflow was found. |
+| AutoDock Vina / AutoDock-GPU setup-run-import | **UNIMPLEMENTED** | EasyHybrid3 report and dialogs identify both; no EasyHybrid4 front ends/actions were found. |
+| NAMD/SMD, AMBER `tleap`, Packmol, Antechamber preparation dialogs | **UNIMPLEMENTED** | EasyHybrid3 front ends are absent. Packmol-style solvent placement is not a replacement for these dialogs. |
+| Scientific system/script exports and simulation output files | **UNTESTED** | Export code exists, but schemas/restarts/numerical outputs lack fixture comparisons. |
+| Process manager, job lifecycle, recent files, project/session management | **UNTESTED** | Source exists; process and restart lifecycle were not exercised. |
+
+EasyHybrid3's detailed implementation report was inspected read-only at
+`$HOME/software/EasyHybrid3/docs/EASYHYBRID3_IMPLEMENTATION_REPORT.md`.
+The comparison suite result is recorded below. Preserve all scientific
+workflows; this status report does not authorize dropping an incomplete
+feature.
+
+## 5. Platform and graphics requirements
+
+### 5.1 Platform matrix
+
+| Platform/backend | Intended target | Verified status |
+|---|---|---|
+| Linux x86_64, GTK 4.14.5 | GTK4/PyGObject, Python, pDynamo3, OpenGL 3.3+ | 23 non-GUI tests passed and the graphics extensions built/imported. Live UI, X11 window construction, and real GL: **NOT TESTED**. |
+| Linux Wayland | Shared GTK4 application | **NOT TESTED**. |
+| Other Linux architectures/distributions | Native GTK/pDynamo dependencies | **NOT TESTED**. |
+| Windows x64 | Native GTK4, pDynamo3, compiler and OpenGL 3.3+ context | **NOT TESTED**; Bash launcher/build path needs native Windows handling. |
+| macOS arm64/x86_64 | Native GTK4, pDynamo3, compiler and OpenGL 3.3+ core context | **NOT TESTED**; no native runner/device used. |
+
+The VisMol widget explicitly requests OpenGL 3.3+ and exits with diagnostics
+if Gtk.GLArea cannot create the context. No renderer/vendor was captured. GTK
+and GL context negotiation, dialogs, fonts, scaling, and input semantics must
+be checked on every native OS. The macOS trackpad scroll-unit path has a
+GTK 4.8 feature check; real trackpad behavior is untested.
+
+### 5.2 CI architecture proposal
+
+- Use native Linux, Windows and macOS GitHub-hosted runners for dependency
+  provisioning, imports, extension builds, and display-free tests.
+- Add GTK-minimum and current-stable Linux jobs with native GTK packages or
+  source builds and report the **loaded** GTK/GLib/PyGObject versions.
+- Use pairwise OS/GTK smoke coverage on pull requests; expand version/platform
+  coverage before release. GUI jobs need native displays; GL jobs must record
+  driver/context results and cannot be replaced by unit-test mocks.
+- Keep macOS Retina/trackpad and real-driver checks as dated manual reports
+  until reliable hardware-backed runners exist.
+- This architecture is a proposal, not an implemented workflow. Roadmap
+  EH4-500 through EH4-505 own CI implementation and native/manual checks.
+
+## 6. Reproducible test baseline
+
+### 6.1 Environment
+
+| Item | Observed |
+|---|---|
+| OS/kernel/architecture | Linux x86_64, kernel `6.8.0-147-generic`, Ubuntu userspace/glibc 2.39 |
+| Python | 3.12.3 |
+| PyGObject / GTK / GLib | 3.48.2 / 4.14.5 / 2.80.0 |
+| pytest | 9.1.1 |
+| NumPy / SciPy | 1.26.4 / 1.11.4 |
+| Cython / PyOpenGL / psutil | 3.0.8 / 3.1.7 / 5.9.8 |
+| Compiler | GCC 12.4.0 |
+| Display / renderer | **NOT TESTED** for the baseline |
+
+The launcher-sourced pDynamo environment resolves `pCore`, `pMolecule`,
+`pSimulation`, and `pScientific`.
+
+### 6.2 Commands and outcomes
+
+Existing EasyHybrid4 tests:
+
+```sh
+$HOME/software/envs/easyhybrid312/bin/python -m pytest -q -p no:cacheprovider tests/
+```
+
+Result: **PASS**, 23 passed in 0.02 seconds.
+
+EasyHybrid3 reference suite:
+
+```sh
+$HOME/software/envs/easyhybrid312/bin/python -m pytest -q -p no:cacheprovider $HOME/software/EasyHybrid3/tests/
+```
+
+Result: **PASS**, 23 passed, 4 skipped in 0.08 seconds.
+
+Graphics extension build (isolated source copy, no repository mutation):
+
+```sh
+tmpdir=$(mktemp -d)
+cp -a src/graphics_engine "$tmpdir/graphics_engine"
+cd "$tmpdir/graphics_engine"
+$HOME/software/envs/easyhybrid312/bin/python setup.py build_ext --inplace
+PYTHONPATH="$tmpdir/graphics_engine/src" \
+  $HOME/software/envs/easyhybrid312/bin/python -c 'import vismol.utils.matrix_operations, vismol.utils.PDBFiles, vismol.utils.GROFiles, vismol.utils.c_distances, vismol.utils.selectors, vismol.utils.mesh_decimation, vismol.utils.mesh_smoothing; print("7 graphics extension imports: PASS")'
+```
+
+Result: **PASS**, seven compiled modules and seven imports. GCC emitted NumPy
+deprecated C API and setuptools license/metadata warnings.
+
+An isolated `pip install --target` probe **FAILED** during PEP 517 metadata
+generation with `ModuleNotFoundError: No module named 'src'`. The documented
+`build_ext --inplace` route succeeds. The full interactive `install.py` was
+**NOT RUN** because it can install packages or modify the configured pDynamo
+environment.
+
+### 6.3 Coverage boundaries
+
+Tests use `tests/conftest.py` to create generated in-memory atoms, bonds, and
+zero-coordinate frames. They are display-free. They do not validate GTK
+windows, OpenGL rendering, pDynamo synchronization, scientific calculations,
+project/export round trips, or cross-platform behavior. No new runtime code
+was changed in inventory/report tasks, so no new behavioral test was needed.
+
+## 7. Contributor workflow
+
+1. Read root `AGENTS.md` and [`docs/ROADMAP.md`](../docs/ROADMAP.md) completely before a
+   coding session. Work the first eligible task and do not bypass phase gates.
+2. Use an isolated Python environment with root `requirements.txt`, native
+   GTK4/PyGObject, and a separately configured pDynamo3 environment. There is
+   no universal installer for all operating systems.
+3. Run `python -m pytest -q -p no:cacheprovider tests/` in the configured
+   environment. These tests do not need a display or actual GL context.
+4. The normal VisMol build is `cd src/graphics_engine && bash install.sh`;
+   it writes generated C/native binaries into the source tree. For a clean
+   baseline, build a temporary copy using the command above.
+5. Avoid running the interactive installer as a test; inspect its package and
+   pDynamo modifications first.
+6. Record OS/architecture, Python/PyGObject/GTK/GLib, test commands/raw
+   outcomes, graphics metadata when tested, and every unavailable platform.
+
+## 8. Safe test-data policy
+
+- Prefer the smallest synthetic molecular graph and in-memory coordinates.
+- Use `tmp_path`/temporary directories for projects, scripts, trajectories,
+  logs and exports; tests must not write to a user's project, home directory,
+  or pDynamo data tree.
+- Keep fixtures deterministic; record atom ordering, units, random seeds, and
+  scientific tolerances. Avoid large trajectories and production databases.
+- If a real structure is necessary, use a small redistributable public example
+  with source URL, license, attribution and date. Remove confidential/project
+  metadata. If rights are unclear, do not add the file.
+- Never commit research data, private structures, serialized projects without
+  provenance review, credentials, or machine-specific configuration.
+- Check `git status` after tests and keep generated data in temporary/ignored
+  locations.
+
+## 9. Known limitations and follow-up
+
+| ID | Limitation | Evidence | Follow-up |
+|---|---|---|---|
+| KL-001 | EasyHybrid4 remote/fork root and graphics source SHA unknown. | No remote; graphics directory is not a Git submodule. | EH4-000/EH4-200 only when new evidence appears. |
+| KL-002 | GTK range target is not fully validated. | GTK 4.0 and stable GTK 4.22.5 **NOT TESTED**; local GTK 4.14.5 only. | EH4-501/502/503. |
+| KL-003 | Native cross-platform support unknown. | Windows, macOS, Wayland and other distributions **NOT TESTED**; launcher/build use Bash. | EH4-300–304 and EH4-500 onward. |
+| KL-004 | Actual UI/OpenGL path unverified. | Unit tests are headless; renderer metadata unavailable. OpenGL 3.3+ requested. | EH4-102 and EH4-201–205/EH4-502/503. |
+| KL-005 | GTK critical removal warning during startup. | User provided two `gtk_box_remove` parent assertion messages; impact/path unknown. | Reproduce and isolate; EH4-102/105. |
+| KL-006 | Generic graphics-engine pip installation fails. | Isolated PEP 517 metadata failed `ModuleNotFoundError: No module named 'src'`; direct Cython build/import passes. | EH4-200 or EH4-303. |
+| KL-007 | pDynamo validated in one environment only. | Linux Python 3.12.3 resolves core packages. | EH4-004/500/504. |
+| KL-008 | Feature parity is incomplete/unverified. | See Section 4: docking, several external setup dialogs, and IR GUI are absent; others untested. | Separate parity tasks with scientific regression evidence. |
+| KL-009 | GtkBuilder validation uses only installed GTK 4.14.5. | 53 Glade resources passed the earlier inventory scan; GTK 4.0/current stable construction is untested. | EH4-102/501/502. |
+| KL-010 | Removed/deprecated API inventory incomplete. | A targeted scan found guarded GTK 4.8 APIs; no exhaustive audit. | EH4-106. |
+
+## 10. Evidence and limitations by platform/version
+
+| Target | Result |
+|---|---|
+| Linux x86_64, GTK 4.14.5 / GLib 2.80.0 / Python 3.12.3 | **PASS** existing unit suite/build; GUI/GL **NOT TESTED** |
+| GTK 4.0 minimum runtime | **NOT TESTED** |
+| GTK 4.22.5 current stable | **NOT TESTED** |
+| Other GTK4 minors | **NOT TESTED**, except GTK 4.14.5 |
+| Linux X11 live UI/GL | **NOT TESTED** |
+| Linux Wayland UI/GL/input/scaling | **NOT TESTED** |
+| Windows native GTK4/Python/GL | **NOT TESTED** |
+| macOS arm64/x86_64 GTK4/Python/GL/trackpad | **NOT TESTED** |
+
+No Linux pass is evidence of Windows/macOS or GTK-minimum compatibility.
+Update this consolidated report and the task evidence in `ROADMAP.md` as new
+results become available.
+
+
+# 11. Preserved topic reports and detailed evidence
+
+The sections below retain the prior topic reports in one place. Their original scope and dates remain in their text; dated machine-specific and EasyHybrid3-only results are historical evidence, not claims about current EasyHybrid4 support. Sections 1–10 above are the consolidated current status.
+
+
+## 11.1 Repository architecture and baseline
+
+## Baseline record
+
+Recorded 2026-10-17 UTC while starting EH4-000. The checked-out EasyHybrid4
+directory is `$HOME/software/EasyHybrid4`.
+
+| Item | Evidence |
+|---|---|
+| EasyHybrid4 Git metadata | Reverified directly: repository root `$HOME/software/EasyHybrid4`, branch `main`, HEAD `bea94210ed7c23f71d2241f8abe3c849ade18561`, clean working tree, no tags, and **no remotes configured**. The canonical EasyHybrid4 fork URL cannot be identified from this clone. |
+| EasyHybrid4 declared graphics submodule | `.gitmodules` declares `src/graphics_engine`, URL `https://github.com/casebor/graphics_engine`, branch `vismol_easyhybrid`. However, `git ls-tree HEAD src/graphics_engine` reports mode `040000` (ordinary tree), the index lists files individually, `git submodule status --recursive` is empty, and there is no nested `.git` or `.gitmodules`. The entry is stale: the source is vendored, not a resolvable submodule. No upstream graphics revision is present in Git metadata. |
+| EasyHybrid3 reference checkout | `$HOME/software/EasyHybrid3`, branch `dev`, commit `b2113b8c11ba3dff51b93fd2f52fc1a7dc9d1098` (2026-10-16). Tracking `origin/dev`, 18 commits ahead. Remote `origin`: `git@github.com:Shabirahmad427/EasyHybrid3.git`. No tags were listed. Working tree is dirty: modified `docs/GPU4PySCF.md`, six source files, and untracked `bin/`. These user changes were left untouched. |
+| EasyHybrid3 declared graphics submodule | `.gitmodules` names `src/graphics_engine`, URL `https://github.com/Shabirahmad427/Vismol`, branch `vismol_easyhybrid`. Resolved SHA `6a25a2eaf27c7627dba171104fc7fc8a4c9295fd`; the submodule checkout is detached. Its `origin` is the same HTTPS URL. No submodule tags were listed. |
+| Nested graphics submodules | No nested `.gitmodules` or `.git` entries were found under the vendored graphics-engine directory. |
+| Licenses | EasyHybrid4 root `LICENSE` is GNU GPL version 3. `src/graphics_engine/LICENSE` is Creative Commons Attribution-NonCommercial 4.0 International. Preserve both notices; distribution compatibility needs a deliberate legal review before packaging. |
+| Runtime observed | Linux x86_64, kernel `6.8.0-147-generic`; EasyHybrid Python `3.12.3`, PyGObject `3.48.2`, GTK `4.14.5`, GLib `2.80.0`. Display backend and OpenGL renderer were not measured for this baseline. |
+| Existing test/CI inventory | `tests/` contains `test_bond_order_perception.py` and `test_atom_ops_bonds.py`; these avoid GTK/display/OpenGL. No CI workflow directory was present in this checkout. The GUI has 53 `.glade` files and no `.ui` files. |
+
+The first inspection in the prior session saw an empty `.git/` placeholder.
+That observation was superseded when the repository metadata became available;
+the direct Git results above are the current baseline.
+
+## Layout and boundaries observed
+
+- `easyhybrid.py` is the GTK4 application entry point; `activate_easyhybrid4.sh`
+  selects the configured pDynamo Python environment and sets the application
+  home.
+- `install.py`, `requirements.txt`, and `requirements-dev.txt` manage
+  prerequisites and Python packages. The current installer checks for GTK
+  4.0+, but that is not yet a justified compatibility interval.
+- `src/gui/` contains the main window, GTK widgets, workflow dialogs, and
+  GtkBuilder `.glade` resources. `src/gtk4_compat.py` centralizes a fallback
+  value for GTK builds that omit `Gtk.INVALID_LIST_POSITION` from introspection.
+- `src/pdynamo/` adapts GUI actions to pDynamo systems and simulation
+  workflows. Scientific regression scope is described in Sections 6 and 11.15.
+- `src/graphics_engine/` contains the vendored VisMol Python package, GTK4
+  widget, OpenGL implementation, shaders, molecular parsers, Cython sources,
+  and its own `setup.py`, `pyproject.toml`, and license. Git tracks its files
+  directly, despite the stale `.gitmodules` entry.
+- Detailed package, GTK API, UI resource, dependency, and installer inventory
+  is recorded in this report under Sections 2 and 11.2 (EH4-001).
+- GTK4 migration, trackpad, and PySCF/GPU history reports are retained as
+  topic sections in Section 11 of this report.
+
+## EH4-000 remaining blockers
+
+EH4-000 remains **in progress, not complete**. Branch, commit, and clean state
+are verified, but the clone has no configured remote, so its EasyHybrid4 fork
+root cannot be identified. The declared graphics submodule has no gitlink or
+checked-out Git metadata, so there is no resolved upstream revision to record.
+Keep these as unresolved issues; do not infer the graphics SHA from EasyHybrid3
+or the URL in `.gitmodules`.
+
+
+## 11.2 Package and dependency inventory
+
+## EH4-001 — package, dependency, and GTK API inventory
+
+### Entrypoints and project areas
+
+- `easyhybrid.py` is the application entrypoint. It loads pDynamo environment
+  configuration, requests GTK 4, creates `Gtk.Application`, and initializes
+  the GUI. The active launcher `activate_easyhybrid4.sh` sets `EASYHYBRID_HOME`
+  and invokes the configured Python environment.
+- `install.py` is the interactive prerequisite/build installer. `paths.py`
+  optionally supplies `PDYNAMO_HOME`; `requirements.txt` lists Python runtime
+  packages and `requirements-dev.txt` adds pytest. Root scientific example
+  scripts live under `examples/scripts/`.
+- `src/gui/` contains the main window, widgets, molecular builder, analysis,
+  setup, and simulation dialogs. UI definitions are 53 `.glade` GtkBuilder
+  resources; there are no `.ui` resources. Resources are loaded from GUI
+  modules, including `src/gui/main/main_window.py` and
+  `src/gui/windows/simulation/`.
+- `src/pdynamo/pDynamo2EasyHybrid/` is the GUI-to-pDynamo session facade and
+  mixins for analysis, simulation, restraints, representation, and data I/O.
+  `src/pdynamo/p_methods/` implements simulation setup/workflows, while
+  `src/pdynamo/opls/` and `src/util/extras/` contain force-field and QC
+  integrations.
+- `src/util/` provides plotting, geometry, trajectory, file, and analysis
+  utilities. `tests/` has two scientific/data-logic test modules and
+  fixtures; the coverage boundary is stated in Sections 6 and 11.15.
+- `src/graphics_engine/src/vismol/` contains the VisMol models and parsers
+  (`model/`, `utils/`), application/session logic (`core/`), GTK widgets
+  (`gui/`), OpenGL context and molecular rendering (`libgl/`), and GLSL
+  shaders (`libgl/shaders/`). Seven Cython extension sources are built by
+  `src/graphics_engine/setup.py` through `install.sh`.
+
+### GTK, GLib, and UI resource API baseline
+
+- Python GTK imports request `gi.require_version("Gtk", "4.0")`; a source
+  audit found no GTK 3 namespace requests. GTK3 and GTK4 are distinct API
+  majors; the GTK4 import request does not establish a supported runtime
+  minor interval. EH4-004 selects GTK 4.0 as the minimum target; GTK 4.14.5 is
+  the highest locally verified runtime. Current stable GTK 4.22.5 remains
+  untested. See Section 3.
+- The 53 `.glade` resources declare GtkBuilder library version 4.0. The
+  resource/API audit is descriptive only; no blanket claim that all builders
+  work at every GTK4 minor is made here.
+- GTK classes are used directly throughout GUI and pDynamo adapter modules.
+  GLib provides idle scheduling in `easyhybrid.py` and the pDynamo/VisMol
+  adapters. GTK feature compatibility currently has a small helper in
+  `src/gtk4_compat.py`; EH4-101 is the planned comprehensive adapter/test
+  task.
+- `Gtk.GLArea` is embedded in `src/graphics_engine/src/vismol/gui/` and
+  delegates rendering to `libgl/vismol_glcore.py` and the shader/representation
+  modules. A real context and renderer were not inspected during this static
+  inventory.
+
+### Declared and optional dependencies
+
+- Root Python requirements: NumPy, SciPy, PyOpenGL, Cython, freetype-py,
+  pycairo, PyGObject, and psutil (`requirements.txt`). GTK4 and its
+  introspection typelib are external native dependencies. pDynamo3 is an
+  independently installed binary/scientific framework, not a pip requirement.
+- The graphics package metadata (`src/graphics_engine/pyproject.toml` and
+  `setup.py`) additionally declares NumPy, Cython, and PyOpenGL and compiles
+  Cython extensions. Its metadata advertises Python `>=3.7` and Unix only;
+  this does not establish compatibility of the whole application with those
+  Python versions or with Windows/macOS.
+- The installer checks Python packages in `install.py:PYTHON_LIBRARIES`, the
+  GTK typelib/runtime, compiler tools, and pDynamo. Optional QC interfaces
+  appear in setup dialogs for ORCA, xTB, MOPAC, Sparrow, DFTB+, and
+  PySCF/GPU4PySCF. Vendored adapters under `src/util/extras/` include ORCA,
+  xTB, and MOPAC; `install.py` currently offers installation of the xTB
+  adapter and checks the ORCA/xTB executable environment variables.
+  PySCF/GPU4PySCF and the other external engines are not installed by
+  `requirements.txt`.
+- Build/launch scripts include `install.py`,
+  `src/graphics_engine/install.sh`, `activate_easyhybrid4.sh`, and standalone
+  VisMol scripts under `src/graphics_engine/scripts/`. The latter two shell
+  scripts require a Bash-compatible shell, so native Windows provisioning is
+  not demonstrated by this inventory.
+
+### Known source-boundary observations (not fixes in EH4-001)
+
+- `.gitmodules` declares a graphics submodule, but Git stores the directory
+  as ordinary files. `.gitmodules` URL, `pyproject.toml` project URLs, and the
+  absent parent remote do not establish which upstream revision these files
+  came from; preserve that as an EH4-000/EH4-200 issue.
+- The root README's clone example names EasyHybrid3, while describing
+  EasyHybrid4 as a separate local port. No EasyHybrid4 remote/fork URL is
+  configured in Git.
+- Native Windows, macOS, Wayland, and GTK minor-version test results remain
+  **NOT TESTED**. This task changed documentation only and did not alter
+  scientific behavior.
+
+
+## 11.3 Contributor quick start
+
+Read [`../AGENTS.md`](../AGENTS.md) and [`docs/ROADMAP.md`](../docs/ROADMAP.md) before
+starting work. The roadmap is the task queue; update it with actual test
+evidence and commit each coherent task separately.
+
+## Environment
+
+Use an isolated Python environment with the dependencies from
+[`../requirements.txt`](../requirements.txt) and GTK4/PyGObject installed from
+the native platform package source. The application also requires a separately
+configured pDynamo3 environment. EasyHybrid4 does not provide one universal
+dependency installer for all operating systems.
+
+The verified local example used Python 3.12.3, PyGObject 3.48.2, GTK 4.14.5,
+GLib 2.80.0 and GCC 12.4.0 on Linux x86_64. Those versions are evidence for
+that environment only. Check [Section 3](#3-gtk4-python-and-dependency-compatibility)
+and [Section 5](#5-platform-and-graphics-requirements) before making other
+compatibility claims.
+
+## Build and run checks
+
+With the environment that provides GTK, pDynamo3 and the Python requirements
+activated:
+
+```sh
+python -m pytest -q -p no:cacheprovider tests/
+```
+
+To compile the VisMol Cython extensions in the checkout:
+
+```sh
+cd src/graphics_engine
+bash install.sh
+cd ../..
+```
+
+That build writes generated C and native extension outputs under the graphics
+source tree. For a non-mutating baseline, copy `src/graphics_engine` to a
+temporary directory and build the copy; the complete verified example is in
+[this report, Section 6](#6-reproducible-test-baseline).
+
+The full `install.py` is interactive and may install packages or update the
+configured pDynamo environment. Review its choices before running it; do not
+run it as a test command in a user's active scientific environment.
+
+## Regression tests and test data
+
+The current pytest suite is display-free and targets molecular bond editing
+and bond-order perception. `tests/conftest.py` builds a small in-memory VisMol
+object with generated atoms, connectivity, and zeroed coordinates; this avoids
+real research structures and does not exercise GTK, OpenGL, pDynamo
+synchronization, simulations, or export round trips. Add focused tests next to
+the behavior they cover and keep UI/GL acceptance separate from unit tests.
+
+Follow [this report, Section 8](#8-safe-test-data-policy) for all fixtures and
+generated scientific inputs. Never put private research files, credentials,
+or unlicensed molecular data into the repository.
+
+## Reporting
+
+For each task record OS/architecture, Python/PyGObject/GTK/GLib versions,
+commands, raw pass/fail/skip results, graphics metadata where applicable, and
+all untested platforms. Update `docs/ROADMAP.md`, run applicable checks, and
+commit the task without claiming unavailable CI or native hardware results.
+
+
+## 11.4 EasyHybrid3 feature parity audit
+
+Date: 2026-10-17. This is a source and test inventory, not a claim that the
+complete applications have been exercised. EasyHybrid3 was inspected
+read-only at `$HOME/software/EasyHybrid3`; its implementation summary is
+`docs/EASYHYBRID3_IMPLEMENTATION_REPORT.md`. EasyHybrid4 evidence is from this
+checkout. Statuses mean:
+
+- **WORKING** — the explicitly named non-GUI behavior has regression-test
+  evidence; this does not certify its GUI workflow.
+- **BROKEN** — a reproducible diagnostic/failure is known, but impact may need
+  further investigation.
+- **UNIMPLEMENTED** — the audited EasyHybrid3 capability has no corresponding
+  EasyHybrid4 implementation/menu front end found in this source audit.
+- **UNTESTED** — corresponding code is present or a migration is claimed, but
+  end-to-end behavior has not been demonstrated.
+
+| Workflow | EasyHybrid3 reference | EasyHybrid4 evidence | Status and evidence |
+|---|---|---|---|
+| Atom/bond editing primitives and bond-order perception | `src/gui/windows/builder/atom_ops.py`; `src/graphics_engine/src/vismol/core/bond_order_perception.py` | `src/gui/windows/builder/atom_ops.py`; same VisMol core modules | **WORKING (logic slice only)** — both suites exercise these non-GUI components. EH4: `python -m pytest -q -p no:cacheprovider tests/` = 23 passed. No claim for UI, pDynamo synchronization, or rendered result. |
+| Interactive Builder: create/edit loaded molecules, undo, hydrogen/charge handling, fragments, structures, solvation, DYFF/OPLS tools | `src/gui/windows/builder/`; detailed scope in EH3 implementation report §§3.1 and Part II | GTK4 counterparts under `src/gui/windows/builder/`; GTK4 migration described in Section 11.10 | **UNTESTED** — component source exists; existing regression suite covers bond operations/perception only. No live Builder interaction, full undo/persistence round trip, or real pDynamo-backed editing run was recorded. |
+| Molecular viewer, picking, selection, representations, camera and trajectory playback | `src/graphics_engine/src/vismol/` and EH3 report §§2–3 | `src/graphics_engine/src/vismol/`, GTK4 integration in `src/gui/main/main_window.py` | **UNTESTED** — no real `Gtk.GLArea` context/render test or end-to-end mouse/picking validation in this baseline. |
+| GTK widget lifecycle / window startup | GTK3 main window and auxiliary Glade windows | `easyhybrid.py`, `src/gui/main/`, GTK4 GtkBuilder resources | **BROKEN (diagnostic observed)** — user-provided launch output contains two `gtk_box_remove` GTK critical assertions. Whether these affect visible behavior is unknown; the responsible widget-removal path has not yet been isolated. |
+| System import, force-field assignment, merge/prune, trajectory import and `.easy` project save/load | EH3 `import_system.py`, session methods, `io_data.py`; report §3.6 | `src/gui/windows/setup/windows_and_dialogs/system_windows/`, `src/pdynamo/pDynamo2EasyHybrid/{session,io_data,import_trajectory}.py` | **UNTESTED** — parallel code paths are present; no representative file-import or project round-trip fixture has been run as part of this audit. |
+| MM/QC/QC-MM model setup and calculations | EH3 QC setup modules and pDynamo session integration; report §3.5 | `src/gui/windows/setup/windows_and_dialogs/qc_setup/`, `src/pdynamo/pDynamo2EasyHybrid/session.py` | **UNTESTED** — code and engine setup modules exist, but no calculation-level pDynamo result comparison was run. |
+| Single point, geometry optimization, MD, normal modes and transition-state search | EH3 `src/gui/windows/simulation/` | Same named GTK4 window family under `src/gui/windows/simulation/`; dispatch in `src/pdynamo/pDynamo2EasyHybrid/simulations_mixin.py` | **UNTESTED** — windows and dispatch exist; no sample scientific run or output comparison was performed. |
+| 1D/2D PES scans, umbrella sampling, WHAM, reaction paths/NEB and CPR | EH3 report §3.3; `PES_scan_window.py`, `umbrella_sampling_window.py`, `WHAM_analysis_window.py`, path/CPR tools | Corresponding GTK4 modules and pDynamo methods are present; see Section 11.10 | **UNTESTED** — UI/resources and dispatch are present; no generated-input or numerical-output comparison was run. |
+| Analysis: RDF, density, RMSD/RMSF, Ramachandran, surfaces, WHAM and trajectory tools | EH3 report §3.4 and `src/gui/windows/analysis/` | Corresponding modules exist under `src/gui/windows/analysis/`; Section 11.10 documents GTK4 migration | **UNTESTED** — source presence is verified, but no analysis fixture/result comparisons were run for this audit. |
+| Infrared spectrum workflow | EH3 report §3.4 and infrared changelog in §7 | No EasyHybrid4 infrared/spectrum window or menu handler was found by filename or source-symbol search; current `src/util/extras/` has QC model adapters but no corresponding GUI workflow | **UNIMPLEMENTED** — restore or explicitly retire with a documented feature decision; do not treat generic dipole/QC support as parity. |
+| AutoDock Vina and AutoDock-GPU setup/run/import | EH3 report §3.2 and `setup/windows_and_dialogs/system_windows/prepare_vina_docking.py`, `prepare_autodock_gpu.py` | No corresponding docking modules or menu/action handlers found under `src/` | **UNIMPLEMENTED** — both EH3 docking front ends are absent from the audited EasyHybrid4 source. |
+| NAMD/SMD, AMBER `tleap`, Packmol and Antechamber preparation front ends | EH3 report §3.5 and `prepare_namd_run.py`, `prepare_smd_run.py`, `prepare_amber_system.py`, `prepare_packmol_run.py`, `prepare_ligand_antechamber.py` | No matching setup windows/front ends found. The bundled solvent builder's Packmol-style placement is not the same as those preparation workflows. | **UNIMPLEMENTED** — the EH3 external preparation dialogs are not present. |
+| Scientific system/script exports and simulation output files | EH3 export dialogs and report §3.6 | `src/gui/windows/setup/windows_and_dialogs/dialogs/export_dialogs.py`, `pDynamo2EasyHybrid/session.py::export_system`, pDynamo scan/sampling methods | **UNTESTED** — export code exists; no exported-file schema, restart, or numerical output fixture comparison was done. |
+| Process manager, jobs, recent files, and project/session management | EH3 report §3.6 | `src/gui/windows/setup/process_manager_window.py`, session/serialization modules, main-window actions | **UNTESTED** — source paths are present; lifecycle and restart behavior were not exercised. |
+
+## Test evidence and limits
+
+On Linux x86_64 with Python 3.12.3, PyGObject 3.48.2, GTK 4.14.5 and GLib
+2.80.0:
+
+- EasyHybrid4: `$HOME/software/envs/easyhybrid312/bin/python -m pytest -q -p no:cacheprovider tests/` — **23 passed**.
+- EasyHybrid3 reference: `$HOME/software/envs/easyhybrid312/bin/python -m pytest -q -p no:cacheprovider $HOME/software/EasyHybrid3/tests/` — **23 passed, 4 skipped**.
+- Both suites are primarily GTK/display-free atom/bond and chemistry logic tests. They do not test the GUI, pDynamo calculations, exports, real OpenGL, Windows, or macOS.
+- Linux Wayland/X11 live GUI, GTK 4.0, other GTK minors, Windows, and macOS are **NOT TESTED**. See Section 6 of this report.
+
+This audit changes documentation only. No new executable behavior was added,
+so no new behavioral regression test was appropriate. The identified parity
+gaps and the observed GTK critical warning become follow-up work; this checklist
+does not authorize removing or changing scientific behavior.
+
+
+## 11.5 GTK4 and Python compatibility contract
+
+Status: evidence-based target selected; lower/upper GTK runtime validation is
+still pending. This document distinguishes the intended range from versions
+actually tested.
+
+## Selected target and verified versions
+
+| Contract item | Selection | Evidence / status |
+|---|---|---|
+| GTK API namespace | `Gtk 4.0` | `gi.require_version("Gtk", "4.0")` and GtkBuilder resources target 4.0. This names GTK's API namespace, not a 4.0 runtime. |
+| `GTK_MIN` target | GTK `4.0` | The installer currently rejects versions below `(4, 0)`; source requests no GTK3 namespace. Optional APIs found in this audit are guarded. GTK 4.0 runtime **NOT TESTED**. |
+| Local GTK runtime verified | GTK `4.14.5` / GLib `2.80.0` | The Linux development environment. Existing unit tests pass; this is not a live window/GL verification. |
+| Current upstream stable target | GTK `4.22.5` (as checked 2026-10-17) | [GTK project release status](https://www.gtk.org/). GTK 4.22.5 **NOT TESTED** in this project. |
+| `GTK_LATEST_VERIFIED` | `4.14.5` | Highest project runtime actually exercised so far; it is not the current upstream stable release. |
+| Python target | Python `>=3.10` candidate | Source contains evaluated PEP 604 annotations such as `Gtk.Window | None`, which require Python 3.10+. Only Python 3.12.3 was executed. pDynamo/native dependency support on other Python versions is **NOT TESTED**; no upper bound is approved yet. |
+
+The intended compatibility target is GTK 4.0 through current GTK4 stable, with
+the explicit qualification that only GTK 4.14.5 has been exercised in this
+checkout. This is not a blanket pass for every GTK4 minor, every platform, or
+future releases. GTK 4.0 and GTK 4.22.5 need real CI jobs before the range can
+be described as verified.
+
+## Dependency resolution strategy
+
+- GTK4, GLib and their introspection typelibs are native platform dependencies;
+  do not try to version them through `pip`. Provision GTK natively on each CI
+  OS and report the version loaded at runtime.
+- `requirements.txt` currently provides lower bounds for Python packages but
+  no lock/constraints set. Keep those minimum declarations, and add platform
+  and Python-specific constraints only when CI proves an incompatibility or a
+  reproducibility need. CI should install from the same declared requirements
+  used by contributors, then publish the resolved package versions.
+- pDynamo3 and optional QC engines remain external binary/scientific
+  dependencies. The only verified pDynamo environment is the configured
+  Python 3.12.3 Linux environment. Do not claim other Python/platform
+  combinations based on graphics-only builds.
+- A release support claim requires tests for the lowest GTK/Python targets and
+  a current stable GTK runtime. Raise `GTK_MIN` only when a required API or
+  dependency cannot be kept compatible, document the exact blocker, and
+  provide a tested migration/fallback plan.
+
+## Source audit: minor-version APIs
+
+- GTK 4.8's `Gtk.Picture.set_content_fit()` is feature-detected in
+  `easyhybrid.py`; the fallback uses `set_can_shrink()` and
+  `set_keep_aspect_ratio()`. GTK documents `set_content_fit` as available since
+  4.8 and the aspect-ratio API as deprecated since 4.8. See the [GTK
+  `Gtk.Picture` API](https://docs.gtk.org/gtk4/method.Picture.set_content_fit.html).
+- GTK 4.8's scroll-unit API is feature-detected in
+  `src/graphics_engine/src/vismol/gui/vismol_gtkwidget.py` using
+  `hasattr(Gtk.EventControllerScroll, "get_unit")`; earlier runtimes request
+  discrete wheel steps. See the [GTK scroll-controller API](https://docs.gtk.org/gtk4/method.EventControllerScroll.get_unit.html).
+- No `Gtk.FileDialog` or `Gtk.AlertDialog` usage was found in the source scan;
+  both APIs were introduced in GTK 4.10. The application uses its existing
+  async chooser and message-window helpers instead. See GTK's
+  [`Gtk.FileDialog` API](https://docs.gtk.org/gtk4/class.FileDialog.html).
+- The installer checks the loaded GTK version at runtime, but it does not
+  validate every API referenced by Python or GtkBuilder resources. The broad
+  removed/deprecated API audit and minimum-runtime builder/UI tests remain
+  follow-up items.
+
+## Validation matrix
+
+| Version/platform | Status |
+|---|---|
+| Linux x86_64, GTK 4.14.5 / GLib 2.80.0 / Python 3.12.3 | Existing non-GUI suite: 23 passed. Builder resources were validated against the installed GTK 4.14 runtime in the earlier inventory. Real window and GL smoke: NOT TESTED. |
+| GTK 4.0, Linux | NOT TESTED; target minimum is selected but no runtime/build is available locally. |
+| GTK 4.22.5, Linux | NOT TESTED; current stable target is unavailable in the local runtime. |
+| Intermediate GTK4 minors | NOT TESTED except for the single 4.14.5 runtime above. |
+| Windows native GTK4 / Python | NOT TESTED; no native runner was executed. |
+| macOS arm64/x86_64 GTK4 / Python | NOT TESTED; no native runner was executed. |
+
+No runtime code changed in this contract decision. Existing behavior tests were
+rerun; GTK_MIN and current stable runtime acceptance still requires the
+versioned CI tasks in Phase 5.
+
+
+## 11.6 Known limitations register
+
+This list records current evidence and does not make an implementation issue a
+reason to change scientific behavior without regression evidence.
+
+| ID | Limitation | Evidence / impact | Next work |
+|---|---|---|---|
+| KL-001 | EasyHybrid4 remote and graphics-engine source revision are not established. `.gitmodules` lists the graphics path, but it is tracked as ordinary files. | No configured parent remote and no Git submodule pointer; no upstream SHA is known. This is a provenance/publishing gap, not a current Linux test blocker. Do not guess URLs or revisions. | EH4-000 / EH4-200 when new provenance evidence or an owner-provided remote becomes available. |
+| KL-002 | GTK minor range is selected but not fully validated. | GTK 4.0 target and upstream stable GTK 4.22.5 have not been run; local evidence is GTK 4.14.5 only. | Native GTK_MIN and current-stable CI jobs in EH4-501; UI/GL in EH4-502/503. |
+| KL-003 | Cross-platform support is unverified. | Windows, macOS, Linux Wayland, and alternate Linux distributions were not tested. Bash launch/build scripts and native pDynamo dependencies need platform-specific validation. | EH4-300 through EH4-304 and EH4-500 onward. |
+| KL-004 | Real GUI and OpenGL rendering are unverified. | Automated tests run without GTK/display/GL. The VisMol widget requests OpenGL 3.3+ core. | EH4-102, EH4-201 through EH4-205, EH4-502/503. |
+| KL-005 | EasyHybrid startup emitted two GTK critical messages. | User-provided terminal output reported `gtk_box_remove: assertion 'gtk_widget_get_parent (child) == (GtkWidget *)box' failed` twice. Visible impact and responsible removal path are unknown. | Reproduce under GTK 4.14.5, isolate the parent/child removal path, add a lifecycle regression in EH4-102/105. |
+| KL-006 | Generic pip installation of the graphics package failed metadata generation. | Isolated `pip install --target` failed with `ModuleNotFoundError: No module named 'src'`; the project's `build_ext --inplace` path and all seven extension imports passed. | Packaging/build audit EH4-200 or EH4-303. |
+| KL-007 | pDynamo3 is only validated in one configured environment. | Linux Python 3.12.3 environment resolves `pCore`, `pMolecule`, `pSimulation`, and `pScientific`; Windows/macOS and other Python runtimes are untested. | Python/platform integration matrix in EH4-004/500/504. |
+| KL-008 | Feature parity is incomplete or unverified. | See [Section 4](#4-easyhybrid3-feature-parity): docking front ends, several external preparation dialogs, and infrared GUI are absent; many remaining paths are source-present but behavior-unverified. | Implement parity gaps as separate scoped tasks; test scientific outputs before changing workflows. |
+| KL-009 | GtkBuilder validation covers only the installed GTK minor. | The 53 Glade resources and additional embedded definitions were checked against installed GTK 4.14 introspection data; GTK 4.0/current stable construction tests are absent. | EH4-102 and EH4-501/502. |
+| KL-010 | GTK removed/deprecated API audit is incomplete. | A targeted audit found gated GTK 4.8 methods; there is no exhaustive, version-aware API inventory yet. | EH4-106, with compatibility tests for the selected range. |
+
+See [this report, Section 6](#6-reproducible-test-baseline) for precise environments and results and
+[Section 5](#5-platform-and-graphics-requirements) for target platform requirements.
+
+
+## 11.7 Platform support and native requirements
+
+## Status summary
+
+| Platform/backend | Intended target | Verified status |
+|---|---|---|
+| Linux x86_64, X11 | GTK 4.x, Python target >=3.10, pDynamo3, OpenGL 3.3+ core | Python 3.12.3 / GTK 4.14.5 tests and extension build passed. Live GUI, X11 window construction, and GL context: **NOT TESTED**. |
+| Linux x86_64, Wayland | Same shared application code and native GTK | **NOT TESTED**; no Wayland session exercised. |
+| Linux other architectures/distributions | Native GTK/PyGObject and compatible pDynamo3 | **NOT TESTED**. |
+| Windows x64 | Native GTK4/PyGObject, working OpenGL 3.3+ core driver, compatible pDynamo3 and external engines | **NOT TESTED**; no Windows runner/build used. |
+| macOS arm64 | Native GTK4/PyGObject, compiler tools, OpenGL 3.3+ core profile, compatible pDynamo3 | **NOT TESTED**; no macOS runner/device used. |
+| macOS x86_64 | Same, if a supported native GTK/pDynamo environment is available | **NOT TESTED**. |
+
+These are intended targets, not a declaration of supported releases. Exact GTK
+and Python status is in [Section 3](#3-gtk4-python-and-dependency-compatibility); test
+commands and versions are in [this report, Section 6](#6-reproducible-test-baseline).
+
+## Shared runtime requirements
+
+- GTK4 with the `Gtk 4.0` introspection namespace, GLib, and PyGObject.
+  GTK/GLib are native dependencies supplied by the operating system or a
+  platform-specific package environment, not by `pip`.
+- Python dependencies listed in root `requirements.txt`.
+- pDynamo3 and its compiled scientific extensions, configured independently
+  from EasyHybrid4. Optional engines such as ORCA, xTB, MOPAC, DFTB+, PySCF,
+  Sparrow and GPU4PySCF have their own executables/build constraints.
+- A C compiler and Python development headers to compile the seven Cython
+  VisMol extensions.
+- A working GTK OpenGL area and a driver that provides the requested OpenGL
+  3.3+ core context. The GL widget requests that version explicitly; failures
+  are reported as fatal because the shaders require it.
+
+## Platform-specific observations
+
+- The launcher and VisMol build helper are Bash scripts. Native Windows
+  launching/building therefore needs a documented Windows shell/build path or
+  replacement entry point before Windows can be claimed supported.
+- The installer checks Xcode Command Line Tools on macOS for native extension
+  builds. It does not provision GTK, pDynamo3, or optional scientific engines.
+- GTK4 and OpenGL context negotiation, file dialogs, fonts, scaling, and
+  keyboard/trackpad event semantics must be checked on each native OS. Linux
+  results do not validate Windows or macOS.
+- The macOS scroll path has a GTK 4.8 capability check for scroll units. The
+  actual trackpad behavior remains **NOT TESTED**.
+- No OS-specific fallback may substitute a stub for molecular rendering or
+  scientific calculations. Record an explicit unsupported capability if the
+  required native feature is unavailable.
+
+## CI design input
+
+Use native GitHub-hosted Linux, Windows, and macOS runners for OS-level
+provisioning, import, build, and non-GUI tests. Add GTK-minimum and current
+stable Linux jobs with pinned native GTK sources/packages; report the loaded
+GTK/GLib/PyGObject versions. GUI/GL checks must run under a native display or
+record a precise skip; do not call display-free tests UI passes. Apple
+trackpad/Retina and real-driver coverage still require dated manual device
+reports. CI design is not yet implemented; see roadmap tasks EH4-500 through
+EH4-505.
+
+
+## 11.8 Safe test data and fixture policy
+
+## Prefer generated fixtures
+
+- Use the smallest synthetic molecular graph that reproduces the behavior.
+- Prefer in-memory atoms, bonds, and coordinates over checked-in structures.
+  The existing `tests/conftest.py` factory creates generated atoms and simple
+  zero-coordinate frames for connectivity/selection tests.
+- Use `tmp_path` or a temporary directory for generated projects, scripts,
+  trajectories, logs, and exports. Tests must not write into a user's project,
+  home directory, or shared pDynamo data tree.
+- Keep fixtures deterministic: document atom ordering, units, expected
+  tolerances, and any random seed. Avoid large simulation trajectories and
+  production-scale force-field databases.
+
+## If real molecular data is necessary
+
+- Use only a small, public example with a license that permits redistribution
+  and record the source URL, license, attribution, and date in a fixture
+  README or adjacent manifest.
+- Remove personal/clinical/project metadata and verify that no confidential
+  coordinates, collaborator identifiers, paths, or embedded credentials are
+  included.
+- Do not assume a public paper or repository makes its coordinate files
+  freely redistributable. If rights are unclear, do not add the file; create a
+  synthetic equivalent or obtain permission outside the repository.
+- Never commit user research data, private structures, simulation outputs,
+  tokens, passwords, or machine-specific configuration.
+
+## Review and storage
+
+- Keep committed fixtures small and purpose-specific. Add only data required
+  to reproduce a regression.
+- Include expected output assertions and scientific tolerances; do not compare
+  full logs containing paths or machine-specific timing.
+- Check `git status` after tests and ensure generated files stay in temporary
+  locations or ignored build directories.
+- Treat serialized pDynamo/EasyHybrid project files as potentially containing
+  complete molecular data; do not add them without provenance and license
+  review.
+
+
+## 11.9 Detailed test matrix and baseline results
+
+This file records checks actually run in the EasyHybrid4 checkout. A passing
+Linux result does not imply support on another operating system, GTK minor, or
+display backend.
+
+## Available environment
+
+| Item | Observed value |
+|---|---|
+| OS / kernel | Linux x86_64, `Linux [remote Linux host] 6.8.0-147-generic`, Ubuntu userspace with glibc 2.39 |
+| Python | 3.12.3 (`$HOME/software/envs/easyhybrid312/bin/python`) |
+| PyGObject | 3.48.2 |
+| GTK runtime | 4.14.5 |
+| GLib runtime | 2.80.0 |
+| pytest | 9.1.1 |
+| NumPy / SciPy | 1.26.4 / 1.11.4 |
+| Cython | 3.0.8 |
+| PyOpenGL / psutil | 3.1.7 / 5.9.8 |
+| Compiler | GCC 12.4.0 (Ubuntu) |
+| Graphics renderer/context | NOT TESTED in this baseline |
+
+The application launcher sources `$HOME/software/pdynamo3.sh`. With
+that environment active, `pCore`, `pMolecule`, `pSimulation`, and `pScientific`
+all resolve. A direct import probe without the launcher environment does not
+represent the application's configured runtime.
+
+## EH4-002 reproducible baseline
+
+### Existing tests
+
+Command:
+
+```sh
+$HOME/software/envs/easyhybrid312/bin/python -m pytest -q -p no:cacheprovider tests/
+```
+
+Result: **PASS**, 23 passed in 0.02 seconds. Cache is disabled to avoid the
+previous warning caused by a read-only shared pytest cache directory.
+
+### Graphics engine extension build and import
+
+The repository's graphics build command is `python3 setup.py build_ext
+--inplace` (`src/graphics_engine/install.sh`). The test below runs that command
+on a temporary source copy so generated C files and binaries do not modify the
+checkout:
+
+```sh
+tmpdir=$(mktemp -d)
+cp -a src/graphics_engine "$tmpdir/graphics_engine"
+cd "$tmpdir/graphics_engine"
+$HOME/software/envs/easyhybrid312/bin/python setup.py build_ext --inplace
+PYTHONPATH="$tmpdir/graphics_engine/src" \
+  $HOME/software/envs/easyhybrid312/bin/python -c 'import vismol.utils.matrix_operations, vismol.utils.PDBFiles, vismol.utils.GROFiles, vismol.utils.c_distances, vismol.utils.selectors, vismol.utils.mesh_decimation, vismol.utils.mesh_smoothing; print("7 graphics extension imports: PASS")'
+```
+
+Result: **PASS**; all seven Cython extensions compiled with GCC and imported.
+Build emitted NumPy deprecated C API and setuptools metadata/license warnings.
+The source checkout was not changed by this build.
+
+### Package installation probe
+
+An isolated `pip install --no-deps --no-build-isolation --target <temporary-dir>
+<temporary graphics-engine copy>` probe **FAILED** during PEP 517 metadata
+generation: `setup.py` raised `ModuleNotFoundError: No module named 'src'`.
+The project's own `install.sh` build path and compiled-extension imports pass,
+but generic pip package installation is not verified. Treat wheel/package
+installation as a graphics-engine packaging issue for later task EH4-200 or
+EH4-303; do not infer that pip installation works from `build_ext` success.
+
+The full interactive EasyHybrid installer was **NOT RUN**: it can install
+dependencies and modify the configured pDynamo environment, which would exceed
+this non-invasive baseline check.
+
+## Platform and GTK coverage
+
+| Target | Status | Evidence / reason |
+|---|---|---|
+| Linux x86_64, GTK 4.14.5 / GLib 2.80.0 | PASS for existing tests and graphics extension build/import | Commands above; no real GUI or GL context test |
+| GTK 4.0 selected minimum target | NOT TESTED | No GTK 4.0 runtime/build available |
+| Other GTK4 minors / latest stable | NOT TESTED | Only GTK 4.14.5 is installed locally |
+| Linux Wayland | NOT TESTED | No Wayland UI/GL session exercised |
+| Linux X11 GUI / real OpenGL context | NOT TESTED | No GUI/context smoke test in EH4-002 |
+| Windows native GTK4 | NOT TESTED | No Windows runner available in this session |
+| macOS native GTK4 (arm64 / x86_64) | NOT TESTED | No macOS runner available in this session |
+
+The GTK project website listed GTK 4.22.5 as the latest stable release on
+2026-10-17 ([release status](https://www.gtk.org/)); this runtime was not
+installed or tested. GTK 4.0 is the selected minimum target, not yet a
+validated minimum. See Section 3 for the API audit and target
+contract.
+
+No runtime application or scientific behavior was modified in EH4-002, so no
+new behavioral regression test was needed; the existing test suite and a
+compiled-extension import smoke check were run.
+
+
+## 11.10 GTK4 port history
+
+EasyHybrid4 aims to be a faithful GTK4 port of EasyHybrid3. EasyHybrid3 remains
+the behavioral and visual reference. The parity audit in
+[Section 4](#4-easyhybrid3-feature-parity) records workflows that are
+still unimplemented or unverified. The port must not redesign workflows,
+rename scientific concepts, remove features, or add placeholder features.
+
+## Supported platforms
+
+- Linux, Windows, and macOS are intended targets for the GTK 4.0 API baseline
+  and PyGObject. This is not a verified platform support claim: only Linux
+  GTK 4.14.5 has been exercised so far. See
+  [Section 3](#3-gtk4-python-and-dependency-compatibility) for exact
+  results and untested combinations.
+
+Platform-specific code is allowed only for dependency discovery, packaging,
+native file integration, and graphics behavior that cannot be implemented
+portably. GTK4 `Gtk.GLArea` is the default renderer integration on every
+platform. The EasyHybrid3 macOS workaround based on a hidden GLFW context must
+not be copied unless native GTK4 testing demonstrates that it is still needed.
+
+## Compatibility rules
+
+1. Keep EasyHybrid3 unchanged. All port changes belong in `EasyHybrid4`.
+2. Preserve window structure, labels, actions, defaults, shortcuts, and
+   scientific behavior from EasyHybrid3.
+3. Write all new source, comments, documentation, messages, and UI text in
+   English.
+4. Replace removed GTK3 APIs with their direct GTK4 equivalents. Do not use a
+   visual redesign to avoid a difficult migration.
+5. Keep pDynamo session data and EasyHybrid project formats compatible unless a
+   documented format migration is unavoidable.
+6. Verify each migrated window against EasyHybrid3 before marking it complete.
+
+## Known GTK4 migrations
+
+| EasyHybrid3 GTK3 API | Faithful GTK4 implementation |
+| --- | --- |
+| `Gtk.main()` / `Gtk.main_quit()` | `Gtk.Application.run()` / application quit |
+| `Gtk.MenuBar`, `Gtk.Menu`, `Gtk.MenuItem` | `Gio.MenuModel`, actions, and `Gtk.PopoverMenuBar` |
+| `add()` / `pack_start()` / `pack_end()` | `set_child()` / `append()` / `prepend()` |
+| GTK event signals and event masks | GTK4 event controllers and gestures |
+| legacy drag destination API | `Gtk.DropTarget` / `Gtk.DropTargetAsync` |
+| blocking dialog `run()` | asynchronous response callbacks |
+| Blocking file chooser dialogs | GTK4 `Gtk.FileChooserDialog` with response callbacks |
+| Blocking color chooser dialogs | GTK4 `Gtk.ColorChooserDialog` with response callbacks |
+| `show_all()` | widget visibility plus `present()` |
+| GTK3 Glade packing nodes | GTK4 child properties and layouts |
+
+## Current state — migration in progress
+
+The application requests the GTK 4.0 introspection namespace and targets a
+GTK 4.0 runtime minimum. GTK 4.14.5 is the only project runtime exercised;
+GTK 4.0 and current stable GTK have not yet been validated. Startup uses
+`Gtk.Application`; VisMol renders through
+`Gtk.GLArea` on every platform. GtkBuilder signal connections use explicit
+GTK4 helpers. The code does not monkeypatch GTK classes with GTK3 methods.
+The signal loader resolves relative image paths against the original UI file
+before using its temporary XML copy. Window-local styling uses GTK4 widget CSS
+classes, and the terminal removes its display CSS provider when it closes.
+
+The splash image uses `Gtk.Picture.set_content_fit()` when the runtime has it
+(GTK 4.8+), and falls back to `set_can_shrink()` plus
+`set_keep_aspect_ratio()` before GTK 4.8. VisMol uses GTK 4.8's scroll-unit
+API to convert macOS trackpad surface-pixel deltas to calibrated wheel steps;
+on earlier GTK4 versions the scroll controller asks GTK to emit discrete
+wheel steps. The GTK3 Quartz `Gtk.DrawingArea`/hidden-GLFW workaround and
+GTK3-only native accessibility bridge are not used by the GTK4 build.
+
+The main browser uses `Gtk.TreeListModel`, `Gtk.ColumnView`, typed
+`Gio.ListStore` rows, and GTK4 selection models. System and coordinate
+selectors use `Gtk.DropDown`; tables and editable lists use column views with
+list-item factories. The same native models are used across VisMol navigation,
+analysis, simulation, import, restraint, and preferences workflows. Scientific
+clone paths clear and restore interface row references around pDynamo cloning.
+Full browser refresh rebuilds its tree and selector models together, preserves
+the active system, and refreshes open interface windows. The old duplicate
+RMSD and context-menu implementations and unreferenced Glade assets have been
+removed or retired.
+
+The EasyHybrid3 installation remains separate and has not been modified. A
+source scan found no GTK3 typelib requests, GTK3 tree/combo widgets, GTK3
+container methods, or GTK3 dialog `run()` calls in EasyHybrid4. Python modules
+that import Gtk pin the `Gtk` namespace to 4.0, and all 53 GtkBuilder files
+declare GTK 4.0.
+
+The GTK-free RDF, RMSF, density, and Ramachandran calculations are available
+in EasyHybrid4. RDF, box-density, RMSF, and trajectory Ramachandran analysis
+windows are wired to the native GTK4 menu. They use GTK4 `DropDown`,
+`SpinButton`, `DrawingArea`, motion controllers, and asynchronous file chooser
+responses.
+
+The Builder now exposes DYFF parameter inspection and editing, model
+incorporation into pDynamo, and xTB torsion fitting through native GTK4
+windows. Its parameter window uses GTK4 notebook/list widgets, and the
+torsion-fit window builds controls in GTK4 rather than loading a GTK3 Glade
+file. Builder undo snapshots include partial charges, manual atom types,
+aromatic bonds, and DYFF parameter edits. The OPLS parameter inspector is also
+ported to GTK4, with per-system tables, quality filters, structure projection,
+editable values, model rebuilds, and xTB torsion fitting; it is available from
+the System menu.
+The remaining setup module,
+`info_text_window.py` is an unreferenced standalone GTK3 demo that creates a
+window and starts a GTK3 event loop at import time, so it is intentionally not
+copied into EasyHybrid4. The Builder includes a GTK4
+periodic-table picker and solvation window backed by the solvent library and
+pure NumPy solvation engine, with 13 bundled solvent templates. DYFF atom
+typing, editable type and charge values, protonation controls, residue rename,
+hybridization display, and 3D atom highlighting use a native GTK4 ColumnView. Live selection translation and rotation use GTK4 scales and gesture controllers, with a single undo point per gesture.
+The Builder can pick four atoms and adjust a rotatable bond dihedral with a
+native GTK4 scale window; cyclic bonds are rejected and the linked pDynamo
+system is synchronized when the adjustment ends. Its fragment library uses a
+GTK4 category selector, fragment list, and GLArea preview. Selecting a
+fragment arms hydrogen replacement; the selected molecule and formal charges
+are carried into the Builder graph and pDynamo system. The fragment bundle
+contains 27 MOL2 definitions across functional groups and rings.
+The complete-structure library uses a native GTK4 category dropdown, list,
+and GLArea preview. It places complete MOL2 molecules on a Builder click and
+syncs their atoms and explicit bond orders to pDynamo. EasyHybrid4 now bundles
+the same 663 structure templates as EasyHybrid3 across 31 categories.
+The Builder toolbar opens a native GTK4 new/edit chooser. Existing systems are
+cloned for editing; same-size edits fold back into the chosen molecular object,
+while atom-count changes retain the clone as a separate system.
+Remaining tools are migration work, not features considered complete by
+absence from the GTK3 API scan.
+
+The pDynamo layer exposes Baker saddle optimization and reaction-path
+branches through the geometry-optimization worker, and dispatches Conjugate
+Peak Refinement through pDynamo's `addOns.pyCPR`. All three workflows now
+have GTK4 windows, native coordinate selectors, non-blocking error windows,
+and GTK4 menu actions. Their Glade files declare GTK 4.0 and pass
+`gtk4-builder-tool simplify` without property or class errors. The installed
+pDynamo3 APIs and the EasyHybrid4 dispatch modules import successfully.
+
+The current Builder, preferences, and reaction-coordinate modules compile and
+import under GTK 4.14. The solvation library discovers all 13 solvent
+templates, and a sphere solvation calculation placed solvent molecules. Gtk
+imports in all 100 Python modules request GTK 4.0. All 53 GtkBuilder XML files
+declare GTK 4.0; their object classes and properties resolve against the GTK4
+introspection data, and no GTK3 packing nodes remain. The embedded preference
+and reaction-coordinate UI definitions also pass the GTK4 property scan. The
+menu JSON parses, and the Ramachandran Cairo renderer drew categorized points
+on an image surface. The pDynamo typer classified both atoms in a bonded
+two-carbon fragment. Live window construction and visual comparison remain
+unverified in this environment: `Gtk.init_check()` succeeds, but constructing
+a GTK window fails because the available display backend is not usable here.
+Static verification also confirms all 53 GtkBuilder files request GTK 4.0 and
+all 20 main-window image assets resolve from the original UI directory.
+
+
+## 11.11 macOS trackpad pan implementation history
+
+## Summary
+
+EasyHybrid's camera panning is bound to a middle-mouse-button drag
+(`vismol_glcore.py`). MacBook trackpads have no middle button and no
+default gesture that emulates one, so panning was effectively
+unreachable for anyone driving the app from a trackpad — rotate
+(left-drag) and zoom (right-drag, reachable via a two-finger
+secondary-click) both worked fine, but translating the view did not.
+
+This adds a second way to trigger the same pan action: **holding Cmd
+while right-dragging** (i.e. Cmd + two-finger-tap-drag on a trackpad),
+matching PyMOL's own `Cmd+Right` = translate convention on macOS, so
+the muscle memory carries over. The existing plain-right-drag = zoom
+and plain-middle-drag = pan bindings are untouched; this is additive
+only.
+
+Verified end-to-end on an Apple Silicon Mac (M4): launched the app,
+confirmed via a temporary debug print that GTK reports the Cmd key as
+keyval `Meta_L` on this platform, then confirmed Cmd+trackpad-drag
+visually pans the loaded structure instead of zooming it.
+
+## Change
+
+`src/graphics_engine/src/vismol/libgl/vismol_glcore.py`:
+- Added a `self.cmd` flag (alongside the existing `self.ctrl` /
+  `self.shift` modifier flags), defaulting to `False`.
+- `mouse_pressed()`: right-button-drag now resolves to **pan** instead
+  of **zoom** when `self.cmd` is `True`. Plain right-drag (no Cmd) still
+  zooms, unchanged.
+
+```python
+self.mouse_rotate = left   and not (middle or right)
+self.mouse_zoom   = right  and not (middle or left) and not self.cmd
+self.mouse_pan    = (middle and not (right or left)) \
+                     or (right and self.cmd and not (middle or left))
+```
+
+`src/graphics_engine/src/vismol/gui/vismol_gtkwidget.py`:
+- Added key-press/release handlers for `Meta_L`, `Meta_R`, `Super_L`,
+  and `Super_R`, all toggling the same `self.vm_glcore.cmd` flag. All
+  four keyval names are wired (rather than just `Meta_L`) because which
+  one GTK reports for the Cmd key can vary by GTK version/backend/
+  keymap; only `Meta_L` was actually observed on the tested setup, but
+  binding all four is cheap insurance against a different GTK build
+  reporting one of the others.
+
+This mirrors the existing pattern already used for `Control_L` /
+`Shift_L` in the same file (`self.vm_glcore.ctrl` / `self.vm_glcore.shift`).
+
+## Files changed
+
+Submodule (`src/graphics_engine`, Vismol):
+- `src/vismol/libgl/vismol_glcore.py` — `self.cmd` flag + pan/zoom
+  gating in `mouse_pressed()`.
+- `src/vismol/gui/vismol_gtkwidget.py` — `Meta_L/R` and `Super_L/R`
+  key handlers.
+
+## Not changed
+
+- Left-drag rotate, middle-drag pan, and plain right-drag zoom are all
+  unchanged for every platform.
+- No new dependencies.
+- Scroll-wheel zoom and the existing Ctrl/Shift-gated builder and
+  selection-box behavior are untouched.
+
+
+## 11.12 PySCF integration history (EasyHybrid3)
+
+## Summary
+
+Wires PySCF into EasyHybrid3's QC-engine selector as a fifth option alongside
+pDynamo (MNDO), ORCA, DFTB+ and xTB, using pDynamo3's existing
+`addOns.pySCF.QCModelPySCF` / `addOns.pySCF.NBModelPySCF` classes. This is
+the state currently present and working in this EasyHybrid3 checkout and the
+paired `pDynamo3` checkout on this machine (macOS/Apple Silicon, CPU only).
+
+GPU support via `gpu4pyscf` was prototyped on a separate Linux machine
+(`[remote Linux host]`) but is **not** part of this checkout — that machine has its own
+independent conda env and its own copy of `pDynamo3`'s
+`addOns/pySCF/QCModelPySCF.py`. Nothing GPU-related is installed or wired in
+here.
+
+## Prerequisite
+
+```
+pip install pyscf
+```
+
+installed into the same Python environment EasyHybrid3/pDynamo3 run under
+(the one pointed to by `EASYHYBRID3_PYTHON` / `PDYNAMO3_PYTHONCOMMAND`).
+
+## Files changed
+
+### 1. `src/gui/windows/setup/setup_qc_model_window.glade`
+
+Added a new `GtkWindow id="window_setup_pyscf"` dialog (Method dropdown,
+Functional dropdown, Orbital Basis dropdown, Scratch Folder entry, "Delete
+job files" checkbox, OK/Cancel buttons), built by copying the structure of
+the existing `window_setup_xtb` dialog. The Functional and Orbital Basis
+fields are empty `GtkBox` placeholders (`box_pyscf_functional`,
+`box_pyscf_basis`, same pattern as `box_pyscf_method`), each filled in at
+runtime with `Gtk.DropDown` and `Gtk.Entry` controls. Each offers a curated
+dropdown list and an adjacent editable text field, so users can enter any
+PySCF/Libxc-recognized name directly.
+
+### 2. `src/gui/windows/setup/windows_and_dialogs/qc_setup/setup_pyscf.py` (new file)
+
+`SetupPySCFWindow` class that drives the new glade dialog, modeled directly
+on `setup_xtb.py`.
+
+- `parameters` dict: `method` (`RHF`/`UHF`/`RKS`/`UKS`), `functional`,
+  `orbitalBasis`, `deleteJobFiles`, `scratch`.
+- **Functional** combobox: 79 named PySCF/Libxc functionals (`B3LYP`, `PBE0`,
+  `CAM-B3LYP`, `WB97X-D`, `HSE06`, ...), only used when Method is `RKS`/`UKS`.
+  Sourced from `pyscf.dft.libxc.XC_ALIAS` plus other well-known named
+  hybrids/range-separated functionals, each re-validated with
+  `pyscf.dft.libxc.parse_xc(name)` on the installed pyscf (2.14.0) before
+  being written into the list. Raw exchange-only/correlation-only fragments
+  (e.g. `B88`, `LYP` alone) are excluded since they aren't valid standalone
+  `xc=` values on their own; the field is still editable, so an explicit
+  `"exchange,correlation"` string (e.g. `pbe,pbe`) can be typed in directly.
+- **Basis** combobox: 18 common PySCF-recognized basis sets (`STO-3G` through
+  `def2-QZVP`), also editable/free-text for anything else PySCF recognizes.
+- **Method**: deliberately kept to `RHF`/`UHF`/`RKS`/`UKS` only (not widened
+  to PySCF's full method zoo). pDynamo3's own `addOns/pySCF/__init__.py`
+  states only these four mean-field methods are supported for QC/QM-MM
+  energies and gradients, and `QCModelPySCF.Energy()` relies on
+  `state.mf.nuc_grad_method()`, an analytic-gradient path only guaranteed for
+  these four — post-HF methods (MP2/CCSD/...) don't expose gradients the
+  same way and would silently break QM/MM forces. Widening this is a
+  pDynamo3-level change, out of scope here.
+
+### 3. `src/gui/windows/setup/windows_and_dialogs/qc_setup/qcmodel_window.py`
+
+- Imports and instantiates `SetupPySCFWindow`.
+- `qc_engine_id == 4` is now `'PySCF'` in the `QC_engines` dict (was a
+  commented-out/dead `MOPAC` slot — `QCModelMOPAC` is not exported by
+  `pMolecule.QCModel`, so that branch could never have worked, and
+  `'MOPAC'`/`'sparrow'` were already commented out of the combobox, so index
+  4 was unreachable dead code). `MOPAC` was renumbered to the next free,
+  still-commented-out slot `5`; `setup_mopac_window` itself is untouched.
+- The Setup button for `qc_engine_id == 4` now opens `setup_pyscf_window`
+  instead of `setup_mopac_window`, and the `parameters` dict assembled for
+  the energy calculation is populated from
+  `setup_pyscf_window.parameters` (`method`, `functional`, `orbitalBasis`,
+  `deleteJobFiles`, `scratch`) instead of the old MOPAC fields.
+
+### 4. `src/pdynamo/pDynamo2EasyHybrid/session.py`
+
+- `from addOns.pySCF import QCModelPySCF, NBModelPySCF` wrapped in
+  `try/except ImportError` (sets both to `None` on failure), so EasyHybrid3
+  still starts normally if `pyscf` isn't installed. Reachable because
+  `easyhybrid.py` already does `sys.path.append(PDYNAMO3_HOME)` at startup.
+- New `elif parameters['qcengine'] == 'PySCF':` branch in
+  `define_a_new_QCModel`: if `QCModelPySCF is None`, shows a "PySCF not
+  installed" dialog (same pattern used elsewhere in this file) and returns
+  `None` instead of crashing; otherwise builds
+  `QCModelPySCF.WithOptions(deleteJobFiles=..., functional=..., method=...,
+  orbitalBasis=...)`.
+- New `elif parameters['qcengine'] == 'PySCF':` branch wherever the NBModel
+  is defined for QM/MM: `system.DefineNBModel(NBModelPySCF.WithDefaults())`.
+
+`charge`/`multiplicity`/`isSpinRestricted` are not passed directly into
+`QCModelPySCF.WithOptions` — `define_a_new_QCModel` already sets
+`system.electronicState` generically before the per-engine branch runs (same
+as every other engine), and `QCModelPySCF.CreateMole` reads
+`target.electronicState.charge`/`.multiplicity` from there.
+
+`scratch` is collected in the GUI dialog for consistency with the other
+engines but not passed to `WithOptions` — `QCModelPySCF._CheckOptions`
+unconditionally derives `pySCFscratch` from the `PYSCF_TMPDIR` /
+`PDYNAMO3_SCRATCH` environment variables, so a passed-in value would be
+silently overwritten anyway.
+
+## Verification
+
+Exercised the exact `QCModelPySCF.WithOptions(...)` / `NBModelPySCF.WithDefaults()`
+call now used in `session.py`, using the same `parameters` dict shape that
+`qcmodel_window.on_button_ok()` assembles for `qc_engine_id == 4`, against
+pDynamo3's own `waterDimer_cs` QM/MM test system (OPLS MM model, 3 QM atoms,
+RHF/3-21G and, separately, RKS/PBE0). Both matched pDynamo3's own
+`examples/addOns/pySCF/PySCFExample.py` output for the same
+system/method/basis, and `SystemGeometryObjectiveFunction.TestGradients()`
+confirmed analytical vs. numerical gradients agree (max difference
+~0.0003).
+
+## Not covered / left for follow-up
+
+- `mf_kwargs` / `mole_kwargs` (advanced PySCF `Mole`/`SCF` keyword overrides,
+  e.g. custom DIIS) are not exposed in the GUI — `QCModelPySCF.WithOptions`
+  defaults them to empty dicts.
+- No dedicated NBModel choice for PySCF beyond `NBModelPySCF.WithDefaults()`
+  (mirrors what ORCA/xTB do — they also just call `.WithDefaults()`).
+- GPU support (`gpu4pyscf`) is not part of this checkout — see Summary above.
+- Method is intentionally restricted to `RHF`/`UHF`/`RKS`/`UKS`.
+
+## Related fixes made alongside this integration
+
+Found while cross-checking xTB/DFTB+ against the new PySCF integration and
+while actually exercising PySCF QM/MM systems. All of the below are applied
+and working in this checkout (EasyHybrid3) and the paired `pDynamo3`
+checkout on this machine.
+
+### xTB: GFN-FF added as a 4th dropdown option
+
+`setup_xtb.py`'s combobox only offered `GFN1-xTB`, `GFN2-xTB`, `g-xTB`.
+`xtb 6.7.1`'s own `--help` also supports `--gfnff`/`--gff` (a separate
+force-field method), which pDynamo3's `QCModelXTB.py` never emitted. Added
+`GFN-FF` as a 4th combobox option; `self.parameters['gfn']` is `'ff'` for
+this option (string, vs. the integer 1/2/3 used for the others), and
+`QCModelXTB.Execute()`'s command-builder gained an `elif self.gfn == 'ff':
+cpus = ' --gfnff '` branch alongside the existing `--gfn N` and (untested,
+`g-xTB`) `--gxtb` branches. Verified `--gfnff` runs cleanly and a full
+`QCModelXTB.WithOptions(gfn='ff', ...)` energy+gradient calculation
+completes correctly.
+
+### xTB: pure-QC jobs no longer hang forever
+
+`QCModelXTB.WriteInputFile()` only ever wrote content to the `--input`
+xcontrol file for QM/MM jobs (the `$embedding` block); for pure-QC jobs the
+file was opened, left completely empty, and never closed. This installed
+`xtb 6.7.1` hangs indefinitely when given an empty `--input` file (no `xtb`
+process even appears in `ps aux`), but returns instantly given the same file
+with just a minimal `$end\n` block. Fixed by adding an `else: inFile.write(
+'$end\n')` branch and closing the file in both branches (`inFile.close()`
+was missing from both). Affects every pure-QC xTB calculation on this xtb
+version, regardless of GFN type — unrelated to the GFN-FF work, just never
+previously triggered. Verified: pure-QC `gfn=2` and pure-QC `gfn='ff'` both
+now complete on `waterDimer_cs`; QM/MM xTB (already unaffected) still works
+identically.
+
+### PySCF: systems with a PySCF QC model couldn't be pickled
+
+`QCModelPySCF._CheckOptions()` sets `self.pyscf = pyscf` — a live reference
+to the imported Python module — as an instance attribute, and Python modules
+can't be pickled. This broke saving a system to a `.pkl`
+(`TypeError: cannot pickle 'module' object`) and broke EasyHybrid3's
+Advanced Relaxed Surface Scan, which pickles `parameters['system']` to hand
+off to a `multiprocessing.Process` worker. ORCA/xTB/DFTB+ never hit this
+because they run as external subprocess binaries; PySCF runs in-process.
+
+Fixed in pDynamo3's `addOns/pySCF/QCModelPySCF.py` using its existing
+`_unpicklable` mechanism (`pCore.AttributableObject`'s `__getstate__` skips
+any attribute name listed there):
+
+```python
+_unpicklable  = set ( QCModel._unpicklable )
+_unpicklable.update ( { "mf", "mole", "pyscf" } )
+```
+
+(`mf`/`mole`, the live PySCF calculation-state objects built in
+`CreateMole()`, are excluded for the same reason and are already always
+rebuilt fresh at the start of every `Energy()` call, so excluding them from
+the pickled state changes no behavior.) `Energy()` gained a one-line
+self-heal at its top so a system reloaded via `Unpickle()` (where
+`self.pyscf` is now `None`) re-imports pyscf on first use:
+
+```python
+def Energy ( self, target ):
+    if self.pyscf is None: self._CheckOptions ( )
+    ...
+```
+
+Verified: `Pickle()`/`Unpickle()` round-trip on a `waterDimer_cs` system with
+a PySCF `qcModel` attached now succeeds (previously raised `TypeError`), and
+the reloaded system's `Energy(doGradients=True)` reproduces the same
+QC energy as before pickling. Also reproduced the exact
+`multiprocessing.reduction.ForkingPickler` path directly (what `spawn`/`Popen`
+uses internally) — now succeeds where it previously raised the identical
+`TypeError`.
+
+
+## 11.13 GPU PySCF changes (EasyHybrid3)
+
+## Scope and comparison baseline
+
+This report describes the local EasyHybrid3 changes that expose pDynamo3's
+PySCF QC model in the GUI and allow users to select its optional GPU4PySCF
+backend.
+
+The comparison baseline is EasyHybrid3 Git commit `d578240`, the current
+`HEAD` of this checkout before the uncommitted PySCF integration changes.
+Only PySCF/GPU-related files are covered here.
+
+EasyHybrid3 does not implement a separate GPU computational kernel. It passes
+the selected options to `pDynamo3/addOns/pySCF`, where CPU PySCF or GPU4PySCF
+performs the calculation.
+
+## Files changed
+
+### `src/gui/windows/setup/setup_qc_model_window.glade`
+
+Added the PySCF setup window with controls for:
+
+- Method
+- DFT functional
+- Orbital basis
+- Scratch directory
+- Delete-job-files option
+- `Run on GPU (gpu4pyscf)` option
+
+The GPU option is disabled by default.
+
+### `src/gui/windows/setup/windows_and_dialogs/qc_setup/setup_pyscf.py`
+
+New controller for the PySCF setup window.
+
+- Provides the methods `RHF`, `UHF`, `RKS`, and `UKS`.
+- Provides editable functional and basis-set fields. The lists contain common
+  values, but users may enter other values supported by PySCF.
+- Stores the `useGPU` checkbox state with the other PySCF parameters.
+
+### `src/gui/windows/setup/windows_and_dialogs/qc_setup/qcmodel_window.py`
+
+- Added PySCF to the QC-engine list as engine ID 4.
+- Opens the PySCF setup window when PySCF is selected.
+- Passes `method`, `functional`, `orbitalBasis`, `deleteJobFiles`, `scratch`,
+  and `useGPU` to the pDynamo session layer.
+
+### `src/pdynamo/pDynamo2EasyHybrid/session.py`
+
+- Imports `QCModelPySCF` and `NBModelPySCF` conditionally so EasyHybrid can
+  still start when PySCF is not installed.
+- Checks GPU4PySCF availability with
+  `importlib.util.find_spec("gpu4pyscf")` without importing it in the parent
+  GUI process.
+- Creates `QCModelPySCF` with the selected method, functional, basis, file
+  cleanup option, and `useGPU` value.
+- Uses `NBModelPySCF` for PySCF QM/MM calculations.
+- Displays an error and stops model creation when the requested PySCF or
+  GPU4PySCF dependency is unavailable.
+
+The non-importing GPU4PySCF check is required because EasyHybrid launches
+calculations with `multiprocessing.Process` on Linux. Importing GPU4PySCF in
+the parent process can initialize CUDA before `fork`, causing CUDA
+initialization failures in the child process. The real GPU4PySCF import is
+deferred to pDynamo's calculation worker.
+
+## GPU-specific runtime files outside the EasyHybrid repository
+
+The GPU launcher uses:
+
+- `$HOME/.local/bin/easyhybrid`
+- Stable Conda environment `$HOME/software/envs/pdynamo3`
+- The bundled `EasyHybrid3/src/graphics_engine` source tree
+
+The stable environment provides both CPU PySCF and GPU4PySCF. It uses Python
+3.10.20, NumPy 1.26.4, CuPy 13.6.0, PySCF 2.14.0, and GPU4PySCF 1.8.1. The
+bundled VisMol Cython extensions and all pDynamo CPU/GPU paths were verified
+in this environment, so neither a separate graphics-engine copy, GPU Conda
+environment, nor GPU-specific launcher is necessary.
+
+## Verification
+
+The GUI GPU path was verified with:
+
+- System: alanine dipeptide, 22 atoms
+- QC engine: PySCF
+- Method: RKS
+- Functional: B3LYP
+- Basis: 3-21G
+- GPU option: enabled
+- Calculation: QM/MM single-point energy
+
+The calculation completed through EasyHybrid's process manager after moving
+the GPU4PySCF import into the worker process.
+
+## Performance status
+
+EasyHybrid only selects and launches the pDynamo PySCF backend, so it has no
+independent GUI acceleration value. Backend benchmark results are documented
+in the pDynamo3 GPU_PYSCF_CHANGES.md report.
+
+On the saved 41,925-atom relaxed-PES system with 71 QM atoms and
+RKS/PBE/3-21G, replacing the original scalar MM-center gradient loop with the
+blocked PySCF/GPU4PySCF implementation reduced full GPU energy/gradient calls
+from a median of 628.651 s to 41.122 s: **15.29x speedup**. Energy was
+unchanged and gradients agreed to approximately `2.4e-13 kJ mol-1 A-1` RMS.
+
+This is acceleration of the pDynamo/GPU4PySCF calculation launched by
+EasyHybrid, not acceleration of the GUI itself. The saved benchmark script and
+JSON results are in the calculation's `dft/benchmarks` directory.
+
+A smaller isolated CPU test measured 2.181x speedup for 100 MM centers and
+7.255x for 1,000 MM centers. These values measure the changed gradient kernel
+and should not be interpreted as universal end-to-end speedups.
+
+No controlled CPU-versus-GPU timing series is reported because none was saved and the
+NVIDIA driver was unavailable during the 2026-08-22 report update. No general
+GPU acceleration factor is claimed.
+
+## How to run
+
+Launch EasyHybrid for either CPU or GPU work:
+
+```bash
+easyhybrid
+```
+
+In the QC-model window, select PySCF and enable `Run on GPU (gpu4pyscf)` for
+GPU execution. Leave it disabled for CPU execution. For scripted work, use
+`activate_pdynamo3` and set `useGPU=True` or `False` on `QCModelPySCF`.
+
+## Known limitations
+
+- GPU execution requires a working NVIDIA driver.
+- The exposed mean-field methods are `RHF`, `UHF`, `RKS`, and `UKS`.
+- The scratch value is collected by the GUI, while the current pDynamo PySCF
+  model obtains its scratch path from `PYSCF_TMPDIR` or `PDYNAMO3_SCRATCH`.
+- GPU acceleration depends on system size and method; no universal speedup is
+  implied.
+
+## Final unified-installation validation (2026-08-31)
+
+The final installation has one public activation command, one environment,
+one pDynamo source tree, one EasyHybrid source tree, and one GUI launcher:
+
+- `activate_pdynamo3`
+- `$HOME/software/envs/pdynamo3`
+- `$HOME/software/pDynamo3`
+- `$HOME/software/EasyHybrid3`
+- `easyhybrid`
+
+CPU/GPU selection is a model option rather than an environment choice:
+`QCModelPySCF(useGPU=False)` uses CPU PySCF and `useGPU=True` uses
+GPU4PySCF. The EasyHybrid checkbox exposes the same option.
+
+Final checks:
+
+- `pip check`: no broken requirements.
+- NVIDIA GeForce RTX 4060 Ti detected (one CUDA device).
+- NumPy 1.26.4, SciPy 1.15.3, PySCF 2.14.0, CuPy 13.6.0, and
+  GPU4PySCF 1.8.1.
+- pDynamo H2/RHF/STO-3G CPU energy: `-2932.051561066158 kJ mol-1`.
+- pDynamo H2/RHF/STO-3G GPU energy: `-2932.051561066207 kJ mol-1`.
+- Absolute CPU/GPU difference: `4.957e-11 kJ mol-1`.
+- All seven compiled VisMol utility extensions imported from the bundled
+  `EasyHybrid3/src/graphics_engine`; five bundled fonts were found.
+- EasyHybrid's main window and PySCF setup controller imported successfully.
+- The real `easyhybrid` GUI launcher remained alive until an intentional
+  six-second timeout. Its only output was a nonfatal Fontconfig warning.
+
+The obsolete GPU-specific environments, graphics-engine copy, launchers, and
+experimental pDynamo source copies were removed after these checks passed.
+
+
+## 11.14 GPU PySCF on [remote Linux host] (EasyHybrid3)
+
+This is a follow-up to Section 11.12 (the CPU-only PySCF QC engine,
+working identically on both machines). This document covers only the
+GPU-specific work, which exists **exclusively on `[remote Linux host]`**
+([redacted IP]), the Linux lab machine with an NVIDIA GPU (RTX 4060 Ti,
+8 GB). None of it is installed, cloned, or wired in on the Mac — there is no
+GPU there to use.
+
+Verified live on `[remote Linux host]` on 2026-08-18 by re-checking the actual files,
+installed packages, and env layout over SSH (not just recalled from an
+earlier report).
+
+## One stable CPU/GPU environment
+
+| Conda env | PySCF | GPU (`gpu4pyscf`) | NumPy | CuPy | Activate with |
+|---|---|---|---|---|---|
+| `$HOME/software/envs/pdynamo3` (Python 3.10.20) | 2.14.0 | `gpu4pyscf-cuda12x` 1.8.1 | 1.26.4 | 13.6.0 | `activate_pdynamo3` for scripting or `easyhybrid` for the GUI |
+
+CuPy 13.6.0 satisfies GPU4PySCF's supported `cupy>=13` range while retaining
+NumPy 1.26.4 compatibility required by existing pDynamo add-ons. The stable
+environment contains all CPU and GPU packages. GPU use is selected by
+`useGPU=True` in scripts or the `Run on GPU` checkbox in EasyHybrid.
+
+Both `PDYNAMO3_HOME` and `EASYHYBRID_HOME` point at the single source
+checkouts (`~/software/pDynamo3` and `~/software/EasyHybrid3`).
+
+## Shared `vismol` graphics engine
+
+EasyHybrid3's bundled `src/graphics_engine` is used for both CPU and GPU
+calculations. Its Python 3.10 Cython extensions were verified with stable
+NumPy 1.26.4, including all seven compiled `vismol.utils` modules. The
+EasyHybrid activation script uses the bundled tree directly:
+
+   ```bash
+   export PYTHONPATH="$EASYHYBRID_HOME:$EASYHYBRID_HOME/src:$EASYHYBRID_HOME/src/graphics_engine/src:$PDYNAMO3_HOME${PYTHONPATH:+:$PYTHONPATH}"
+   ```
+
+The former isolated `graphics_engine_gpu_build` copy was removed because its
+Python sources had become stale and caused API mismatches such as the missing
+`list_available_fonts` import.
+
+## `QCModelPySCF.py`: `useGPU` option
+
+`~/software/pDynamo3/addOns/pySCF/QCModelPySCF.py` (this file has no version
+control of its own on this machine — verified directly by reading it, not
+via diff):
+
+- `_GPU4PySCFFound = importlib.util.find_spec('gpu4pyscf') is not None` —
+  availability check that does **not** execute the module (see "fork
+  safety" below for why that distinction is load-bearing).
+- New attributable options: `"gpu4pyscf": None`, `"useGPU": False`.
+  `_CheckOptions()` raises `NotInstalledError` if `useGPU` is set but
+  `_GPU4PySCFFound` is `False`.
+- `CreateMole()`: when `useGPU` is set, `import gpu4pyscf` /
+  `import gpu4pyscf.qmmm` happen **inside this method** (not at module
+  level), and the mean-field object is built from `gpu4pyscf.scf.RHF/UHF` or
+  `gpu4pyscf.dft.RKS/UKS` directly (`mf_kwargs` applied as attributes
+  afterward, since `gpu4pyscf` has no `Mole.apply()`-style dispatcher the
+  way plain `pyscf` does), and QM/MM point charges go through
+  `gpu4pyscf.qmmm.add_mm_charges` instead of `pyscf.qmmm.add_mm_charges`.
+- `_unpicklable` (the pickling-safety mechanism from Section 11.12)
+  also includes `"gpu4pyscf"`, for the same live-module-reference reason as
+  `"pyscf"`.
+
+## `QCMMElectrostaticModelPySCF.py`: cupy → numpy conversion
+
+Confirmed present at
+`~/software/pDynamo3/addOns/pySCF/QCMMElectrostaticModelPySCF.py`.
+`gpu4pyscf`'s mean-field objects return `cupy` (GPU-resident) arrays from
+methods like `mf.mm_mol.atom_coords()` / `mf.make_rdm1()`; the rest of this
+module does plain `numpy` math on them, which fails when the array is
+`cupy`'s. A small `_AsNumpy()` helper (no-op when `cupy` isn't importable,
+or when the array already is plain `numpy`) is applied at every point QM/MM
+gradient data is pulled off `target.qcState.mf`. `target.qcState.mole` is
+always a plain `pyscf.gto.Mole` regardless of `useGPU`, so it never needs
+converting — only `mf`-derived quantities do.
+
+## GUI: "Run on GPU (gpu4pyscf)" checkbox
+
+Same pattern as every other PySCF field in Section 11.12. Confirmed
+present in this EasyHybrid3 checkout (shared by both machines, only exercised
+with the checkbox enabled here):
+
+- `setup_pyscf.py`: `parameters['useGPU']` (default `False`), a checkbox
+  widget wired the same way as `deleteJobFiles`.
+- `session.py`: `_GPU4PySCFAvailable = importlib.util.find_spec('gpu4pyscf')
+  is not None` (same non-importing check as in `QCModelPySCF.py`, for the
+  same reason). In the `qcengine == 'PySCF'` branch of
+  `define_a_new_QCModel`, if `useGPU` is requested but `gpu4pyscf` isn't
+  available, shows a "gpu4pyscf not installed" dialog and returns `None`
+  instead of crashing; otherwise `useGPU=parameters.get('useGPU', False)` is
+  passed into `QCModelPySCF.WithOptions(...)`.
+
+## The real bug: CUDA contexts are not fork-safe
+
+Found only by running a GPU calculation through the live GUI, not scripted
+tests.
+
+**Symptom**: selecting PySCF, checking "Run on GPU", running Single Point
+Energy through the GUI failed with
+`cudaErrorInitializationError: initialization error` from inside
+`gpu4pyscf/lib/logger.py`'s `cupy.cuda.Event()` call.
+
+**Root cause**: EasyHybrid3 runs every simulation in a separate worker
+process via `multiprocessing.Process`
+(`src/pdynamo/pDynamo2EasyHybrid/simulations_mixin.py`), using the platform
+default start method — **`fork`** on Linux (confirmed: no
+`get_context('spawn')` or `set_start_method` calls anywhere in
+`simulations_mixin.py` or `p_methods/surface_scan.py` on either machine —
+both still use plain `multiprocessing.Process`, i.e. fork). `fork()`
+duplicates the parent's memory, including any already-initialized CUDA/cupy
+state. If `gpu4pyscf` had been imported at module level, it would run the
+instant EasyHybrid3 starts, long before any user action — so by the time a
+simulation forks a worker, the parent's CUDA context is already poisoned for
+that worker.
+
+**Rejected fix: force `spawn`.** The textbook fix for CUDA + fork is to
+force `spawn`, which starts a genuinely fresh interpreter per worker. This
+fixed the CUDA error but broke pickling of the `System` object being handed
+to the worker in ways `fork` never required:
+`system.tree_row`/`system_choice_row` (live GTK row objects
+EasyHybrid attaches for its own interface bookkeeping — unpicklable) and
+`system._energyClosures` (local closure functions built when models are
+attached — unpicklable by nature). This would have meant excluding
+attributes one crash at a time with no guarantee of ever reaching the end of
+the list, so this approach was abandoned and `simulations_mixin.py`/
+`surface_scan.py` were left on plain `fork`.
+
+**Actual fix: lazy `gpu4pyscf` import.** Since `fork()` itself isn't the
+problem — only *having already touched CUDA in the parent* is — both
+formerly-eager `import gpu4pyscf` call sites (`session.py`'s and
+`QCModelPySCF.py`'s) were replaced with the non-executing
+`importlib.util.find_spec('gpu4pyscf') is not None` check described above.
+The real `import gpu4pyscf` now only runs inside `CreateMole()`, at the
+moment an energy is actually computed — which, under fork, always happens
+inside the already-forked worker, never in the parent GUI process. The
+parent's CUDA/cupy state is therefore never touched, so each worker
+initializes its own clean CUDA context from scratch.
+
+## Verification
+
+Live GUI run on `[remote Linux host]` (real system, real clicks): alanine dipeptide (22
+atoms), PySCF engine, Method RKS, Functional b3lyp, Orbital Basis 3-21G,
+"Run on GPU" checked → Single Point Energy → Process Manager reported
+**Finished**, log confirmed `Run On GPU = True` and a QM/MM energy consistent
+with the CPU path on the same system. This was the first GPU-accelerated
+PySCF QM/MM energy computed through EasyHybrid3's GUI, using the unmodified
+fork-based worker mechanism.
+
+## How to reproduce
+
+```bash
+# CPU or GPU GUI (choose with the Run on GPU checkbox)
+easyhybrid
+
+# CPU or GPU scripted/headless (choose with QCModelPySCF useGPU)
+activate_pdynamo3
+python3 your_script.py
+```
+
+In the GUI: select **PySCF** as the QC engine, open its setup dialog, check
+**"Run on GPU (gpu4pyscf)"**, and set Method/Functional/Basis as usual. Leave
+the checkbox disabled to use CPU PySCF in the same environment.
+
+## Final system audit (2026-08-31)
+
+The machine now exposes only `activate_pdynamo3` for pDynamo scripting and
+`easyhybrid` for the GUI. Both CPU and GPU calculations use:
+
+```text
+Environment: $HOME/software/envs/pdynamo3
+pDynamo:     $HOME/software/pDynamo3
+EasyHybrid:  $HOME/software/EasyHybrid3
+Graphics:    $HOME/software/EasyHybrid3/src/graphics_engine
+```
+
+There are no `*_gpu`, EasyHybrid-specific activation, batched-pDynamo, or
+pairlist-fix activation commands remaining. The useful pair-list memory fix
+was transferred into the main pDynamo tree before its experimental copy was
+deleted.
+
+The final audit confirmed no broken Python requirements, one visible RTX
+4060 Ti, a converged GPU4PySCF calculation, CPU/GPU pDynamo H2 energies
+agreeing within `4.957e-11 kJ mol-1`, successful official CPU and pair-list
+examples, all bundled VisMol extensions, and successful EasyHybrid GUI
+startup through the sole `easyhybrid` launcher.
+
+
+## 11.15 Test suite usage notes
+
+## Run
+
+The current suite needs the project Python dependencies and compiled VisMol
+extensions, but does not need a GTK display or OpenGL context:
+
+```sh
+python -m pytest -q -p no:cacheprovider tests/
+```
+
+If the extensions are missing, build them with
+`bash src/graphics_engine/install.sh`. That command writes generated sources and
+binaries into the graphics source tree. For a non-mutating build, follow the
+temporary-copy command in [Section 6 of this report](#6-reproducible-test-baseline).
+
+## Coverage
+
+- `test_bond_order_perception.py` tests pure bond-order perception, including
+  valence bounds, input-order independence, aromatic rings, and QC/MM boundary
+  handling.
+- `test_atom_ops_bonds.py` tests bond edits against a generated in-memory
+  molecule, refresh behavior for sticks, and per-frame dynamic-bond edits.
+- `conftest.py` builds a minimal fake VisMol session and deterministic atoms,
+  connectivity, and zero-coordinate frames. It does not construct a GTK or GL
+  session or call pDynamo calculations.
+
+The suite does not prove UI construction, rendering, pDynamo synchronization,
+simulation results, project/export round trips, or cross-platform support.
+Those checks are tracked in `docs/ROADMAP.md` and Section 6 of this report.
+Fixture requirements are documented in [Section 8 of this report](#8-safe-test-data-policy).

@@ -3,17 +3,18 @@
 EasyHybrid4 is the GTK4 port of Bachega's EasyHybrid3 graphical environment
 for pDynamo3. It aims to preserve EasyHybrid3's interface, scientific
 workflows, VisMol graphics engine, and project compatibility while using GTK4
-APIs. See the [feature parity audit](docs/FEATURE_PARITY.md) for known gaps
-and workflows that have not yet been verified.
+APIs. See the [consolidated development report](doc/EASYHYBRID4_REPORT.md)
+for compatibility, parity, and testing status.
 
 > **Development status:** EasyHybrid4 targets the GTK 4.0 API baseline. The
 > only runtime exercised in this checkout is GTK 4.14.5; GTK 4.0, current
 > stable GTK, and native Windows/macOS remain untested. This is not a claim of
 > compatibility with every GTK4 release. See
-> [GTK4_COMPATIBILITY.md](docs/GTK4_COMPATIBILITY.md) for the tested range.
+> [consolidated report](doc/EASYHYBRID4_REPORT.md#3-gtk4-python-and-dependency-compatibility)
+> for the tested range.
 > Full GUI verification needs a graphical desktop session.
-> EasyHybrid3 remains unchanged and usable. See
-> [GTK4_PORT.md](GTK4_PORT.md) for compatibility rules and migration status.
+> EasyHybrid3 remains unchanged and usable. The migration summary and GTK
+> rules are in the consolidated report.
 
 EasyHybrid is developed using Python, Cython, GTK, and modern OpenGL. It
 allows users to run common pDynamo routines in a graphical interface and to
@@ -88,6 +89,11 @@ Once the graphics engine has been successfully compiled, you can launch EasyHybr
 ```bash
 ./activate_easyhybrid4.sh
 ```
+
+## Development and compatibility status
+
+See the [consolidated development report](doc/EASYHYBRID4_REPORT.md). The
+permanent task queue is [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 
 # References

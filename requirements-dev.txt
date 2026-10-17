@@ -1,12 +1,6 @@
-# EasyHybrid3 -- dependencias EXTRAS para rodar a suite de testes (tests/)
-# e o CI, alem do que ja esta em requirements.txt.
+# EasyHybrid4 development/test dependencies, in addition to requirements.txt.
 #
-# Instalar com:
-#     pip install -r requirements-dev.txt --user
-#
-# NAO inclui PyGObject/pycairo (ja em requirements.txt) porque os testes
-# em tests/ deliberadamente NAO exercitam nada de GTK -- ver
-# tests/conftest.py e tests/README.md para o porque disso ser possivel
-# (e o que fica de fora da cobertura como consequencia).
+# The current unit suite focuses on GTK-free logic. See doc/EASYHYBRID4_REPORT.md for
+# its coverage limits; pytest passing does not verify the GUI or OpenGL.
 
 pytest>=7.0

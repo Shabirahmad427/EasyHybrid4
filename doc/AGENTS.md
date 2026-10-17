@@ -1,3 +1,0 @@
-# EasyHybrid4 Codex instructions
-
-Before **every** coding session, read `docs/ROADMAP.md` in full. Treat it as the authoritative task queue and compatibility/test contract. Select the next eligible unchecked task, work incrementally, add tests, run only tests you can actually execute, and record OS/architecture and GTK runtime versions in the roadmap evidence log. Never claim Linux tests prove macOS/Windows support. Do not mark a task complete unless its acceptance criteria pass. Preserve scientific calculations, project compatibility and published graphics submodule reachability. Update the roadmap and report the next task before ending.
