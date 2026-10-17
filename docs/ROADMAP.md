@@ -199,6 +199,12 @@ documented in conda-forge GLib issue #162. The workflow now explicitly
 imports GdkPixbuf and tests `libglib=2.82.2=h7025463_0` only for Windows
 GTK 4.8/4.10. This pin is a hypothesis, not yet validated; the 4.8 Windows
 cell remains **NOT TESTED** until the fresh native runner succeeds.
+The first follow-up run (`39065500734`) also exposed a CI instrumentation
+regression: GdkPixbuf has no `MAJOR_VERSION` attribute, so all Linux and
+macOS jobs failed in the runtime-reporting step before their smoke tests.
+This is not a GTK/platform regression. The diagnostic now records the
+GdkPixbuf typelib namespace (2.0) rather than querying nonexistent constants;
+the corrected matrix must rerun before drawing conclusions from the GLib pin.
 
 ### Active task and blockers
 

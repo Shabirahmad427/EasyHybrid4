@@ -171,6 +171,8 @@ jobs:
           micromamba run -n easyhybrid-gtk python - <<'PY' | tee -a platform-results.txt
           import gi
           import platform
+          gi.require_version('GdkPixbuf', '2.0')
+          gi.require_version('Gtk', '4.0')
           from gi.repository import GdkPixbuf, GLib, Gtk
 
           gtk_version = ".".join(
@@ -179,14 +181,11 @@ jobs:
           glib_version = ".".join(
               map(str, (GLib.MAJOR_VERSION, GLib.MINOR_VERSION, GLib.MICRO_VERSION))
           )
-          pixbuf_version = ".".join(
-              map(str, (GdkPixbuf.MAJOR_VERSION, GdkPixbuf.MINOR_VERSION, GdkPixbuf.MICRO_VERSION))
-          )
           pygobject_version = ".".join(map(str, gi.version_info))
           print(
               f"OS={platform.platform()} ARCH={platform.machine()} "
               f"PYTHON={platform.python_version()} PYGOBJECT={pygobject_version} "
-              f"GTK={gtk_version} GLIB={glib_version} GDK_PIXBUF={pixbuf_version}"
+              f"GTK={gtk_version} GLIB={glib_version} GDK_PIXBUF_API=2.0 (imported)"
           )
           PY
 

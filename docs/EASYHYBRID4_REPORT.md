@@ -403,9 +403,13 @@ failure documented by [conda-forge GLib issue #162](https://github.com/conda-for
 The earlier `libiconv=1.17` pin did not resolve the link-script hang. The
 workflow now tests the conda-forge build `libglib=2.82.2=h7025463_0` only for
 Windows GTK 4.8/4.10 and explicitly imports GdkPixbuf during runtime
-identification. This proposed CI-only fix has not run yet; Windows GTK 4.8
-remains **NOT TESTED**. GTK 4.10's result is limited to the smoke checks in
-run `39065269579`, not full application or scientific workflow validation.
+identification. The first run of this diagnostic (`39065500734`) queried a
+nonexistent `GdkPixbuf.MAJOR_VERSION` attribute, causing Linux and macOS jobs
+to fail before smoke checks. The workflow now records the typelib namespace
+instead. The GLib pin has not yet been evaluated by a clean matrix run;
+Windows GTK 4.8 remains **NOT TESTED**. GTK 4.10's earlier result is limited
+to the smoke checks in run `39065269579`, not full application or scientific
+workflow validation.
 
 ## 7. Contributor workflow
 

@@ -235,9 +235,13 @@ rather than GTK4 application code or cache generation.
 The workflow now tests a narrowly scoped conda-forge GLib build pin
 (`libglib=2.82.2=h7025463_0`) for Windows GTK 4.8/4.10, based on the matching
 Windows loader ABI failure documented in the [conda-forge GLib issue](https://github.com/conda-forge/glib-feedstock/issues/162).
-It explicitly imports and records GdkPixbuf alongside GTK and GLib so that
-this dependency failure is reported at the runtime-identification step.
-This is a CI environment workaround, not an application/platform code change.
-The pin has not yet been validated by a fresh run: GTK 4.8 Windows remains
-**NOT TESTED**; GTK 4.10 Windows has a GTK/GL smoke **PASS** in run
-`39065269579` (the complete matrix run was still in progress when logged).
+It explicitly imports GdkPixbuf and records its typelib namespace (2.0)
+alongside GTK and GLib so that this dependency failure is reported at runtime
+identification. The first run of this reporting change (`39065500734`) failed
+across Linux and macOS too because GdkPixbuf does not expose
+`MAJOR_VERSION`; no GTK smoke ran in those jobs. That instrumentation error
+has been corrected by recording the typelib namespace instead of nonexistent
+constants. This is a CI environment workaround, not an application/platform
+code change. The GLib pin has not yet been validated by a clean fresh run:
+GTK 4.8 Windows remains **NOT TESTED**; GTK 4.10 Windows has a GTK/GL smoke
+**PASS** in run `39065269579` (the full matrix was still running when logged).
