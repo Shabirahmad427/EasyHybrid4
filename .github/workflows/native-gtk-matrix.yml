@@ -30,7 +30,7 @@ jobs:
 
     defaults:
       run:
-        shell: bash -el {0}
+        shell: bash {0}
 
     steps:
       - uses: actions/checkout@v4
@@ -46,6 +46,8 @@ jobs:
         with:
           environment-name: easyhybrid-gtk
           cache-environment: true
+          init-shell: none
+          post-cleanup: none
           create-args: >-
             python=3.12
             gtk4=${{ matrix.gtk }}.*
@@ -68,7 +70,7 @@ jobs:
       - name: Record actual runtime and host
         run: |
           set -o pipefail
-          python - <<'PY' | tee platform-results.txt
+          micromamba run -n easyhybrid-gtk python - <<'PY' | tee platform-results.txt
           import gi
           import platform
           from gi.repository import GLib, Gtk
@@ -91,14 +93,14 @@ jobs:
         run: |
           set -o pipefail
           if [[ "$RUNNER_OS" == "Linux" ]]; then
-            LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe PYOPENGL_PLATFORM=glx xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" python tests/test_gtk_icon_theme_smoke.py 2>&1 | tee -a platform-results.txt
+            LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe PYOPENGL_PLATFORM=glx xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" micromamba run -n easyhybrid-gtk python tests/test_gtk_icon_theme_smoke.py 2>&1 | tee -a platform-results.txt
           else
-            python tests/test_gtk_icon_theme_smoke.py 2>&1 | tee -a platform-results.txt
+            micromamba run -n easyhybrid-gtk python tests/test_gtk_icon_theme_smoke.py 2>&1 | tee -a platform-results.txt
           fi
 
       - name: Build graphics engine extensions
         if: matrix.gtk == '4.24'
-        run: python setup.py build_ext --inplace
+        run: micromamba run -n easyhybrid-gtk python setup.py build_ext --inplace
         working-directory: src/graphics_engine
 
       - name: Run complete regression suite with real GTK smoke enabled
@@ -109,9 +111,9 @@ jobs:
         run: |
           set -o pipefail
           if [[ "$RUNNER_OS" == "Linux" ]]; then
-            LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" python -m pytest -q -p no:cacheprovider tests/ 2>&1 | tee -a platform-results.txt
+            LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe PYOPENGL_PLATFORM=glx xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" micromamba run -n easyhybrid-gtk python -m pytest -q -p no:cacheprovider tests/ 2>&1 | tee -a platform-results.txt
           else
-            python -m pytest -q -p no:cacheprovider tests/ 2>&1 | tee -a platform-results.txt
+            micromamba run -n easyhybrid-gtk python -m pytest -q -p no:cacheprovider tests/ 2>&1 | tee -a platform-results.txt
           fi
 
       - name: Upload runtime and test evidence
