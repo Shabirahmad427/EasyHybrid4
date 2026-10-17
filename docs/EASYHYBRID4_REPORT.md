@@ -41,12 +41,12 @@ status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).
   pDynamo extensions target Python 3.12. GTK 4.8 `Gtk.AboutDialog` teardown
   separately reproduces an upstream GtkImage finalization critical; see the
   compatibility report and [Debian bug #1041599](https://bugs.debian.org/1041599).
-  Windows GTK 4.8/4.10 GLArea smoke has **FAILED** on hosted Windows Server
-  2022; GTK 4.12/4.14/4.20/4.22/4.24 native-window and GLArea checks passed
-  on Windows. GTK 4.8/4.10 on macOS arm64, GTK 4.16/4.18 provider-excluded
-  cells, Wayland, and physical hardware graphics remain **NOT TESTED**. The
-  native GitHub Actions matrix has run; exact results and a WGL bootstrap
-  investigation are recorded in `GTK4_COMPATIBILITY.md`.
+  The native GitHub Actions matrix passes for every GTK minor 4.8–4.24 on
+  Linux x86_64, Windows x86_64 and macOS arm64, plus GTK 4.8/4.10 on macOS
+  x86_64 (run `39071376507`, 30/30). Three GTK defects needed app-side
+  handling (Windows 4.8/4.10 WGL pixel format, macOS 4.8/4.10 GL profile,
+  GTK 4.16 GLArea teardown). Wayland and physical hardware graphics remain
+  **NOT TESTED**. Exact results are recorded in `GTK4_COMPATIBILITY.md`.
 - This file is the single consolidated project status and technical report.
   GTK/API/platform validations remain limited to the evidence actually run.
 - Recent commits: `8fb0bd6`, `cb5ca10`, `21e49db` (focused Windows WGL
@@ -355,7 +355,7 @@ application window and remained free of GTK critical warnings with
 `G_DEBUG=fatal-criticals`; KL-012 records both results. No GL
 renderer/context was verified in that earlier EH4-100 coverage run. Current
 native GTK4 window/GL smoke results from GitHub Actions are listed below;
-Wayland and matrix-excluded provider/version cells remain **NOT TESTED**.
+Wayland remains **NOT TESTED**; all GTK 4.8–4.24 matrix cells now run.
 
 Compatibility planning update, 2026-10-17: GTK's current API reference reports
 GTK 4.24.1 ([GTK API reference](https://docs.gtk.org/gtk4/)), replacing the
@@ -540,12 +540,12 @@ does not prove native behavior.
 | Linux GTK no-display diagnostic | **REPRODUCED / CLASSIFIED** on GTK 4.8.2 and 4.14.5 with `G_DEBUG=fatal-criticals`; standalone GTK app and GDB stack identify missing display at GTK/GIO registration. Not an EasyHybrid icon/resource defect. |
 | GTK 4.24.1 current stable | **PASS** on native Linux X11 as listed above |
 | GTK 4.10, 4.12, 4.20, 4.22 | Native matrix smoke **PASS** on Linux; 4.12/4.20/4.22 also **PASS** on Windows and macOS arm64. Windows GTK 4.10 GL context smoke **FAIL**. |
-| GTK 4.16 and 4.18 | **NOT TESTED**; no conda-forge artifacts for the current matrix provider. |
+| GTK 4.16 and 4.18 | **PASS** on Linux (Ubuntu 24.10, Fedora 41, Debian 13), Windows (MSYS2 source) and macOS arm64 (GNOME source), run `39071376507`. |
 | Linux x86_64 / X11 live UI and GL | **PASS** at GTK 4.8.2, 4.14.5, and 4.24.1 only; this is not all-minor or all-platform coverage |
 | Linux Wayland UI/GL/input/scaling | **NOT TESTED** |
-| Windows GTK4/Python/GL smoke | **PARTIAL**: matrix smoke passes on GTK 4.12/4.14/4.20/4.22/4.24; GTK 4.8/4.10 fail GL context creation on hosted software WGL. Physical GPUs and packaging **NOT TESTED**. |
-| macOS arm64 GTK4/Python/GL smoke | **PARTIAL**: GTK 4.12/4.14/4.20/4.22/4.24 pass native CI smoke. GTK 4.8/4.10/4.16/4.18 and trackpad/Retina/hardware-driver coverage **NOT TESTED**. |
-| macOS x86_64 GTK4/Python/GL | **NOT TESTED** |
+| Windows GTK4/Python/GL smoke | **PASS** for GTK 4.8–4.24 on hosted software WGL (run `39071376507`). Physical GPUs and packaging **NOT TESTED**. |
+| macOS arm64 GTK4/Python/GL smoke | **PASS** for GTK 4.8–4.24 (4.8/4.10/4.16/4.18 built from GNOME source), run `39071376507`. Trackpad/Retina/hardware-driver coverage **NOT TESTED**. |
+| macOS x86_64 GTK4/Python/GL | **PASS** for GTK 4.8.2/4.10.1 (run `39071376507`); other minors **NOT TESTED** |
 
 No Linux pass is evidence of Windows/macOS or GTK-minimum compatibility.
 Update this consolidated report and the task evidence in `ROADMAP.md` as new
