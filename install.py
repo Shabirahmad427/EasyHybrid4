@@ -215,7 +215,7 @@ supported macOS package manager, then confirm that the GTK4 typelib and
 OpenGL development tools are available before building VisMol.
 """
 
-GTK4_MIN_VERSION = (4, 0)
+GTK4_MIN_VERSION = (4, 8)
 
 
 # ---------------------------------------------------------------------
@@ -831,8 +831,7 @@ def get_gtk4_version():
     would send the user towards the wrong fix.
 
     Return the installed GTK runtime version, or None if its typelib is
-    unavailable. The application supports GTK 4.0 and newer; optional APIs
-    added in later GTK4 releases are guarded at runtime. """
+    unavailable. EasyHybrid requires GTK 4.8 or newer. """
     try:
         import gi
         gi.require_version("Gtk", "4.0")
@@ -843,8 +842,13 @@ def get_gtk4_version():
 
 
 def check_gtk4_typelib():
-    """Return True when a GTK 4.0+ runtime typelib is available."""
+    """Return True when a GTK 4.8+ runtime typelib is available."""
     version = get_gtk4_version()
+    return is_supported_gtk4_version(version)
+
+
+def is_supported_gtk4_version(version):
+    """Return whether a detected GTK runtime meets the supported minimum."""
     return version is not None and version >= GTK4_MIN_VERSION
 
 
@@ -901,11 +905,11 @@ def check_external_libraries(auto_install=False):
     gtk4_version = get_gtk4_version()
     gtk4_ok = check_gtk4_typelib()
     if gtk4_ok:
-        print(f"GTK {gtk4_version[0]}.{gtk4_version[1]} runtime (minimum 4.0) : {c_ok('OK')}")
+        print(f"GTK {gtk4_version[0]}.{gtk4_version[1]} runtime (minimum 4.8) : {c_ok('OK')}")
     elif gtk4_version is not None:
-        print(f"GTK {gtk4_version[0]}.{gtk4_version[1]} runtime (minimum 4.0) : {c_error('TOO OLD')}")
+        print(f"GTK {gtk4_version[0]}.{gtk4_version[1]} runtime (minimum 4.8) : {c_error('TOO OLD')}")
     else:
-        print(f"GTK 4 runtime (minimum 4.0) : {c_error('NOT FOUND')}")
+        print(f"GTK 4 runtime (minimum 4.8) : {c_error('NOT FOUND')}")
 
     # [EN] install_vismol() (Step 3) needs a working C compiler (clang,
     # via Xcode CLT on macOS) to build VISMOL's Cython extensions -- see
@@ -987,7 +991,7 @@ def check_external_libraries(auto_install=False):
     if not gtk4_ok:
         if gtk4_version is not None:
             print(c_warn(
-                f"\nEasyHybrid requires GTK 4.0 or newer; GTK "
+                f"\nEasyHybrid requires GTK 4.8 or newer; GTK "
                 f"{gtk4_version[0]}.{gtk4_version[1]} is installed. "
                 "Upgrade the system GTK4 package or use a newer conda-forge "
                 "environment.\n"
@@ -995,7 +999,7 @@ def check_external_libraries(auto_install=False):
         if is_macos():
             if gtk4_version is None:
                 print(c_warn(
-                    "\nGTK 4.0+ with its Python/gi bindings was not found. This is a "
+                    "\nGTK 4.8+ with its Python/gi bindings was not found. This is a "
                     "SYSTEM/conda package, not something pip can install. Install it "
                     "via:\n"
                 ) + c_info("    mamba install -c conda-forge pygobject gtk4\n") +
@@ -1005,10 +1009,10 @@ def check_external_libraries(auto_install=False):
         else:
             if gtk4_version is None:
                 print(c_warn(
-                    "\nThe GTK 4.0+ runtime and typelib are SYSTEM packages, not "
+                    "\nThe GTK 4.8+ runtime and typelib are SYSTEM packages, not "
                     "something pip can install. On Debian/Ubuntu, run:\n"
                 ) + c_info("    sudo apt-get install gir1.2-gtk-4.0\n") +
-                    "Ensure your distribution provides GTK 4.0 or newer."
+                    "Ensure your distribution provides GTK 4.8 or newer."
                 )
 
     if not xcode_clt_ok:
