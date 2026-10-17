@@ -172,6 +172,7 @@ A task may be **implemented but NOT VERIFIED**; in that case leave unchecked and
 
 | 2026-10-17 | Windows GTK 4.8/4.10 WGL diagnosis (EH4-500 follow-up) | `21e49db`, `cb5ca10`, `8fb0bd6` | Windows Server 2022 x86_64, GitHub-hosted runner | GTK 4.8.2 / Python 3.12.15 / PyGObject 3.46.0 / GLib 2.78.0; GTK 4.10.1 / Python 3.12.15 / PyGObject 3.48.1 / GLib 2.78.0 | Run `39066895345`: GTK/GdkPixbuf imports and app-local Mesa DLL loads: **PASS** in both cells. Latest GTK 4.10 log: basic Tk-window WGL context reports OpenGL 4.6 Compatibility Profile, Mesa 26.2.4 `llvmpipe (LLVM 23.1.2, 256 bits)`. GTK 4.10 upstream source maps the generic error to dummy pixel-format/context setup, initial `wglMakeCurrent`, or a pre-OpenGL-2 fallback check; the CI message does not identify which branch failed. GTK window/Gio/GLArea smoke: **FAIL** in both. GTK 4.12.1 control on the same runner/Mesa succeeds. `GDK_DEBUG=opengl` was reverted because release GTK omitted `G_ENABLE_DEBUG`. | Basic WGL compatibility context: **PASS**; GTK GL context: **FAIL** on both older versions under this hosted runner/Mesa. Native Windows hardware: **NOT TESTED**. | Keep GTK 4.8/4.10 Windows cells enabled. Instrument the exact dummy-context failure or use a debug GTK build; do not label this an EasyHybrid renderer defect or GTK-wide incompatibility yet. EH4-500 remains incomplete. |
 | 2026-10-17 | Windows GTK 4.8/4.10 WGL root cause (EH4-500 follow-up), run `39067856957` | `1529bf5` | Windows Server 2022 x86_64, GitHub-hosted runner | GTK 4.8.2 and GTK 4.10.1 / Python 3.12.15 / PyGObject 3.48.1 / GLib 2.78.0; Mesa 26.2.4 llvmpipe | Frida WGL trace: GDK init now passes (4.6 core shared context); surfaceless `wglMakeCurrent` fails with error 2000 because the bootstrap HDC has GDI format 75 and the surface context uses ARB format 1. Confirmed in GTK 4.8.3/4.10.1 source; fixed by the GTK 4.12 dummy-HDC redesign. | Hosted software WGL GTK 4.10 GLArea: **FAIL** (GTK upstream defect). GTK 4.8.2 traced identically in the same run: **FAIL**. Physical GPUs: **NOT TESTED**. | Root cause identified; no app-side fix. Support-floor decision pending user. EH4-500 remains incomplete. |
+| 2026-10-17 | Windows GTK 4.8/4.10 WGL fix (EH4-500 follow-up), run `39068617718` | fix branch `c841269` | Windows Server 2022 x86_64, GitHub-hosted runner | GTK 4.8.2 / PyGObject 3.46.0 and GTK 4.10.1 / PyGObject 3.48.1; Python 3.12.15 / GLib 2.78.0; Mesa 26.2.4 llvmpipe | Real GLArea smoke with app-side pixel-format preset + cairo GSK: **PASS** on both (OpenGL 4.6 core). Local Linux: 73 passed, 5 skipped; native X11 GTK smoke pass. | Hosted software WGL: **PASS**. Physical Windows GPUs: **NOT TESTED**. | Fixed; clean full-matrix run `39068803040` pending before EH4-500 evidence is updated. |
 
 ### CI package-provider audit (2026-10-17)
 
@@ -253,6 +254,24 @@ drivers pick matching indices is **NOT TESTED**. No supported
 application-side workaround exists, because both pixel formats are chosen
 inside GDK. Hosted Windows GTK 4.8/4.10 GL remains **FAIL**. The decision
 on whether to declare GTK 4.12 as the Windows floor is left to the user.
+
+Fix (branch `fix/win32-legacy-wgl-pixel-format`, merged to `main`):
+`src/os_integration/win32_wgl.py` applies only on Windows with GTK earlier
+than 4.12. Startup defaults `GSK_RENDERER=cairo`, so GSK does not claim the
+toplevel with the ARB-chosen format. A `Gtk.GLArea` `create-context`
+handler sets GDK's own legacy GDI pixel format on the window and then defers
+to GTK's default context creation, so both HDCs share one format. The
+helper keeps `opengl32` loaded for the process lifetime. GTK version lookup
+now also finds the Windows `gtk-4-1.dll`. As a result, Windows GTK 4.14+ now
+receives `GDK_DEBUG=gl-prefer-gl`, as the startup policy already intended.
+Run `39068617718` passed the real GLArea render on both cells. Windows GTK
+4.8.2 and GTK 4.10.1 each produced OpenGL 4.6 Core Profile with Mesa 26.2.4
+llvmpipe; output showed `legacy-wgl=True GSK_RENDERER=cairo`. The CI
+investigation scaffolding was then removed: the Frida trace, the DLL
+diagnosis step, and `EASYHYBRID_TEST_OPENGL_DLL`. Clean full-matrix run
+`39068803040` is pending. Physical Windows GPUs remain **NOT TESTED**.
+Unit coverage is in `tests/test_win32_wgl.py`, using a fake Win32 API; it
+does not prove native behavior.
 
 - **Current task:** `EH4-103` — migrate GTK3-era widgets/layout and model patterns to shared GTK4 patterns. Inspect the existing controls, add behavioral regression tests before changes, preserve scientific workflows, and retain the explicit cross-platform/GTK-minor gaps.
 - **EH4-000 provenance limitations (not blockers for independent implementation):** `origin` now points to the user-supplied private EasyHybrid4 repository, and GitHub confirms that repository exists but is empty. The graphics-engine files are still ordinary tracked files rather than an active submodule, and their upstream revision remains unknown. Keep the revision unresolved; do not infer it from EasyHybrid3 or `.gitmodules`. Graphics publishing/ownership-dependent work remains gated.

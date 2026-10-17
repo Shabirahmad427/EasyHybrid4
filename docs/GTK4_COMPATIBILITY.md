@@ -294,3 +294,21 @@ drivers pick matching indices is **NOT TESTED**. No supported
 application-side workaround exists, because both pixel formats are chosen
 inside GDK. Hosted Windows GTK 4.8/4.10 GL remains **FAIL**. The decision
 on whether to declare GTK 4.12 as the Windows floor is left to the user.
+
+Fix (branch `fix/win32-legacy-wgl-pixel-format`, merged to `main`):
+`src/os_integration/win32_wgl.py` applies only on Windows with GTK earlier
+than 4.12. Startup defaults `GSK_RENDERER=cairo`, so GSK does not claim the
+toplevel with the ARB-chosen format. A `Gtk.GLArea` `create-context`
+handler sets GDK's own legacy GDI pixel format on the window and then defers
+to GTK's default context creation, so both HDCs share one format. The
+helper keeps `opengl32` loaded for the process lifetime. GTK version lookup
+now also finds the Windows `gtk-4-1.dll`. As a result, Windows GTK 4.14+ now
+receives `GDK_DEBUG=gl-prefer-gl`, as the startup policy already intended.
+Run `39068617718` passed the real GLArea render on both cells. Windows GTK
+4.8.2 and GTK 4.10.1 each produced OpenGL 4.6 Core Profile with Mesa 26.2.4
+llvmpipe; output showed `legacy-wgl=True GSK_RENDERER=cairo`. The CI
+investigation scaffolding was then removed: the Frida trace, the DLL
+diagnosis step, and `EASYHYBRID_TEST_OPENGL_DLL`. Clean full-matrix run
+`39068803040` is pending. Physical Windows GPUs remain **NOT TESTED**.
+Unit coverage is in `tests/test_win32_wgl.py`, using a fake Win32 API; it
+does not prove native behavior.
