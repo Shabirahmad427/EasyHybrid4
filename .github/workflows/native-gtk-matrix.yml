@@ -20,7 +20,7 @@ permissions:
 jobs:
   gtk-runtime:
     name: GTK ${{ matrix.gtk }} / ${{ matrix.os }}
-    runs-on: ${{ matrix.os == 'linux-x86_64' && 'ubuntu-24.04' || matrix.os == 'windows-x86_64' && 'windows-2022' || 'macos-14' }}
+    runs-on: ${{ matrix.os == 'linux-x86_64' && 'ubuntu-24.04' || matrix.os == 'windows-x86_64' && 'windows-2022' || matrix.os == 'macos-x86_64' && 'macos-15-intel' || 'macos-14' }}
     timeout-minutes: 45
     strategy:
       fail-fast: false
@@ -28,12 +28,14 @@ jobs:
       matrix:
         os: ${{ fromJSON(inputs.scope == 'windows-legacy' && '["windows-x86_64"]' || '["linux-x86_64", "windows-x86_64", "macos-arm64"]') }}
         gtk: ${{ fromJSON(inputs.scope == 'windows-legacy' && '["4.8", "4.10"]' || '["4.8", "4.10", "4.12", "4.14", "4.16", "4.18", "4.20", "4.22", "4.24"]') }}
-        # These exclusions describe missing conda-forge binaries for the
-        # requested runner architecture, not GTK upstream/platform support.
-        # GTK 4.16/4.18 have no conda-forge builds on any platform; GTK 4.8
-        # and 4.10 have osx-64 builds but no osx-arm64 builds. Keep all such
-        # cells NOT TESTED and add another native provider before claiming
-        # those GTK/platform combinations.
+        # conda-forge publishes no GTK 4.16/4.18 builds, and GTK 4.8/4.10 only
+        # for osx-64. Those cells are covered by the distro, MSYS2 and
+        # source-build jobs below; GTK 4.8/4.10 also run here on Intel macOS.
+        include:
+          - os: macos-x86_64
+            gtk: "4.8"
+          - os: macos-x86_64
+            gtk: "4.10"
         exclude:
           - os: linux-x86_64
             gtk: "4.16"
@@ -120,44 +122,9 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $archive = Join-Path $env:RUNNER_TEMP 'mesa3d-26.2.4-release-msvc.7z'
-          $url = 'https://github.com/pal1000/mesa-dist-win/releases/download/26.2.4/mesa3d-26.2.4-release-msvc.7z'
-          $expectedSha256 = '351fc8c8b695878ffb3eaa044b3ead08672a48b1a045e3c3e3975811df0f6695'
-          Invoke-WebRequest -Uri $url -OutFile $archive
-          $actualSha256 = (Get-FileHash -Path $archive -Algorithm SHA256).Hash.ToLowerInvariant()
-          if ($actualSha256 -ne $expectedSha256) {
-            throw "Mesa archive SHA-256 mismatch: $actualSha256"
-          }
-
-          $sevenZip = (Get-Command 7z.exe -ErrorAction SilentlyContinue).Source
-          if (-not $sevenZip) {
-            $sevenZip = Join-Path $env:ProgramFiles '7-Zip\7z.exe'
-          }
-          if (-not (Test-Path $sevenZip)) {
-            throw '7-Zip is required to extract the pinned Mesa runtime.'
-          }
-          $extractDir = Join-Path $env:RUNNER_TEMP 'mesa3d-26.2.4'
-          & $sevenZip x $archive "-o$extractDir" -y
-          if ($LASTEXITCODE -ne 0) {
-            throw "7-Zip extraction failed with exit code $LASTEXITCODE"
-          }
-
-          $mesaDir = Get-ChildItem -Path $extractDir -Directory -Filter x64 -Recurse |
-            Select-Object -First 1 -ExpandProperty FullName
-          if (-not $mesaDir) {
-            throw 'The pinned Mesa archive contains no x64 runtime directory.'
-          }
           $pythonExe = (micromamba run -n easyhybrid-gtk python -c 'import sys; print(sys.executable)' |
             Select-Object -Last 1).Trim()
-          $appDir = Split-Path -Parent $pythonExe
-          foreach ($dll in @('opengl32.dll', 'libgallium_wgl.dll')) {
-            $source = Join-Path $mesaDir $dll
-            if (-not (Test-Path $source)) {
-              throw "Required Mesa WGL file is missing: $source"
-            }
-            Copy-Item -Path $source -Destination $appDir -Force
-          }
-          Write-Output "Pinned Mesa WGL llvmpipe runtime deployed beside $pythonExe"
+          & .github/scripts/install_mesa_wgl.ps1 -PythonExe $pythonExe
 
       - name: Install full regression dependencies
         if: matrix.gtk == '4.24'
@@ -168,26 +135,7 @@ jobs:
       - name: Record actual runtime and host
         run: |
           set -o pipefail
-          micromamba run -n easyhybrid-gtk python - <<'PY' | tee -a platform-results.txt
-          import gi
-          import platform
-          gi.require_version('GdkPixbuf', '2.0')
-          gi.require_version('Gtk', '4.0')
-          from gi.repository import GdkPixbuf, GLib, Gtk
-
-          gtk_version = ".".join(
-              map(str, (Gtk.get_major_version(), Gtk.get_minor_version(), Gtk.get_micro_version()))
-          )
-          glib_version = ".".join(
-              map(str, (GLib.MAJOR_VERSION, GLib.MINOR_VERSION, GLib.MICRO_VERSION))
-          )
-          pygobject_version = ".".join(map(str, gi.version_info))
-          print(
-              f"OS={platform.platform()} ARCH={platform.machine()} "
-              f"PYTHON={platform.python_version()} PYGOBJECT={pygobject_version} "
-              f"GTK={gtk_version} GLIB={glib_version} GDK_PIXBUF_API=2.0 (imported)"
-          )
-          PY
+          micromamba run -n easyhybrid-gtk python .github/scripts/record_runtime.py conda-forge '${{ matrix.gtk }}' | tee -a platform-results.txt
 
       - name: Run native GTK window, Gio action, and real GLArea smoke
         run: |
@@ -225,5 +173,238 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: gtk-${{ matrix.gtk }}-${{ matrix.os }}-results
+          path: platform-results.txt
+          if-no-files-found: warn
+
+  # GTK minors that conda-forge never published for Linux, taken from the
+  # distribution release that shipped them. Ubuntu 24.10 is end-of-life and
+  # served from old-releases; Debian 13 is the current stable release.
+  gtk-linux-distro:
+    name: GTK ${{ matrix.gtk }} / linux-x86_64 (${{ matrix.distro }})
+    if: inputs.scope != 'windows-legacy'
+    runs-on: ubuntu-24.04
+    container: ${{ matrix.image }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - gtk: "4.16"
+            distro: ubuntu-24.10
+            image: ubuntu:24.10
+            eol: true
+          - gtk: "4.18"
+            distro: debian-13
+            image: debian:trixie
+            eol: false
+
+    defaults:
+      run:
+        shell: bash {0}
+
+    steps:
+      - name: Point end-of-life Ubuntu at old-releases
+        if: matrix.eol
+        run: |
+          sed -i -E 's#https?://(archive|security)\.ubuntu\.com/ubuntu/?#http://old-releases.ubuntu.com/ubuntu/#g' \
+            /etc/apt/sources.list.d/ubuntu.sources
+
+      - name: Install distribution GTK runtime and software GL
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          set -e
+          apt-get update
+          apt-get install --yes --no-install-recommends \
+            ca-certificates git python3 python3-gi python3-gi-cairo gir1.2-gtk-4.0 \
+            python3-opengl python3-pytest xvfb xauth \
+            libgl1 libgl1-mesa-dri libegl1 libegl-mesa0
+
+      - uses: actions/checkout@v5
+
+      - name: Record actual runtime and host
+        run: |
+          set -o pipefail
+          printf 'GTK_REQUESTED=%s OS=linux-x86_64 PROVIDER=%s\n' '${{ matrix.gtk }}' '${{ matrix.distro }}' > platform-results.txt
+          python3 .github/scripts/record_runtime.py '${{ matrix.distro }}' '${{ matrix.gtk }}' | tee -a platform-results.txt
+
+      - name: Run native GTK window, Gio action, and real GLArea smoke
+        run: |
+          set -o pipefail
+          LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe PYOPENGL_PLATFORM=glx xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" python3 tests/test_gtk_icon_theme_smoke.py 2>&1 | tee -a platform-results.txt
+
+      - name: Upload runtime and test evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: gtk-${{ matrix.gtk }}-linux-x86_64-results
+          path: platform-results.txt
+          if-no-files-found: warn
+
+  # GTK 4.16/4.18 for Windows from the MSYS2 UCRT64 package archive, with
+  # the same pinned Mesa software renderer as the conda-forge cells.
+  gtk-windows-msys2:
+    name: GTK ${{ matrix.gtk }} / windows-x86_64 (msys2)
+    if: inputs.scope != 'windows-legacy'
+    runs-on: windows-2022
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - gtk: "4.16"
+            package: 4.16.12-2
+          - gtk: "4.18"
+            package: 4.18.6-2
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Create MSYS2 UCRT64 Python runtime
+        id: msys2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            mingw-w64-ucrt-x86_64-python
+            mingw-w64-ucrt-x86_64-python-gobject
+            mingw-w64-ucrt-x86_64-python-cairo
+            mingw-w64-ucrt-x86_64-python-pyopengl
+            mingw-w64-ucrt-x86_64-python-pytest
+
+      - name: Install archived MSYS2 GTK ${{ matrix.package }}
+        run: |
+          set -e
+          pacman -U --noconfirm \
+            https://repo.msys2.org/mingw/ucrt64/mingw-w64-ucrt-x86_64-gtk4-${{ matrix.package }}-any.pkg.tar.zst
+
+      - name: Install pinned Mesa WGL software renderer
+        shell: pwsh
+        run: |
+          $pythonExe = Join-Path '${{ steps.msys2.outputs.msys2-location }}' 'ucrt64\bin\python.exe'
+          & .github/scripts/install_mesa_wgl.ps1 -PythonExe $pythonExe
+
+      - name: Record actual runtime and host
+        run: |
+          set -o pipefail
+          printf 'GTK_REQUESTED=%s OS=windows-x86_64 PROVIDER=msys2-%s\n' '${{ matrix.gtk }}' '${{ matrix.package }}' > platform-results.txt
+          python .github/scripts/record_runtime.py 'msys2-${{ matrix.package }}' '${{ matrix.gtk }}' | tee -a platform-results.txt
+
+      - name: Run native GTK window, Gio action, and real GLArea smoke
+        run: |
+          set -o pipefail
+          GALLIUM_DRIVER=llvmpipe python tests/test_gtk_icon_theme_smoke.py 2>&1 | tee -a platform-results.txt
+
+      - name: Upload runtime and test evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: gtk-${{ matrix.gtk }}-windows-x86_64-results
+          path: platform-results.txt
+          if-no-files-found: warn
+
+  # No Apple Silicon binaries exist for these GTK minors, so build the
+  # official GNOME release tarball (SHA-256 pinned) against conda-forge
+  # dependencies on the native arm64 runner.
+  gtk-macos-source:
+    name: GTK ${{ matrix.gtk }} / macos-arm64 (source ${{ matrix.version }})
+    if: inputs.scope != 'windows-legacy'
+    runs-on: macos-14
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - gtk: "4.8"
+            version: 4.8.3
+            sha256: b362f968d085b4d3d9340d4d38c706377ded9d5374e694a2b6b7e6292e3cba74
+          - gtk: "4.10"
+            version: 4.10.5
+            sha256: 9bd5e437e41d48e3d6a224c336b0fd3fd490036dceb8956ed74b956369af609b
+          - gtk: "4.16"
+            version: 4.16.13
+            sha256: ddf3d9e12b848139a945d191d5ca56b78d0647f53b55b8bca5f9902b61624498
+          - gtk: "4.18"
+            version: 4.18.6
+            sha256: e1817c650ddc3261f9a8345b3b22a26a5d80af154630dedc03cc7becefffd0fa
+
+    defaults:
+      run:
+        shell: bash {0}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Create GTK build dependencies
+        uses: mamba-org/setup-micromamba@v3.2.1
+        with:
+          environment-name: easyhybrid-gtk-src
+          cache-environment: true
+          init-shell: none
+          post-cleanup: none
+          create-args: >-
+            python=3.12
+            pygobject
+            pycairo
+            pyopengl
+            pytest
+            meson
+            ninja
+            pkg-config
+            gobject-introspection
+            glib
+            cairo
+            pango
+            harfbuzz
+            fribidi
+            graphene
+            epoxy
+            gdk-pixbuf
+            libpng
+            libjpeg-turbo
+            libtiff
+            gettext
+            sassc
+            adwaita-icon-theme
+            hicolor-icon-theme
+
+      - name: Build and install GTK ${{ matrix.version }} from source
+        run: |
+          set -eo pipefail
+          minor='${{ matrix.gtk }}'
+          curl -fsSL "https://download.gnome.org/sources/gtk/${minor}/gtk-${{ matrix.version }}.tar.xz" -o gtk.tar.xz
+          echo "${{ matrix.sha256 }}  gtk.tar.xz" | shasum -a 256 -c -
+          tar -xJf gtk.tar.xz
+          micromamba run -n easyhybrid-gtk-src bash -eo pipefail -c '
+            args=$(python .github/scripts/gtk_meson_options.py gtk-${{ matrix.version }})
+            echo "MESON_ARGS=$args"
+            export LDFLAGS="-Wl,-rpath,$CONDA_PREFIX/lib ${LDFLAGS:-}"
+            meson setup gtk-build gtk-${{ matrix.version }} --prefix="$CONDA_PREFIX" --libdir=lib \
+              --buildtype=release $args
+            meson compile -C gtk-build
+            meson install -C gtk-build
+          '
+
+      - name: Record actual runtime and host
+        run: |
+          set -o pipefail
+          printf 'GTK_REQUESTED=%s OS=macos-arm64 PROVIDER=source-%s\n' '${{ matrix.gtk }}' '${{ matrix.version }}' > platform-results.txt
+          micromamba run -n easyhybrid-gtk-src python .github/scripts/record_runtime.py 'source-${{ matrix.version }}' '${{ matrix.gtk }}' | tee -a platform-results.txt
+
+      - name: Run native GTK window, Gio action, and real GLArea smoke
+        run: |
+          set -o pipefail
+          micromamba run -n easyhybrid-gtk-src python tests/test_gtk_icon_theme_smoke.py 2>&1 | tee -a platform-results.txt
+
+      - name: Upload runtime and test evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: gtk-${{ matrix.gtk }}-macos-arm64-results
           path: platform-results.txt
           if-no-files-found: warn
