@@ -221,8 +221,11 @@ was at the same setup step. The solve selected `libiconv 1.18`. The upstream
 [gdk-pixbuf Windows issue](https://github.com/conda-forge/gdk-pixbuf-feedstock/issues/48)
 documents this post-link loader-cache failure mode and maintainers' temporary
 `libiconv 1.17` workaround; a later [feedstock issue](https://github.com/conda-forge/gdk-pixbuf-feedstock/issues/61)
-shows related loader-cache instability recurring in 2026. The workflow now
-conditionally pins `libiconv=1.17` for Windows GTK 4.8/4.10 only. This is a
-CI dependency workaround, not an application dependency or verified fix yet.
-The new native rerun must complete its setup and GTK smoke before these cells
-can be marked **PASS**; until then they remain **NOT TESTED**.
+shows related loader-cache instability recurring in 2026. Run `39064516500`
+confirms the 1.17 pin is selected, but the transaction still stalls at the
+same post-link script, so that pin alone did **not** fix the observed hang.
+The workflow now skips link scripts only for Windows GTK 4.8/4.10 and runs
+`gdk-pixbuf-query-loaders --update-cache` explicitly with a 60-second timeout
+and captured output. This isolates the hanging command and checks whether the
+runtime cache can be created. The diagnostic rerun is pending; Windows 4.8/4.10
+remain **NOT TESTED** until the setup and GTK smoke complete.

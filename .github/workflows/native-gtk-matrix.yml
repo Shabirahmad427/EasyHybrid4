@@ -83,10 +83,37 @@ jobs:
             gtk4=${{ matrix.gtk }}.*
             ${{ matrix.gtk == '4.8' && 'jpeg=9e' || '' }}
             ${{ matrix.os == 'windows-x86_64' && (matrix.gtk == '4.8' || matrix.gtk == '4.10') && 'libiconv=1.17' || '' }}
+            ${{ matrix.os == 'windows-x86_64' && (matrix.gtk == '4.8' || matrix.gtk == '4.10') && '--skip-run-link-scripts' || '' }}
             pygobject
             pycairo
             pytest
             pyopengl
+
+      - name: Diagnose and generate Windows gdk-pixbuf loader cache
+        if: runner.os == 'Windows' && (matrix.gtk == '4.8' || matrix.gtk == '4.10')
+        shell: pwsh
+        run: |
+          $prefix = (micromamba run -n easyhybrid-gtk python -c 'import sys; print(sys.prefix)' |
+            Select-Object -Last 1).Trim()
+          $queryLoaders = Join-Path $prefix 'Library\bin\gdk-pixbuf-query-loaders.exe'
+          if (-not (Test-Path $queryLoaders)) {
+            throw "gdk-pixbuf-query-loaders was not installed at $queryLoaders"
+          }
+
+          $stdout = Join-Path $env:RUNNER_TEMP 'gdk-pixbuf-query-loaders.stdout.txt'
+          $stderr = Join-Path $env:RUNNER_TEMP 'gdk-pixbuf-query-loaders.stderr.txt'
+          $process = Start-Process -FilePath $queryLoaders -ArgumentList '--update-cache' `
+            -NoNewWindow -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+          if (-not $process.WaitForExit(60000)) {
+            $process.Kill()
+            Get-Content $stdout, $stderr -ErrorAction SilentlyContinue
+            throw 'gdk-pixbuf-query-loaders timed out after 60 seconds; see captured output.'
+          }
+          if ($process.ExitCode -ne 0) {
+            Get-Content $stdout, $stderr -ErrorAction SilentlyContinue
+            throw "gdk-pixbuf-query-loaders failed with exit code $($process.ExitCode)."
+          }
+          Write-Output "gdk-pixbuf loader cache generated successfully (exit $($process.ExitCode))."
 
       - name: Install pinned Mesa WGL software renderer for Windows runner
         if: runner.os == 'Windows'

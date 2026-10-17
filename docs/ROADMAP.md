@@ -191,9 +191,13 @@ Follow-up: Windows GTK 4.8 and 4.10 setup jobs stalled in `gdk-pixbuf`'s
 post-link script after resolving `libiconv 1.18` (run `39063905270`; the same
 cells were still at setup in `39064335791`). The conda-forge feedstock
 documents a Windows loader-cache failure and temporary `libiconv 1.17`
-workaround. Added a conditional pin for only Windows GTK 4.8/4.10. Workflow
-YAML parses and `git diff --check` passes; a native rerun is required before
-calling the fix verified. These cells stay **NOT TESTED** until then.
+workaround. The pin was applied only to Windows GTK 4.8/4.10; run
+`39064516500` confirms `libiconv 1.17` was selected but still hangs in the
+same post-link step. The next revision skips link scripts only in those test
+environments and runs the gdk-pixbuf cache utility directly with a 60-second
+timeout and captured output. Workflow YAML parses and `git diff --check`
+passes; that diagnostic and native smoke are pending. Both cells stay
+**NOT TESTED**.
 
 ### Active task and blockers
 

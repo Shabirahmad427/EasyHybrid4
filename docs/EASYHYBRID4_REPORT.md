@@ -393,11 +393,14 @@ unavailable on this platform.” See
 [`GTK4_COMPATIBILITY.md`](GTK4_COMPATIBILITY.md#gtk-binary-availability-audit-2026-10-17).
 
 The same workflow exposed a separate old-GTK Windows setup stall: the GTK
-4.8/4.10 conda transaction reaches the `gdk-pixbuf` post-link script with
-`libiconv 1.18`. Conda-forge has documented a Windows loader-cache failure
-with that package and a `libiconv 1.17` workaround. The workflow now applies
-that version only to those two Windows cells; this remains **UNVERIFIED** until
-the native rerun completes.
+4.8/4.10 conda transaction reaches the `gdk-pixbuf` post-link script. The
+initial transaction selected `libiconv 1.18`; conda-forge has documented a
+Windows loader-cache failure with a `libiconv 1.17` workaround. Run
+`39064516500` confirms that pin is active but the same post-link step still
+stalls, so it was insufficient. The next workflow revision skips package link
+scripts only in these two test environments, then invokes the pixbuf loader
+cache helper explicitly with a 60-second timeout and captured output. This
+diagnostic is not yet verified; both GTK cells remain **NOT TESTED**.
 
 ## 7. Contributor workflow
 
