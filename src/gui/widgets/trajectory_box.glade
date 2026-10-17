@@ -1,0 +1,81 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<interface>
+  <requires lib="gtk" version="4.0" />
+  <object class="GtkGrid" id="trajectory_box">
+    <property name="visible">True</property>
+    <property name="focusable">False</property>
+    <property name="row-spacing">5</property>
+    <property name="column-spacing">5</property>
+    <child>
+      <object class="GtkCheckButton" id="checkbox_save_traj">
+        <property name="label" translatable="yes">Save Trajectory:</property>
+        <property name="visible">True</property>
+        <property name="focusable">True</property>
+        <property name="halign">end</property>
+        <signal name="toggled" handler="on_toggle_save_checkbox" swapped="no" />
+      </object>
+    </child>
+    <child>
+      <object class="GtkLabel" id="label_format">
+        <property name="visible">True</property>
+        <property name="sensitive">False</property>
+        <property name="focusable">False</property>
+        <property name="label" translatable="yes">Format:</property>
+        <property name="xalign">1</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkDropDown" id="format_dropdown">
+        <property name="visible">True</property>
+        <property name="sensitive">False</property>
+        <property name="focusable">False</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkLabel" id="label_trajectory_frequency">
+        <property name="visible">True</property>
+        <property name="sensitive">False</property>
+        <property name="focusable">False</property>
+        <property name="label" translatable="yes">Trajectory Frequency:</property>
+        <property name="xalign">1</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkEntry" id="entry_trajectory_frequency">
+        <property name="visible">True</property>
+        <property name="sensitive">False</property>
+        <property name="focusable">True</property>
+        <property name="text" translatable="yes">10</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkLabel" id="label_working_folder">
+        <property name="visible">True</property>
+        <property name="sensitive">False</property>
+        <property name="focusable">False</property>
+        <property name="label" translatable="yes">Working Folder:</property>
+        <property name="xalign">1</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkEntry" id="entry_trajectory_name">
+        <property name="visible">True</property>
+        <property name="sensitive">False</property>
+        <property name="focusable">True</property>
+        <property name="hexpand">False</property>
+        <property name="text" translatable="yes">NewTrajectory</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkBox" id="folder_chooser_box">
+        <property name="visible">True</property>
+        <property name="focusable">False</property>
+        <property name="hexpand">True</property>
+        <property name="orientation">vertical</property>
+        <child>
+          <placeholder />
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

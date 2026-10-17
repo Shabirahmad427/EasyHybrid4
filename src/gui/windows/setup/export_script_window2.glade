@@ -1,0 +1,137 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<interface>
+  <requires lib="gtk" version="4.0" />
+  <object class="GtkDialog" id="dialog">
+    <property name="name">dialog</property>
+    <property name="focusable">False</property>
+    <child internal-child="content_area">
+      <object class="GtkBox">
+        <property name="focusable">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">2</property>
+        <child internal-child="action_area">
+          <object class="GtkBox">
+            <property name="focusable">False</property>
+            <property name="halign">end</property>
+            <child>
+              <object class="GtkButton" id="button_cancel">
+                <property name="hexpand">True</property>
+                <property name="label" translatable="yes">Cancel</property>
+                <property name="visible">True</property>
+                <property name="focusable">True</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="button_export">
+                <property name="hexpand">True</property>
+                <property name="label" translatable="yes">Export</property>
+                <property name="visible">True</property>
+                <property name="focusable">True</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="focusable">False</property>
+            <property name="margin-top">10</property>
+            <property name="margin-bottom">10</property>
+            <property name="margin-start">10</property>
+            <property name="margin-end">10</property>
+            <child>
+              <object class="GtkBox" id="reaction_coordinate_box">
+                <property name="visible">True</property>
+                <property name="focusable">False</property>
+                <property name="orientation">vertical</property>
+                <property name="spacing">4</property>
+                <child>
+                  <!-- n-columns=2 n-rows=2 -->
+                  <object class="GtkGrid">
+                    <property name="vexpand">True</property>
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="row-spacing">8</property>
+                    <property name="column-spacing">10</property>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="focusable">False</property>
+                        <property name="label" translatable="yes">Script File:</property>
+                        <property name="xalign">1</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="focusable">False</property>
+                        <property name="label" translatable="yes">Folder:</property>
+                        <property name="xalign">1</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">1</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="entry_filename">
+                        <property name="visible">True</property>
+                        <property name="focusable">True</property>
+                        <property name="hexpand">True</property>
+                        <property name="text" translatable="yes">new_script</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="btn_folder_chooser">
+                        <property name="label">Choose Folder</property>
+                        <property name="visible">True</property>
+                        <property name="focusable">False</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">1</property>
+                        </layout>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox" id="rc_aligment">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="margin-top">5</property>
+                    <property name="margin-bottom">5</property>
+                    <property name="margin-start">10</property>
+                    <property name="margin-end">10</property>
+                    <child>
+                      <object class="GtkSeparator">
+                        <property name="visible">True</property>
+                        <property name="focusable">False</property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkCheckButton">
+                    <property name="label" translatable="yes">Export Additional Files</property>
+                    <property name="visible">True</property>
+                    <property name="focusable">True</property>
+                    <property name="tooltip-text" translatable="yes">This option exports coordinate files in pkl format that will be loaded later into the script.</property>
+                    <property name="active">True</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

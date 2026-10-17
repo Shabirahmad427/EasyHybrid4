@@ -1,0 +1,590 @@
+[
+  {
+    "type": "item",
+    "id": "menuitem1_file",
+    "label": "_File",
+    "items": [
+      {
+        "type": "item",
+        "id": "menuitem_new",
+        "label": "gtk-new"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_open",
+        "label": "gtk-open"
+      },
+      {
+        "type": "separator"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_save",
+        "label": "gtk-save"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_save_as",
+        "label": "gtk-save-as"
+      },
+      {
+        "type": "separator"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_export",
+        "label": "Export As ..."
+      },
+      {
+        "type": "item",
+        "id": "menuitem_import",
+        "label": "Import Data..."
+      },
+      {
+        "type": "separator"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_quit",
+        "label": "gtk-quit"
+      }
+    ]
+  },
+  {
+    "type": "item",
+    "id": "menuitem2_edit",
+    "label": "_Edit",
+    "items": [
+      {
+        "type": "item",
+        "id": "menuitem_go_to_atom",
+        "label": "Go To Atom..."
+      },
+      {
+        "type": "item",
+        "id": "menuitem_make_solvent_box",
+        "label": "Make Solvent Box"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_solvate",
+        "label": "Solvate System"
+      },
+      {
+        "type": "item",
+        "id": null,
+        "label": "Clear Logs"
+      },
+      {
+        "type": "separator"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_preferences",
+        "label": "Preferences"
+      }
+    ]
+  },
+  {
+    "type": "item",
+    "id": "menuitem3_selection",
+    "label": "_Selection",
+    "items": [
+      {
+        "type": "item",
+        "id": "menuitem_list",
+        "label": "Selections and Restraints"
+      },
+      {
+        "type": "separator"
+      },
+      {
+        "type": "item",
+        "id": null,
+        "label": "Selection Mode",
+        "items": [
+          {
+            "type": "item",
+            "id": "menuitem_seltype_viewing",
+            "label": "Viewing"
+          },
+          {
+            "type": "item",
+            "id": "menuitem_seltype_picking",
+            "label": "Picking"
+          }
+        ]
+      },
+      {
+        "type": "item",
+        "id": "menuitem_selecting_by",
+        "label": "Selecting By:",
+        "items": [
+          {
+            "type": "item",
+            "id": "menuitem_by_atom",
+            "label": "Atom"
+          },
+          {
+            "type": "item",
+            "id": "menuitem_by_residue",
+            "label": "Residue"
+          },
+          {
+            "type": "item",
+            "id": "menuitem_by_chain",
+            "label": "Chain"
+          },
+          {
+            "type": "item",
+            "id": "menuitem_by_molecule",
+            "label": "Molecule"
+          }
+        ]
+      },
+      {
+        "type": "separator"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_extend_selection",
+        "label": "Extend"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_send_to_sel_list",
+        "label": "Send to Selection List"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_color",
+        "label": "Change Color"
+      },
+      {
+        "type": "separator"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_set_as_qc",
+        "label": "Set as QC Atoms"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_show_qc_only",
+        "label": "Show QC Atoms Only"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_show_all_atoms",
+        "label": "Show All Atoms"
+      },
+      {
+        "type": "separator"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_set_as_fixed",
+        "label": "Set as Fixed Atoms"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_set_as_free",
+        "label": "Set as Free Atoms"
+      },
+      {
+        "type": "separator"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_prune",
+        "label": "Prune System to Selection"
+      }
+    ]
+  },
+  {
+    "type": "item",
+    "id": "menuitem4_view",
+    "label": "_View",
+    "items": [
+      {
+        "type": "item",
+        "id": "menuitem_trajectory_tool",
+        "label": "Show Trajectory Tool"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_terminal",
+        "label": "EasyHybrid Terminal"
+      },
+      {
+        "type": "separator"
+      },
+      {
+        "type": "check",
+        "id": "menuitem_file_tools",
+        "label": "File Tools",
+        "active": true
+      },
+      {
+        "type": "check",
+        "id": "menuitem_check_selection_toolbar",
+        "label": "Selection Toolbar",
+        "active": true
+      },
+      {
+        "type": "check",
+        "id": "menuitem_check_pDynamo_tools_bar",
+        "label": "pDynamo Toolbar",
+        "active": true
+      },
+      {
+        "type": "check",
+        "id": "menuitem_seltype_box",
+        "label": "Selection Type Box",
+        "active": true
+      },
+      {
+        "type": "check",
+        "id": "menuitem_message_window",
+        "label": "Message Window",
+        "active": true
+      },
+      {
+        "type": "separator"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_bg_color",
+        "label": "Set Background Color"
+      },
+      {
+        "type": "separator"
+      },
+      {
+        "type": "check",
+        "id": "menuitem_check_xyz_axes",
+        "label": "Orientation Axes",
+        "active": true
+      }
+    ]
+  },
+  {
+    "type": "item",
+    "id": null,
+    "label": "_System",
+    "items": [
+      {
+        "type": "item",
+        "id": "menuitem_info",
+        "label": "Info"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_rename",
+        "label": "Rename"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_change_color",
+        "label": "Reference Color"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_cell_and_symmetry",
+        "label": "Cell and Symmetry",
+        "items": [
+          {
+            "type": "item",
+            "id": "menuitem_show_cell",
+            "label": "Show Cell"
+          },
+          {
+            "type": "item",
+            "id": "menuitem_hide_cell",
+            "label": "Hide Cell"
+          },
+          {
+            "type": "separator"
+          },
+          {
+            "type": "item",
+            "id": "menuitem_edit_cell",
+            "label": "Edit Cell"
+          }
+        ]
+      },
+      {
+        "type": "separator"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_qc_setup",
+        "label": "Setup QC Region"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_opls_parameters",
+        "label": "OPLS Parameters..."
+      },
+      {
+        "type": "separator"
+      },
+      {
+        "type": "item",
+        "id": "charge_menu",
+        "label": "Charges",
+        "items": [
+          {
+            "type": "item",
+            "id": "menuitem_charge_inspection",
+            "label": "Charge Block Inspector"
+          },
+          {
+            "type": "item",
+            "id": "menuitem_fragment_charges",
+            "label": "Fragment-Based Charge Assignment"
+          }
+        ]
+      },
+      {
+        "type": "item",
+        "id": null,
+        "label": "Remove",
+        "items": [
+          {
+            "type": "item",
+            "id": "menuitem_remove_restraints",
+            "label": "Restraints"
+          },
+          {
+            "type": "item",
+            "id": "menuitem_remove_fixed",
+            "label": "Fixed Atoms"
+          },
+          {
+            "type": "item",
+            "id": "menuitem_remove_qc",
+            "label": "QC Atoms"
+          },
+          {
+            "type": "item",
+            "id": "menuitem_custom_colors",
+            "label": "Custom Colors"
+          },
+          {
+            "type": "item",
+            "id": "menuitem_nb_model",
+            "label": "NB Model"
+          },
+          {
+            "type": "item",
+            "id": "menuitem_PES_data",
+            "label": "PES data"
+          }
+        ]
+      },
+      {
+        "type": "item",
+        "id": "menuitem_add",
+        "label": "Add",
+        "items": [
+          {
+            "type": "item",
+            "id": "menuitem_new_nb_model",
+            "label": "NB Model"
+          }
+        ]
+      },
+      {
+        "type": "separator"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_merge",
+        "label": "Merge With..."
+      },
+      {
+        "type": "separator"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_clone",
+        "label": "Clone"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_prune_to_qc_region",
+        "label": "Prune to QC Region"
+      }
+    ]
+  },
+  {
+    "type": "item",
+    "id": "menuitem5_simulate",
+    "label": "_Simulate",
+    "items": [
+      {
+        "type": "item",
+        "id": "menuitem_energy",
+        "label": "Single Point Energy"
+      },
+      {
+        "type": "separator"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_geometry_optimization",
+        "label": "Geometry optimization"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_transition_state_search",
+        "label": "Search Transition State (Baker)…"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_reaction_path",
+        "label": "IRC / Reaction Path…"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_cpr",
+        "label": "Conjugate Peak Refinement…"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_molecular_dynamics",
+        "label": "Molecular Dynamics"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_normal_modes",
+        "label": "Normal Modes"
+      },
+      {
+        "type": "separator"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_rection_coordinate_scans",
+        "label": "Reaction Coordinate Scans"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_advanced_rc_scans",
+        "label": "Advanced RC scans"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_nudged_elastic_band",
+        "label": "Nudged Elastic Band (NEB)"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_umbrella_sampling",
+        "label": "Umbrella Sampling"
+      }
+    ]
+  },
+  {
+    "type": "item",
+    "id": "menuitem6_analysis",
+    "label": "_Analysis",
+    "items": [
+      {
+        "type": "item",
+        "id": "menuitem_mormal_modes_analysis",
+        "label": "Normal Modes"
+      },
+      {
+        "type": "separator"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_energy_analysis",
+        "label": "PES Analysis"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_energy_refinement",
+        "label": "Energy Refinement"
+      },
+      {
+        "type": "separator"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_align_trajectory",
+        "label": "Align Trajectory"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_reimaging",
+        "label": "Reimaging (Wrapping)"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_d_a_d_analysis",
+        "label": "Distances, Angles and Dihedrals"
+      },
+      {
+        "type": "item",
+        "id": "test_item",
+        "label": "IR spectrum"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_RMSD_tool",
+        "label": "RMSD tool"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_RDF_analysis",
+        "label": "Radial Distribution Function (RDF)"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_density_analysis",
+        "label": "Box Density Analysis"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_RMSF_analysis",
+        "label": "RMSF Analysis"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_rama",
+        "label": "Ramachandran Plot"
+      },
+      {
+        "type": "separator"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_surface_analysis",
+        "label": "Surfaces"
+      },
+      {
+        "type": "separator"
+      },
+      {
+        "type": "item",
+        "id": "menuitem_WHAM",
+        "label": "WHAM"
+      }
+    ]
+  },
+  {
+    "type": "item",
+    "id": "menuitem7_help",
+    "label": "_Help",
+    "items": [
+      {
+        "type": "item",
+        "id": "menuitem_about",
+        "label": "gtk-about"
+      }
+    ]
+  }
+]

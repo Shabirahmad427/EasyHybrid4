@@ -1,0 +1,66 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<interface>
+  <requires lib="gtk" version="4.0" />
+  <object class="GtkWindow" id="window">
+    <property name="focusable">False</property>
+    <child type="titlebar">
+      <placeholder />
+    </child>
+    <child>
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="focusable">False</property>
+        <property name="margin-top">5</property>
+        <property name="margin-bottom">5</property>
+        <property name="margin-start">5</property>
+        <property name="margin-end">5</property>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="focusable">False</property>
+            <property name="orientation">vertical</property>
+            <property name="spacing">5</property>
+            <child>
+              <object class="GtkBox">
+                <property name="vexpand">True</property>
+                <property name="visible">True</property>
+                <property name="focusable">False</property>
+                <property name="orientation">vertical</property>
+                <child>
+                  <object class="GtkScrolledWindow">
+                    <property name="vexpand">True</property>
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <child>
+                      <object class="GtkTextView" id="entry_text_buffer">
+                        <property name="visible">True</property>
+                        <property name="focusable">False</property>
+                        <property name="editable">False</property>
+                        <property name="monospace">True</property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkSeparator">
+                <property name="visible">True</property>
+                <property name="focusable">False</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkEntry" id="entry_terminal">
+                <property name="visible">True</property>
+                <property name="focusable">True</property>
+                <property name="input-purpose">terminal</property>
+                <signal name="activate" handler="on_entry_terminal" swapped="no" />
+                <signal name="changed" handler="on_entry_terminal_change" swapped="no" />
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

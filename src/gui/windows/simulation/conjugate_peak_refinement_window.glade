@@ -1,0 +1,445 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<interface>
+  <requires lib="gtk" version="4.0" />
+  <object class="GtkWindow" id="cpr_window">
+    <property name="focusable">False</property>
+    <property name="resizable">False</property>
+    <signal name="close-request" handler="close_window" swapped="no" />
+    <child>
+      <object class="GtkBox" id="cpr_box">
+        <property name="visible">True</property>
+        <property name="focusable">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">7</property>
+        <child>
+          <object class="GtkFrame" id="cpr_coordinates_frame">
+            <property name="visible">True</property>
+            <property name="focusable">False</property>
+            <property name="label_xalign">0.5</property>
+            <child>
+              <object class="GtkGrid">
+                <property name="visible">True</property>
+                <property name="focusable">False</property>
+                <property name="row_spacing">6</property>
+                <property name="column_spacing">10</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="label" translatable="yes">Reactants:</property>
+                    <property name="xalign">1</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="label" translatable="yes">Products:</property>
+                    <property name="xalign">1</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox" id="box_coordinates1">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="hexpand">True</property>
+                    <property name="orientation">vertical</property>
+                    <child>
+                      <placeholder />
+                    </child>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox" id="box_coordinates2">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="hexpand">True</property>
+                    <property name="orientation">vertical</property>
+                    <child>
+                      <placeholder />
+                    </child>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <property name="margin-top">10</property>
+                <property name="margin-bottom">10</property>
+                <property name="margin-start">10</property>
+                <property name="margin-end">10</property>
+              </object>
+            </child>
+            <child type="label">
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="focusable">False</property>
+                <property name="label" translatable="yes">Coordinates</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel">
+            <property name="visible">True</property>
+            <property name="focusable">False</property>
+            <property name="label" translatable="yes">Method: Conjugate Peak Refinement (Fischer and Karplus, 1992). Needs only reactant and product structures, no initial Hessian -- an interpolated path between them is built first, then refined until its highest-energy point is a genuine saddle. The saddle structure is a specific frame marked "saddle" in the job log's Path Summary table, not necessarily the object created after this job finishes.</property>
+            <property name="wrap">True</property>
+            <property name="max-width-chars">56</property>
+            <property name="xalign">0</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkFrame" id="cpr_parameters_frame">
+            <property name="visible">True</property>
+            <property name="focusable">False</property>
+            <property name="label_xalign">0.5</property>
+            <child>
+              <object class="GtkBox" id="cpr_parm_box">
+                <property name="visible">True</property>
+                <property name="focusable">False</property>
+                <property name="orientation">vertical</property>
+                <property name="spacing">9</property>
+                <child>
+                  <object class="GtkGrid">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="row_spacing">6</property>
+                    <property name="column_spacing">10</property>
+                    <property name="column_homogeneous">True</property>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="focusable">False</property>
+                        <property name="label" translatable="yes">Initial path images:</property>
+                        <property name="xalign">1</property>
+                        <property name="tooltip-text" translatable="yes">Number of images in the interpolated starting path built between reactants and products (GrowingStringInitialPath -- the same path builder the Nudged Elastic Band tool uses).</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="entry_num_structures">
+                        <property name="visible">True</property>
+                        <property name="focusable">True</property>
+                        <property name="text" translatable="yes">8</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="focusable">False</property>
+                        <property name="label" translatable="yes">RMS Grad. Tolerance:</property>
+                        <property name="xalign">1</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">1</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="entry_rmsd_tol">
+                        <property name="visible">True</property>
+                        <property name="focusable">True</property>
+                        <property name="text" translatable="yes">0.1</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">1</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="focusable">False</property>
+                        <property name="label" translatable="yes">RMSD max. tolerance:</property>
+                        <property name="xalign">1</property>
+                        <property name="tooltip-text" translatable="yes">Maximum RMSD allowed for a conjugate-direction line search step.</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">2</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="entry_rmsd_max_tol">
+                        <property name="visible">True</property>
+                        <property name="focusable">True</property>
+                        <property name="text" translatable="yes">1.5</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">2</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="focusable">False</property>
+                        <property name="label" translatable="yes">Steps per segment:</property>
+                        <property name="xalign">1</property>
+                        <property name="tooltip-text" translatable="yes">How finely each segment of the path is scanned for a local energy maximum before refinement.</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">3</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="entry_steps_per_segment">
+                        <property name="visible">True</property>
+                        <property name="focusable">True</property>
+                        <property name="text" translatable="yes">3</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">3</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="focusable">False</property>
+                        <property name="label" translatable="yes">Max. CPR runs:</property>
+                        <property name="xalign">1</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">4</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="entry_max_cpr_run">
+                        <property name="visible">True</property>
+                        <property name="focusable">True</property>
+                        <property name="text" translatable="yes">1000</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">4</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="focusable">False</property>
+                        <property name="label" translatable="yes">Beta type:</property>
+                        <property name="xalign">1</property>
+                        <property name="tooltip-text" translatable="yes">Conjugate-gradient beta formula used for the conjugate-direction minimizations between line maximizations.</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">5</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkComboBoxText" id="combobox_beta_type">
+                        <property name="visible">True</property>
+                        <property name="focusable">False</property>
+                        <items>
+                          <item translatable="yes" id="PRP">PRP (Polak-Ribiere)</item>
+                          <item translatable="yes" id="FR">FR (Fletcher-Reeves)</item>
+                          <item translatable="yes" id="HS">HS (Hestenes-Stiefel)</item>
+                        </items>
+                        <property name="active">0</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">5</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="focusable">False</property>
+                        <property name="label" translatable="yes">Initial orthogonal runs:</property>
+                        <property name="xalign">1</property>
+                        <property name="tooltip-text" translatable="yes">Number of initial CPR cycles forced to use orthogonal search directions, which can help on difficult paths.</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">6</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="entry_initial_orthogonal_runs">
+                        <property name="visible">True</property>
+                        <property name="focusable">True</property>
+                        <property name="text" translatable="yes">0</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">6</property>
+                        </layout>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkCheckButton" id="check_break_if_tau_reached">
+                    <property name="label" translatable="yes">Break if tau reached</property>
+                    <property name="visible">True</property>
+                    <property name="focusable">True</property>
+                    <property name="active">True</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkCheckButton" id="check_increase_tau">
+                    <property name="label" translatable="yes">Increase tau on futile loop</property>
+                    <property name="visible">True</property>
+                    <property name="focusable">True</property>
+                    <property name="active">False</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkCheckButton" id="check_final_unrefinable_refinement">
+                    <property name="label" translatable="yes">Final unrefinable refinement</property>
+                    <property name="visible">True</property>
+                    <property name="focusable">True</property>
+                    <property name="active">False</property>
+                  </object>
+                </child>
+                <property name="margin-top">10</property>
+                <property name="margin-bottom">10</property>
+                <property name="margin-start">10</property>
+                <property name="margin-end">10</property>
+              </object>
+            </child>
+            <child type="label">
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="focusable">False</property>
+                <property name="label" translatable="yes">Parameters</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkFrame" id="cpr_trajectory_frame">
+            <property name="visible">True</property>
+            <property name="focusable">False</property>
+            <property name="label_xalign">0.5</property>
+            <child>
+              <object class="GtkGrid">
+                <property name="visible">True</property>
+                <property name="focusable">False</property>
+                <property name="row_spacing">6</property>
+                <property name="column_spacing">10</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="label" translatable="yes">Trajectory Name:</property>
+                    <property name="xalign">1</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="label" translatable="yes">Folder:</property>
+                    <property name="xalign">1</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="traj_name">
+                    <property name="visible">True</property>
+                    <property name="focusable">True</property>
+                    <property name="hexpand">True</property>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox" id="folder_chooser_box">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="hexpand">True</property>
+                    <property name="orientation">vertical</property>
+                    <child>
+                      <placeholder />
+                    </child>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <property name="margin-top">10</property>
+                <property name="margin-bottom">10</property>
+                <property name="margin-start">10</property>
+                <property name="margin-end">10</property>
+              </object>
+            </child>
+            <child type="label">
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="focusable">False</property>
+                <property name="label" translatable="yes">Trajectory (always saved -- this is the refined path)</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="focusable">False</property>
+            <property name="spacing">8</property>
+            <child>
+              <object class="GtkButton" id="button_cancel">
+                <property name="label" translatable="yes">Cancel</property>
+                <property name="visible">True</property>
+                <property name="focusable">True</property>
+                <signal name="clicked" handler="close_window" swapped="no" />
+                <property name="hexpand">True</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="button_run">
+                <property name="label" translatable="yes">Run</property>
+                <property name="width_request">150</property>
+                <property name="visible">True</property>
+                <property name="focusable">True</property>
+                <signal name="clicked" handler="run" swapped="no" />
+                <property name="hexpand">True</property>
+              </object>
+            </child>
+            <property name="orientation">horizontal</property>
+            <property name="halign">end</property>
+          </object>
+        </child>
+        <property name="margin-top">10</property>
+        <property name="margin-bottom">10</property>
+        <property name="margin-start">10</property>
+        <property name="margin-end">10</property>
+      </object>
+    </child>
+  </object>
+</interface>

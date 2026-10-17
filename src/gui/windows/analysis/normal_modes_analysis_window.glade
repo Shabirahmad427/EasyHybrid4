@@ -1,0 +1,180 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<interface>
+  <requires lib="gtk" version="4.0" />
+  <object class="GtkAdjustment" id="adjustment1">
+    <property name="upper">100</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkWindow" id="window">
+    <property name="focusable">False</property>
+    <signal name="close-request" handler="close_window" swapped="no" />
+    <child>
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="focusable">False</property>
+        <property name="margin-top">5</property>
+        <property name="margin-bottom">5</property>
+        <property name="margin-start">5</property>
+        <property name="margin-end">5</property>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="focusable">False</property>
+            <property name="orientation">vertical</property>
+            <property name="spacing">6</property>
+            <child>
+              <!-- n-columns=3 n-rows=3 -->
+              <object class="GtkGrid">
+                <property name="visible">True</property>
+                <property name="focusable">False</property>
+                <property name="row-spacing">9</property>
+                <property name="column-spacing">6</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="halign">end</property>
+                    <property name="label" translatable="yes">System:</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="label" translatable="yes">Coordinates:</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox" id="box_coordinates">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="hexpand">True</property>
+                    <property name="orientation">vertical</property>
+                    <child>
+                      <placeholder />
+                    </child>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="label" translatable="yes">Import Data:</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">2</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox" id="box_system">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="orientation">vertical</property>
+                    <child>
+                      <placeholder />
+                    </child>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkButton" id="import_btn">
+                    <property name="label" translatable="yes">Open</property>
+                    <property name="visible">True</property>
+                    <property name="focusable">True</property>
+                    <signal name="clicked" handler="on_button_import" swapped="no" />
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">2</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <placeholder />
+                </child>
+                <child>
+                  <placeholder />
+                </child>
+                <child>
+                  <placeholder />
+                </child>
+              </object>
+            </child>
+            <child>
+              <placeholder />
+            </child>
+            <child>
+              <object class="GtkScrolledWindow">
+                <property name="visible">True</property>
+                <property name="focusable">True</property>
+                <child>
+                  <object class="GtkBox" id="selection_treeview">
+                    <property name="visible">True</property>
+                    <property name="focusable">True</property>
+                    <property name="vexpand">True</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkBox">
+                <property name="visible">True</property>
+                <property name="focusable">False</property>
+                <property name="spacing">4</property>
+                <child>
+                  <object class="GtkButton">
+                    <property name="label" translatable="yes">#</property>
+                    <property name="visible">True</property>
+                    <property name="focusable">True</property>
+                    <property name="hexpand">True</property>
+                    <signal name="clicked" handler="stop" swapped="no" />
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkButton">
+                    <property name="label" translatable="yes">&gt;</property>
+                    <property name="visible">True</property>
+                    <property name="focusable">True</property>
+                    <property name="hexpand">True</property>
+                    <signal name="clicked" handler="play" swapped="no" />
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="label" translatable="yes">FPS</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkSpinButton" id="spin_button">
+                    <property name="visible">True</property>
+                    <property name="focusable">True</property>
+                    <property name="adjustment">adjustment1</property>
+                    <property name="value">24.01</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

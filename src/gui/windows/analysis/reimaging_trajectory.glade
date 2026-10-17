@@ -1,0 +1,179 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<interface>
+  <requires lib="gtk" version="4.0" />
+  <object class="GtkWindow" id="window">
+    <property name="focusable">False</property>
+    <signal name="close-request" handler="close_window" swapped="no" />
+    <child>
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="focusable">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">6</property>
+        <child>
+          <object class="GtkFrame">
+            <property name="visible">True</property>
+            <property name="focusable">False</property>
+            <property name="label-xalign">0.5</property>
+            <child>
+              <!-- n-columns=2 n-rows=2 -->
+              <object class="GtkGrid">
+                <property name="visible">True</property>
+                <property name="focusable">False</property>
+                <property name="row-spacing">9</property>
+                <property name="column-spacing">6</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="halign">end</property>
+                    <property name="label" translatable="yes">System:</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="halign">end</property>
+                    <property name="label" translatable="yes">Coordinates:</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox" id="box_system">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="orientation">vertical</property>
+                    <child>
+                      <placeholder />
+                    </child>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox" id="box_coordinates">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="hexpand">True</property>
+                    <property name="orientation">vertical</property>
+                    <child>
+                      <placeholder />
+                    </child>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child type="label">
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="focusable">False</property>
+                <property name="label" translatable="yes">System / Coordinates</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="focusable">False</property>
+            <property name="spacing">8</property>
+            <property name="homogeneous">True</property>
+            <child>
+              <object class="GtkFrame">
+                <property name="visible">True</property>
+                <property name="focusable">False</property>
+                <property name="vexpand">True</property>
+                <property name="label-xalign">0.5</property>
+                <child>
+                  <object class="GtkBox">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="vexpand">True</property>
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">8</property>
+                    <child>
+                      <!-- n-columns=2 n-rows=1 -->
+                      <object class="GtkGrid">
+                        <property name="visible">True</property>
+                        <property name="focusable">False</property>
+                        <property name="row-spacing">9</property>
+                        <property name="column-spacing">6</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="focusable">False</property>
+                            <property name="halign">end</property>
+                            <property name="label" translatable="yes">By:</property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkDropDown" id="cb_align_by">
+                            <property name="visible">True</property>
+                            <property name="focusable">False</property>
+                            <property name="hexpand">True</property>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="chkbox_center_selection">
+                        <property name="label" translatable="yes">Center the selection in the box</property>
+                        <property name="visible">True</property>
+                        <property name="focusable">True</property>
+                      </object>
+                    </child>
+                    <child>
+                      <placeholder />
+                    </child>
+                    <child>
+                      <object class="GtkSeparator">
+                        <property name="visible">True</property>
+                        <property name="focusable">False</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="btn_reimaging">
+                        <property name="label" translatable="yes">Reimaging </property>
+                        <property name="visible">True</property>
+                        <property name="focusable">True</property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child type="label">
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="label" translatable="yes">Structural Alignment</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

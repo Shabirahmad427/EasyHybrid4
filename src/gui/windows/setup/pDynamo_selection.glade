@@ -1,0 +1,219 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<interface>
+  <requires lib="gtk" version="4.0" />
+  <object class="GtkWindow" id="pdynamo_selection_window">
+    <property name="focusable">False</property>
+    <signal name="close-request" handler="close_window" swapped="no" />
+    <child type="titlebar">
+      <placeholder />
+    </child>
+    <child>
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="focusable">False</property>
+        <property name="margin-top">10</property>
+        <property name="margin-bottom">10</property>
+        <property name="margin-start">10</property>
+        <property name="margin-end">10</property>
+        <child>
+          <object class="GtkFrame">
+            <property name="visible">True</property>
+            <property name="focusable">False</property>
+            <property name="label-xalign">0.5</property>
+            <child>
+              <object class="GtkBox">
+                <property name="visible">True</property>
+                <property name="focusable">False</property>
+                <property name="margin-top">10</property>
+                <property name="margin-bottom">10</property>
+                <property name="margin-start">10</property>
+                <property name="margin-end">10</property>
+                <child>
+                  <object class="GtkBox">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">15</property>
+                    <child>
+                      <object class="GtkGrid">
+                        <property name="visible">True</property>
+                        <property name="focusable">False</property>
+                        <property name="vexpand">False</property>
+                        <property name="column-spacing">7</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="focusable">False</property>
+                            <property name="label" translatable="yes">Selected atom:</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkEntry" id="resn_entry">
+                            <property name="visible">True</property>
+                            <property name="focusable">True</property>
+                            <property name="max-length">4</property>
+                            <property name="width-chars">4</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkEntry" id="resi_entry">
+                            <property name="visible">True</property>
+                            <property name="focusable">True</property>
+                            <property name="max-length">4</property>
+                            <property name="width-chars">4</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkEntry" id="atom_entry">
+                            <property name="visible">True</property>
+                            <property name="focusable">True</property>
+                            <property name="max-length">4</property>
+                            <property name="width-chars">4</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton">
+                            <property name="label" translatable="yes">get index from #1 selection</property>
+                            <property name="visible">True</property>
+                            <property name="focusable">True</property>
+                            <signal name="clicked" handler="get_info_from_selection" swapped="no" />
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="focusable">False</property>
+                            <property name="label" translatable="yes">chain</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="focusable">False</property>
+                            <property name="label" translatable="yes">resn</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="focusable">False</property>
+                            <property name="label" translatable="yes">resi</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="focusable">False</property>
+                            <property name="label" translatable="yes">atom</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkEntry" id="chain_entry">
+                            <property name="visible">True</property>
+                            <property name="focusable">True</property>
+                            <property name="max-length">4</property>
+                            <property name="width-chars">4</property>
+                          </object>
+                        </child>
+                        <child>
+                          <placeholder />
+                        </child>
+                        <child>
+                          <placeholder />
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkGrid">
+                        <property name="visible">True</property>
+                        <property name="focusable">False</property>
+                        <property name="row-spacing">6</property>
+                        <property name="column-spacing">6</property>
+                        <property name="column-homogeneous">True</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="focusable">False</property>
+                            <property name="label" translatable="yes">Selection method:</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="focusable">False</property>
+                            <property name="label" translatable="yes">Radius distance (angstron):</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="radius_spinbutton">
+                            <property name="visible">True</property>
+                            <property name="focusable">True</property>
+                            <property name="digits">1</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkBox" id="box_combo_methods">
+                            <property name="visible">True</property>
+                            <property name="focusable">False</property>
+                            <property name="orientation">vertical</property>
+                            <child>
+                              <placeholder />
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkBox" id="box_combo_action">
+                            <property name="visible">True</property>
+                            <property name="focusable">False</property>
+                            <property name="orientation">vertical</property>
+                            <child>
+                              <placeholder />
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <placeholder />
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="visible">True</property>
+                        <property name="focusable">False</property>
+                        <property name="spacing">10</property>
+                        <child>
+                          <placeholder />
+                        </child>
+                        <child>
+                          <object class="GtkButton">
+                            <property name="hexpand">True</property>
+                            <property name="label" translatable="yes">Cancel</property>
+                            <property name="visible">True</property>
+                            <property name="focusable">True</property>
+                            <signal name="clicked" handler="close_window" swapped="no" />
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="run_selection">
+                            <property name="hexpand">True</property>
+                            <property name="label" translatable="yes">Select</property>
+                            <property name="visible">True</property>
+                            <property name="focusable">True</property>
+                            <signal name="clicked" handler="run_selection" swapped="no" />
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child type="label_item">
+              <placeholder />
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

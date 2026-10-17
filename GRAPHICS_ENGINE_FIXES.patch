@@ -1,0 +1,90 @@
+diff --git a/src/vismol/gui/vismol_gtkwidget.py b/src/vismol/gui/vismol_gtkwidget.py
+index 253f965..8969bed 100644
+--- a/src/vismol/gui/vismol_gtkwidget.py
++++ b/src/vismol/gui/vismol_gtkwidget.py
+@@ -342,9 +342,12 @@ class VismolGTKWidget(_WidgetBase):
+     def mouse_released(self, widget, event):
+         """ Function doc """
+         if _IS_MACOS:
+-            self.vm_glcore.mouse_released(event.button, event.x, event.y, event.state)
++            self.vm_glcore.mouse_released(
++                event.button, event.x, event.y,
++                button_state=event.state, event=event)
+         else:
+-            self.vm_glcore.mouse_released(event.button, event.x, event.y)
++            self.vm_glcore.mouse_released(
++                event.button, event.x, event.y, event=event)
+
+     def mouse_motion(self, widget, event):
+         """ Function doc """
+@@ -697,24 +700,24 @@ class VismolGTKWidget(_WidgetBase):
+
+         self._build_glmenu(bg_menu=bg_menu, sele_menu=sele_menu, obj_menu=obj_menu, pick_menu=pick_menu)
+
+-    def show_gl_menu(self, signals=None, menu_type=None, info=None):
++    def show_gl_menu(self, signals=None, menu_type=None, info=None, event=None):
+         """ Function doc """
+         if menu_type == "bg_menu":
+             if self.glmenu_bg:
+-                self.glmenu_bg.popup(None, None, None, None, 0, 0)
++                self.glmenu_bg.popup_at_pointer(event)
+
+         if menu_type == "sele_menu":
+             if self.glmenu_sele:
+-                self.glmenu_sele.popup(None, None, None, None, 0, 0)
++                self.glmenu_sele.popup_at_pointer(event)
+
+         if menu_type == "pick_menu":
+             if self.glmenu_pick:
+-                self.glmenu_pick.popup(None, None, None, None, 0, 0)
++                self.glmenu_pick.popup_at_pointer(event)
+
+         if menu_type == "obj_menu":
+             if self.glmenu_obj:
+                 self.glmenu_obj_toplabel.set_label(info)
+-                self.glmenu_obj.popup(None, None, None, None, 0, 0)
++                self.glmenu_obj.popup_at_pointer(event)
+
+     def _build_submenus_from_dicts(self, menu_dict):
+         """ Function doc """
+diff --git a/src/vismol/libgl/vismol_glcore.py b/src/vismol/libgl/vismol_glcore.py
+index 91061b5..cf7af53 100644
+--- a/src/vismol/libgl/vismol_glcore.py
++++ b/src/vismol/libgl/vismol_glcore.py
+@@ -410,7 +410,8 @@ class VismolGLCore:
+             self.picking = True
+             self.parent_widget.queue_draw()
+
+-    def mouse_released(self, button_number, mouse_x, mouse_y, button_state=None):
++    def mouse_released(self, button_number, mouse_x, mouse_y,
++                       button_state=None, event=None):
+         """ Function doc
+         int(event.button)
+
+@@ -725,7 +726,7 @@ class VismolGLCore:
+                     info = self.vm_session.selections[self.vm_session.current_selection].get_selection_info()
+                     menu_type = "sele_menu"
+                 # The right button (button = 3) always opens one of the available menus.
+-                self.parent_widget.show_gl_menu(menu_type=menu_type, info=info)
++                self.parent_widget.show_gl_menu(menu_type=menu_type, info=info, event=event)
+
+
+
+@@ -1027,6 +1028,8 @@ class VismolGLCore:
+
+             if self.selection_box.start is None:
+                 self.selection_box.start = self.get_viewport_pos(self.mouse_x, self.mouse_y)
++            if self.selection_box.end is None:
++                self.selection_box.end = self.selection_box.start
+             self.selection_box.end = self.get_viewport_pos(self.mouse_x, self.mouse_y)
+             self.selection_box.update_points()
+             return True
+@@ -1082,6 +1085,8 @@ class VismolGLCore:
+         if self.shift:
+             if self.vm_session.picking_selection_mode:
+                 return False
++            if self.selection_box.start is None or self.selection_box.end is None:
++                return False
+             else:
+                 self.selection_box.end = self.get_viewport_pos(self.mouse_x, self.mouse_y)
+                 self.selection_box.update_points()

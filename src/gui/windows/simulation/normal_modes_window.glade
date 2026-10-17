@@ -1,0 +1,200 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<interface>
+  <requires lib="gtk" version="4.0" />
+  <object class="GtkWindow" id="normal_modes_window">
+    <property name="focusable">False</property>
+    <property name="resizable">False</property>
+    <signal name="close-request" handler="close_window" swapped="no" />
+    <child type="titlebar">
+      <placeholder />
+    </child>
+    <child>
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="focusable">False</property>
+        <property name="margin-top">10</property>
+        <property name="margin-bottom">10</property>
+        <property name="margin-start">10</property>
+        <property name="margin-end">10</property>
+        <child>
+          <object class="GtkBox" id="geo_opt_box">
+            <property name="visible">True</property>
+            <property name="focusable">False</property>
+            <property name="orientation">vertical</property>
+            <property name="spacing">7</property>
+            <child>
+              <object class="GtkFrame" id="dftp_setup_box2">
+                <property name="visible">True</property>
+                <property name="focusable">False</property>
+                <property name="label-xalign">0.5</property>
+                <child>
+                  <object class="GtkBox">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="margin-top">10</property>
+                    <property name="margin-bottom">10</property>
+                    <property name="margin-start">10</property>
+                    <property name="margin-end">10</property>
+                    <child>
+                      <object class="GtkBox" id="box_coordinates">
+                        <property name="visible">True</property>
+                        <property name="focusable">False</property>
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <placeholder />
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child type="label">
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="label" translatable="yes">Coordinates</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <placeholder />
+            </child>
+            <child>
+              <object class="GtkFrame" id="dftp_setup_box">
+                <property name="visible">True</property>
+                <property name="focusable">False</property>
+                <property name="label-xalign">0.5</property>
+                <child>
+                  <object class="GtkBox">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="margin-top">10</property>
+                    <property name="margin-bottom">10</property>
+                    <property name="margin-start">10</property>
+                    <property name="margin-end">10</property>
+                    <child>
+                      <object class="GtkBox" id="parameters_box">
+                        <property name="visible">True</property>
+                        <property name="focusable">False</property>
+                        <property name="orientation">vertical</property>
+                        <property name="spacing">11</property>
+                        <child>
+                          <object class="GtkGrid">
+                            <property name="visible">True</property>
+                            <property name="focusable">False</property>
+                            <property name="row-spacing">8</property>
+                            <property name="column-spacing">10</property>
+                            <property name="column-homogeneous">True</property>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="focusable">False</property>
+                                <property name="label" translatable="yes">Cycles:</property>
+                                <property name="xalign">1</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="focusable">False</property>
+                                <property name="label" translatable="yes">Frames Per Cycle:</property>
+                                <property name="xalign">1</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="focusable">False</property>
+                                <property name="label" translatable="yes">Temperature:</property>
+                                <property name="xalign">1</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkEntry" id="entry_cycles">
+                                <property name="visible">True</property>
+                                <property name="focusable">True</property>
+                                <property name="text" translatable="yes">1</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkEntry" id="entry_frames_per_cycles">
+                                <property name="visible">True</property>
+                                <property name="focusable">True</property>
+                                <property name="text" translatable="yes">21</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkEntry" id="entry_temperature">
+                                <property name="visible">True</property>
+                                <property name="focusable">True</property>
+                                <property name="text" translatable="yes">600</property>
+                              </object>
+                            </child>
+                            <child>
+                              <placeholder />
+                            </child>
+                            <child>
+                              <placeholder />
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkSeparator">
+                            <property name="visible">True</property>
+                            <property name="focusable">False</property>
+                          </object>
+                        </child>
+                        <child>
+                          <placeholder />
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child type="label">
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="label" translatable="yes">Parameters</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <placeholder />
+            </child>
+            <child>
+              <object class="GtkBox">
+                <property name="visible">True</property>
+                <property name="focusable">False</property>
+                <property name="spacing">8</property>
+                <child>
+                  <placeholder />
+                </child>
+                <child>
+                  <object class="GtkButton">
+                    <property name="hexpand">True</property>
+                    <property name="label" translatable="yes">Cancel</property>
+                    <property name="visible">True</property>
+                    <property name="focusable">True</property>
+                    <signal name="clicked" handler="close_window" swapped="no" />
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkButton">
+                    <property name="hexpand">True</property>
+                    <property name="label" translatable="yes">Run</property>
+                    <property name="width-request">150</property>
+                    <property name="visible">True</property>
+                    <property name="focusable">True</property>
+                    <signal name="clicked" handler="run" swapped="no" />
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

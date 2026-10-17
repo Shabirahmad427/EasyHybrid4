@@ -1,0 +1,228 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<interface>
+  <requires lib="gtk" version="4.0" />
+  <object class="GtkWindow" id="window">
+    <property name="focusable">False</property>
+    <signal name="close-request" handler="close_window" swapped="no" />
+    <child type="titlebar">
+      <placeholder />
+    </child>
+    <child>
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="focusable">False</property>
+        <property name="margin-top">5</property>
+        <property name="margin-bottom">5</property>
+        <property name="margin-start">5</property>
+        <property name="margin-end">5</property>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="focusable">False</property>
+            <property name="orientation">vertical</property>
+            <property name="spacing">9</property>
+            <child>
+              <object class="GtkBox">
+                <property name="visible">True</property>
+                <property name="focusable">False</property>
+                <property name="margin-top">5</property>
+                <property name="margin-bottom">5</property>
+                <property name="margin-start">5</property>
+                <property name="margin-end">5</property>
+                <child>
+                  <placeholder />
+                </child>
+              </object>
+            </child>
+            <child>
+              <placeholder />
+            </child>
+            <child>
+              <object class="GtkFrame" id="dftp_setup_box1">
+                <property name="visible">True</property>
+                <property name="focusable">False</property>
+                <property name="label-xalign">0.5</property>
+                <child>
+                  <object class="GtkBox">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="margin-top">10</property>
+                    <property name="margin-bottom">10</property>
+                    <property name="margin-start">10</property>
+                    <property name="margin-end">10</property>
+                    <child>
+                      <object class="GtkBox" id="geo_opt_parm_box1">
+                        <property name="visible">True</property>
+                        <property name="focusable">False</property>
+                        <property name="orientation">vertical</property>
+                        <property name="spacing">11</property>
+                        <child>
+                          <object class="GtkGrid">
+                            <property name="visible">True</property>
+                            <property name="focusable">False</property>
+                            <property name="row-spacing">8</property>
+                            <property name="column-spacing">10</property>
+                            <property name="column-homogeneous">True</property>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="focusable">False</property>
+                                <property name="label" translatable="yes">Size Y:</property>
+                                <property name="xalign">1</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="focusable">False</property>
+                                <property name="label" translatable="yes">Size Z:</property>
+                                <property name="xalign">1</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkEntry" id="entry_density">
+                                <property name="visible">True</property>
+                                <property name="focusable">True</property>
+                                <property name="text" translatable="yes">1000</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkEntry" id="entry_size_X">
+                                <property name="visible">True</property>
+                                <property name="focusable">True</property>
+                                <property name="text" translatable="yes">30</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="NEBDialog_NEB_traj_label">
+                                <property name="width-request">134</property>
+                                <property name="height-request">32</property>
+                                <property name="visible">True</property>
+                                <property name="focusable">False</property>
+                                <property name="label" translatable="yes">Interactions (For Opt):</property>
+                                <property name="xalign">1</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkEntry" id="entry_size_Y">
+                                <property name="visible">True</property>
+                                <property name="focusable">True</property>
+                                <property name="text" translatable="yes">30</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="label_system1">
+                                <property name="visible">True</property>
+                                <property name="focusable">False</property>
+                                <property name="label" translatable="yes">Density (kg m^-3):</property>
+                                <property name="xalign">1</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkEntry" id="entry_size_Z">
+                                <property name="visible">True</property>
+                                <property name="focusable">True</property>
+                                <property name="text" translatable="yes">30</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="focusable">False</property>
+                                <property name="label" translatable="yes">Size X:</property>
+                                <property name="xalign">1</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkEntry" id="entry_number_of_steps">
+                                <property name="visible">True</property>
+                                <property name="focusable">True</property>
+                                <property name="text" translatable="yes">200</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkBox" id="box_system">
+                                <property name="visible">True</property>
+                                <property name="focusable">False</property>
+                                <property name="orientation">vertical</property>
+                                <child>
+                                  <placeholder />
+                                </child>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkBox" id="box_coordinates">
+                                <property name="visible">True</property>
+                                <property name="focusable">False</property>
+                                <property name="hexpand">True</property>
+                                <property name="orientation">vertical</property>
+                                <child>
+                                  <placeholder />
+                                </child>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="label_system2">
+                                <property name="visible">True</property>
+                                <property name="focusable">False</property>
+                                <property name="label" translatable="yes">System:</property>
+                                <property name="xalign">1</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="label_system3">
+                                <property name="visible">True</property>
+                                <property name="focusable">False</property>
+                                <property name="label" translatable="yes">Coordinates:</property>
+                                <property name="xalign">1</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child type="label">
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="label" translatable="yes">Parameters</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkBox">
+                <property name="visible">True</property>
+                <property name="focusable">False</property>
+                <property name="spacing">8</property>
+                <child>
+                  <placeholder />
+                </child>
+                <child>
+                  <object class="GtkButton" id="button_cancel">
+                    <property name="hexpand">True</property>
+                    <property name="label" translatable="yes">Cancel</property>
+                    <property name="visible">True</property>
+                    <property name="focusable">True</property>
+                    <signal name="clicked" handler="on_button_cancel_clicked" swapped="no" />
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkButton" id="button_run">
+                    <property name="hexpand">True</property>
+                    <property name="label" translatable="yes">Run</property>
+                    <property name="width-request">150</property>
+                    <property name="visible">True</property>
+                    <property name="focusable">True</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

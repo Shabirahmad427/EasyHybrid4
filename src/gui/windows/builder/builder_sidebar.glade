@@ -1,0 +1,169 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<interface>
+  <requires lib="gtk" version="4.0" />
+  <object class="GtkWindow" id="window">
+    <property name="focusable">False</property>
+    <property name="title" translatable="yes">Builder</property>
+    <property name="resizable">False</property>
+    <signal name="close-request" handler="on_close_button_clicked" swapped="no" />
+    <child>
+      <object class="GtkBox" id="sidebar_root_box">
+        <property name="visible">True</property>
+        <property name="focusable">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">10</property>
+        <!-- Editing on/off -->
+        <child>
+          <object class="GtkToggleButton" id="placemode_toggle">
+            <property name="visible">True</property>
+            <property name="focusable">True</property>
+            <property name="label" translatable="yes">Editing: OFF</property>
+            <property name="active">False</property>
+            <signal name="toggled" handler="on_placemode_toggled" swapped="no" />
+          </object>
+        </child>
+        <child>
+          <object class="GtkSeparator">
+            <property name="visible">True</property>
+            <property name="focusable">False</property>
+          </object>
+        </child>
+        <!-- Grouped GtkCheckButtons provide GTK4's exclusive tool selector. -->
+        <child>
+          <object class="GtkLabel">
+            <property name="visible">True</property>
+            <property name="focusable">False</property>
+            <property name="halign">start</property>
+            <property name="label" translatable="yes">Tool</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox" id="tool_box">
+            <property name="visible">True</property>
+            <property name="focusable">False</property>
+            <property name="homogeneous">True</property>
+            <property name="spacing">4</property>
+            <child>
+              <object class="GtkCheckButton" id="tool_add_radio">
+                <property name="visible">True</property>
+                <property name="focusable">True</property>
+                <property name="label" translatable="yes">Add</property>
+                <property name="active">True</property>
+                <signal name="toggled" handler="on_tool_changed" swapped="no" />
+              </object>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="tool_delete_radio">
+                <property name="visible">True</property>
+                <property name="focusable">True</property>
+                <property name="label" translatable="yes">Delete</property>
+                <property name="group">tool_add_radio</property>
+                <signal name="toggled" handler="on_tool_changed" swapped="no" />
+              </object>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="tool_move_radio">
+                <property name="visible">True</property>
+                <property name="focusable">True</property>
+                <property name="label" translatable="yes">Move</property>
+                <property name="group">tool_add_radio</property>
+                <signal name="toggled" handler="on_tool_changed" swapped="no" />
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkSeparator">
+            <property name="visible">True</property>
+            <property name="focusable">False</property>
+          </object>
+        </child>
+        <!-- A separate GtkCheckButton group selects the element to add. -->
+        <child>
+          <object class="GtkLabel">
+            <property name="visible">True</property>
+            <property name="focusable">False</property>
+            <property name="halign">start</property>
+            <property name="label" translatable="yes">Element</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox" id="element_box">
+            <property name="visible">True</property>
+            <property name="focusable">False</property>
+            <property name="homogeneous">True</property>
+            <property name="spacing">4</property>
+            <child>
+              <object class="GtkCheckButton" id="element_C_radio">
+                <property name="visible">True</property>
+                <property name="focusable">True</property>
+                <property name="label" translatable="yes">C</property>
+                <property name="active">True</property>
+                <signal name="toggled" handler="on_element_changed" swapped="no" />
+              </object>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="element_N_radio">
+                <property name="visible">True</property>
+                <property name="focusable">True</property>
+                <property name="label" translatable="yes">N</property>
+                <property name="group">element_C_radio</property>
+                <signal name="toggled" handler="on_element_changed" swapped="no" />
+              </object>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="element_O_radio">
+                <property name="visible">True</property>
+                <property name="focusable">True</property>
+                <property name="label" translatable="yes">O</property>
+                <property name="group">element_C_radio</property>
+                <signal name="toggled" handler="on_element_changed" swapped="no" />
+              </object>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="element_H_radio">
+                <property name="visible">True</property>
+                <property name="focusable">True</property>
+                <property name="label" translatable="yes">H</property>
+                <property name="group">element_C_radio</property>
+                <signal name="toggled" handler="on_element_changed" swapped="no" />
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkSeparator">
+            <property name="visible">True</property>
+            <property name="focusable">False</property>
+          </object>
+        </child>
+        <!-- Clean up structure -->
+        <child>
+          <object class="GtkButton" id="clean_up_button">
+            <property name="visible">True</property>
+            <property name="focusable">True</property>
+            <property name="label" translatable="yes">Clean Up</property>
+            <signal name="clicked" handler="on_clean_up_button_clicked" swapped="no" />
+          </object>
+        </child>
+        <!-- Undo -->
+        <child>
+          <object class="GtkButton" id="undo_button">
+            <property name="visible">True</property>
+            <property name="focusable">True</property>
+            <property name="label" translatable="yes">Undo</property>
+            <signal name="clicked" handler="on_undo_button_clicked" swapped="no" />
+          </object>
+        </child>
+        <child>
+          <object class="GtkButton" id="close_button">
+            <property name="visible">True</property>
+            <property name="focusable">True</property>
+            <property name="label" translatable="yes">Close</property>
+            <signal name="clicked" handler="on_close_button_clicked" swapped="no" />
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

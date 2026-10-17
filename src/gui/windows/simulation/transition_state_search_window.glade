@@ -1,0 +1,293 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<interface>
+  <requires lib="gtk" version="4.0" />
+  <object class="GtkAdjustment" id="adjustment_follow_mode">
+    <property name="upper">1000</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_analytic_frequency">
+    <property name="upper">1000</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkWindow" id="transition_state_search_window">
+    <property name="focusable">False</property>
+    <signal name="close-request" handler="close_window" swapped="no" />
+    <child>
+      <object class="GtkBox" id="ts_search_box">
+        <property name="visible">True</property>
+        <property name="focusable">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">7</property>
+        <child>
+          <object class="GtkFrame" id="dftp_setup_box2">
+            <property name="visible">True</property>
+            <property name="focusable">False</property>
+            <property name="label_xalign">0.5</property>
+            <child>
+              <object class="GtkBox" id="box_coordinates">
+                <property name="visible">True</property>
+                <property name="focusable">False</property>
+                <property name="orientation">vertical</property>
+                <child>
+                  <placeholder />
+                </child>
+                <property name="margin-top">10</property>
+                <property name="margin-bottom">10</property>
+                <property name="margin-start">10</property>
+                <property name="margin-end">10</property>
+              </object>
+            </child>
+            <child type="label">
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="focusable">False</property>
+                <property name="label" translatable="yes">Coordinates</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel">
+            <property name="visible">True</property>
+            <property name="focusable">False</property>
+            <property name="label" translatable="yes">Method: Baker eigenvector-following (J. Comput. Chem. 4, 385-95, 1986). Searches for a first-order saddle point (one negative Hessian eigenvalue) by following the chosen normal mode uphill while minimising along every other direction.</property>
+            <property name="wrap">True</property>
+            <property name="max-width-chars">56</property>
+            <property name="xalign">0</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkFrame" id="dftp_setup_box">
+            <property name="visible">True</property>
+            <property name="focusable">False</property>
+            <property name="label_xalign">0.5</property>
+            <child>
+              <object class="GtkBox" id="ts_search_parm_box">
+                <property name="visible">True</property>
+                <property name="focusable">False</property>
+                <property name="orientation">vertical</property>
+                <property name="spacing">11</property>
+                <child>
+                  <object class="GtkGrid">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="row_spacing">8</property>
+                    <property name="column_spacing">10</property>
+                    <property name="column_homogeneous">True</property>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="focusable">False</property>
+                        <property name="label" translatable="yes">Log Frequency</property>
+                        <property name="xalign">1</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="entry_log_frequence">
+                        <property name="visible">True</property>
+                        <property name="focusable">True</property>
+                        <property name="text" translatable="yes">1</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="focusable">False</property>
+                        <property name="label" translatable="yes">Maximum iterations:</property>
+                        <property name="xalign">1</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">1</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="entry_max_int">
+                        <property name="visible">True</property>
+                        <property name="focusable">True</property>
+                        <property name="text" translatable="yes">50</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">1</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="focusable">False</property>
+                        <property name="label" translatable="yes">RMS Grad. Tolerance:</property>
+                        <property name="xalign">1</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">2</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="entry_rmsd_tol">
+                        <property name="visible">True</property>
+                        <property name="focusable">True</property>
+                        <property name="text" translatable="yes">0.1</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">2</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="focusable">False</property>
+                        <property name="label" translatable="yes">Follow mode:</property>
+                        <property name="xalign">1</property>
+                        <property name="tooltip-text" translatable="yes">Index (0-based) of the Hessian eigenvector to follow uphill -- 0 is usually the lowest-frequency mode. Pick the mode that best matches the bond(s) breaking/forming in your reaction.</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">3</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkSpinButton" id="spinbtn_follow_mode">
+                        <property name="visible">True</property>
+                        <property name="focusable">True</property>
+                        <property name="adjustment">adjustment_follow_mode</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">3</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="focusable">False</property>
+                        <property name="label" translatable="yes">Hessian updating:</property>
+                        <property name="xalign">1</property>
+                        <property name="tooltip-text" translatable="yes">How the approximate Hessian is updated between steps. BOFILL is the standard choice for saddle-point searches.</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">4</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkComboBoxText" id="combobox_hessian_updating">
+                        <property name="visible">True</property>
+                        <property name="focusable">False</property>
+                        <items>
+                          <item translatable="yes" id="BOFILL">BOFILL</item>
+                          <item translatable="yes" id="BFGS">BFGS</item>
+                          <item translatable="yes" id="MS">MS (Murtagh-Sargent)</item>
+                          <item translatable="yes" id="POWELL">POWELL</item>
+                        </items>
+                        <property name="active">0</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">4</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="focusable">False</property>
+                        <property name="label" translatable="yes">Analytic Hessian every:</property>
+                        <property name="xalign">1</property>
+                        <property name="tooltip-text" translatable="yes">Recomputes an exact Hessian every N iterations instead of only updating the approximate one (0 = never, only at the very first step). With 0, the tracked Hessian can drift from the true curvature over many iterations, so the "converged, 1 negative eigenvalue" result may not match a fresh Hessian computed afterwards (e.g. by the IRC / Reaction Path tool) at the same structure. Set to 1 (or a small number) whenever an exact Hessian is affordable for your system -- it removes this risk entirely.</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">5</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkSpinButton" id="spinbtn_analytic_frequency">
+                        <property name="visible">True</property>
+                        <property name="focusable">True</property>
+                        <property name="adjustment">adjustment_analytic_frequency</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">5</property>
+                        </layout>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkSeparator">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                  </object>
+                </child>
+                <child>
+                  <placeholder />
+                </child>
+                <property name="margin-top">10</property>
+                <property name="margin-bottom">10</property>
+                <property name="margin-start">10</property>
+                <property name="margin-end">10</property>
+              </object>
+            </child>
+            <child type="label">
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="focusable">False</property>
+                <property name="label" translatable="yes">Parameters</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <placeholder />
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="focusable">False</property>
+            <property name="spacing">8</property>
+            <child>
+              <placeholder />
+            </child>
+            <child>
+              <object class="GtkButton">
+                <property name="label" translatable="yes">Cancel</property>
+                <property name="visible">True</property>
+                <property name="focusable">True</property>
+                <signal name="clicked" handler="close_window" swapped="no" />
+                <property name="hexpand">True</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton">
+                <property name="label" translatable="yes">Run</property>
+                <property name="width_request">150</property>
+                <property name="visible">True</property>
+                <property name="focusable">True</property>
+                <signal name="clicked" handler="run_opt" swapped="no" />
+                <property name="hexpand">True</property>
+              </object>
+            </child>
+            <property name="orientation">horizontal</property>
+            <property name="halign">end</property>
+          </object>
+        </child>
+        <property name="margin-top">10</property>
+        <property name="margin-bottom">10</property>
+        <property name="margin-start">10</property>
+        <property name="margin-end">10</property>
+      </object>
+    </child>
+  </object>
+</interface>

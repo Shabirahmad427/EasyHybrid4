@@ -1,0 +1,413 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<interface>
+  <requires lib="gtk" version="4.0" />
+  <object class="GtkImage" id="image1">
+    <property name="visible">True</property>
+    <property name="focusable">False</property>
+    <property name="file">icons/icon_new_project.png</property>
+  </object>
+  <object class="GtkImage" id="image10">
+    <property name="visible">True</property>
+    <property name="focusable">False</property>
+    <property name="file">icons/draw_structure.png</property>
+  </object>
+  <object class="GtkImage" id="image12">
+    <property name="visible">True</property>
+    <property name="focusable">False</property>
+    <property name="file">icons/icon_normal_modes.png</property>
+  </object>
+  <object class="GtkImage" id="image13">
+    <property name="visible">True</property>
+    <property name="focusable">False</property>
+    <property name="file">icons/icon_molecular_dynamics_24x24.png</property>
+  </object>
+  <object class="GtkImage" id="image14">
+    <property name="visible">True</property>
+    <property name="focusable">False</property>
+    <property name="file">icons/icon_single_point1.2.png</property>
+  </object>
+  <object class="GtkImage" id="image15">
+    <property name="visible">True</property>
+    <property name="focusable">False</property>
+    <property name="file">icons/icon_minimization_24x24.png</property>
+  </object>
+  <object class="GtkImage" id="image2">
+    <property name="visible">True</property>
+    <property name="focusable">False</property>
+    <property name="file">icons/icon_open.png</property>
+  </object>
+  <object class="GtkImage" id="image20">
+    <property name="visible">True</property>
+    <property name="focusable">False</property>
+    <property name="file">icons/icon_terminal.png</property>
+  </object>
+  <object class="GtkImage" id="image21">
+    <property name="visible">True</property>
+    <property name="focusable">False</property>
+    <property name="file">icons/icon_player_play.png</property>
+  </object>
+  <object class="GtkImage" id="image22">
+    <property name="visible">True</property>
+    <property name="focusable">False</property>
+    <property name="file">icons/icon_selection_list.png</property>
+  </object>
+  <object class="GtkImage" id="image23">
+    <property name="visible">True</property>
+    <property name="focusable">False</property>
+    <property name="file">icons/icon_go_to_atom.png</property>
+  </object>
+  <object class="GtkImage" id="image24">
+    <property name="visible">True</property>
+    <property name="focusable">False</property>
+    <property name="file">icons/icon_pDynamo_selections2.2.png</property>
+  </object>
+  <object class="GtkImage" id="image25">
+    <property name="visible">True</property>
+    <property name="focusable">False</property>
+    <property name="file">icons/icon_QCSetup1.3.png</property>
+  </object>
+  <object class="GtkImage" id="image3">
+    <property name="visible">True</property>
+    <property name="focusable">False</property>
+    <property name="file">icons/icon_save.png</property>
+  </object>
+  <object class="GtkImage" id="image4">
+    <property name="visible">True</property>
+    <property name="focusable">False</property>
+    <property name="file">icons/icon_save_as.png</property>
+  </object>
+  <object class="GtkImage" id="image5">
+    <property name="visible">True</property>
+    <property name="focusable">False</property>
+    <property name="file">icons/icon_scan_24x24.png</property>
+  </object>
+  <object class="GtkImage" id="image6">
+    <property name="visible">True</property>
+    <property name="focusable">False</property>
+    <property name="file">icons/icon_umbrella_sampling_24x24.png</property>
+  </object>
+  <object class="GtkImage" id="image7">
+    <property name="visible">True</property>
+    <property name="focusable">False</property>
+    <property name="file">icons/icon_NEB_24x24.png</property>
+  </object>
+  <object class="GtkImage" id="image8">
+    <property name="visible">True</property>
+    <property name="focusable">False</property>
+    <property name="file">icons/icon_save_image.png</property>
+  </object>
+  <object class="GtkImage" id="image9">
+    <property name="visible">True</property>
+    <property name="focusable">False</property>
+    <property name="file">icons/icon_process_manager.png</property>
+  </object>
+  <object class="GtkLabel" id="label1">
+    <property name="visible">True</property>
+    <property name="focusable">False</property>
+    <property name="label" translatable="yes">label</property>
+  </object>
+  <object class="GtkLabel" id="label2">
+    <property name="visible">True</property>
+    <property name="focusable">False</property>
+    <property name="label" translatable="yes">label</property>
+  </object>
+  <object class="GtkWindow" id="window1">
+    <property name="focusable">False</property>
+    <property name="title" translatable="yes">VisMol Main Window</property>
+    <property name="default-width">600</property>
+    <property name="default-height">400</property>
+    <child>
+      <object class="GtkBox" id="box1">
+        <property name="visible">True</property>
+        <property name="focusable">False</property>
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkBox" id="menubar1">
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox" id="box2">
+            <property name="visible">True</property>
+            <property name="focusable">False</property>
+            <child>
+              <object class="GtkBox" id="toolbar1">
+                <property name="visible">True</property>
+                <property name="focusable">False</property>
+                <child>
+                  <object class="GtkButton" id="toolbutton_new_system">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="tooltip-text" translatable="yes">Import a new system</property>
+                    <property name="halign">center</property>
+                    <property name="label" translatable="yes">New Project</property>
+                    <property name="use-underline">True</property>
+                    <property name="child">image1</property>
+                    <signal name="clicked" handler="on_main_toolbar_clicked" swapped="no" />
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkButton" id="toolbutton_open">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="tooltip-text" translatable="yes">Open EasyHybrid/pDynamo serialization files</property>
+                    <property name="label" translatable="yes">Open</property>
+                    <property name="use-underline">True</property>
+                    <property name="child">image2</property>
+                    <signal name="clicked" handler="open_gtk_load_files" swapped="no" />
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkButton" id="toolbutton_save">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="tooltip-text" translatable="yes">Save EasyHybrid session</property>
+                    <property name="label" translatable="yes">Save</property>
+                    <property name="use-underline">True</property>
+                    <property name="child">image3</property>
+                    <signal name="clicked" handler="on_main_toolbar_clicked" swapped="no" />
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkButton" id="toolbutton_save_as">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="tooltip-text" translatable="yes">Save As EasyHybrid session</property>
+                    <property name="label" translatable="yes">Save As</property>
+                    <property name="use-underline">True</property>
+                    <property name="child">image4</property>
+                    <signal name="clicked" handler="on_main_toolbar_clicked" swapped="no" />
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkBox" id="toolbar2_selections">
+                <property name="visible">True</property>
+                <property name="focusable">False</property>
+                <child>
+                  <object class="GtkToggleButton" id="toolbutton_terminal">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="tooltip-text" translatable="yes">Show Terminal</property>
+                    <property name="label" translatable="yes">Command line</property>
+                    <property name="use-underline">True</property>
+                    <property name="child">image20</property>
+                    <signal name="toggled" handler="on_main_toolbar_clicked" swapped="no" />
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkToggleButton" id="toolbutton_trajectory_tool1">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="tooltip-text" translatable="yes">Show Trajectory Handler</property>
+                    <property name="label" translatable="yes">Trajectory Player</property>
+                    <property name="use-underline">True</property>
+                    <property name="child">image21</property>
+                    <signal name="toggled" handler="on_main_toolbar_clicked" swapped="no" />
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkButton" id="_show_cell">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="tooltip-text" translatable="yes">Draw Geometry</property>
+                    <property name="label" translatable="yes">Cell and Symmetry</property>
+                    <property name="use-underline">True</property>
+                    <property name="child">image10</property>
+                    <signal name="clicked" handler="on_main_toolbar_clicked" swapped="no" />
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkButton" id="selections">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="tooltip-text" translatable="yes"> Selections and Restraints</property>
+                    <property name="label" translatable="yes">Selections and Restraints</property>
+                    <property name="use-underline">True</property>
+                    <property name="child">image22</property>
+                    <signal name="clicked" handler="on_main_toolbar_clicked" swapped="no" />
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkButton" id="button_go_to_atom">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="tooltip-text" translatable="yes">Go To Atom</property>
+                    <property name="label" translatable="yes">Go To Atom</property>
+                    <property name="use-underline">True</property>
+                    <property name="child">image23</property>
+                    <signal name="clicked" handler="on_main_toolbar_clicked" swapped="no" />
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkButton" id="toolbutton_pDynamo_selections">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="tooltip-text" translatable="yes">Extend Selection</property>
+                    <property name="label" translatable="yes">Extend </property>
+                    <property name="use-underline">True</property>
+                    <property name="child">image24</property>
+                    <signal name="clicked" handler="on_main_toolbar_clicked" swapped="no" />
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkButton" id="toolbutton_setup_QCModel">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="tooltip-text" translatable="yes">Quantum Chemistry</property>
+                    <property name="label" translatable="yes">Setup QC Region</property>
+                    <property name="use-underline">True</property>
+                    <property name="child">image25</property>
+                    <signal name="clicked" handler="on_main_toolbar_clicked" swapped="no" />
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkBox" id="toolbar4_pdynamo_tools">
+                <property name="visible">True</property>
+                <property name="focusable">False</property>
+                <child>
+                  <object class="GtkButton" id="toolbutton_energy">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="tooltip-text" translatable="yes">Energy / Energy Refinement</property>
+                    <property name="label" translatable="yes">Energy</property>
+                    <property name="use-underline">True</property>
+                    <property name="child">image14</property>
+                    <signal name="clicked" handler="on_main_toolbar_clicked" swapped="no" />
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkButton" id="toolbutton_geometry_optimization">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="tooltip-text" translatable="yes">Geometry Optimization</property>
+                    <property name="label" translatable="yes">Geometry Optmization</property>
+                    <property name="use-underline">True</property>
+                    <property name="child">image15</property>
+                    <signal name="clicked" handler="on_main_toolbar_clicked" swapped="no" />
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkButton" id="toolbutton_molecular_dynamics">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="tooltip-text" translatable="yes">Molecular Dynamics</property>
+                    <property name="label" translatable="yes">Molecular Dynamics</property>
+                    <property name="use-underline">True</property>
+                    <property name="child">image13</property>
+                    <signal name="clicked" handler="on_main_toolbar_clicked" swapped="no" />
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkButton" id="toolbutton_normal_modes">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="tooltip-text" translatable="yes">Normal Modes</property>
+                    <property name="label" translatable="yes">__glade_unnamed_10</property>
+                    <property name="use-underline">True</property>
+                    <property name="child">image12</property>
+                    <signal name="clicked" handler="on_main_toolbar_clicked" swapped="no" />
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkButton" id="toolbutton_pes_scan">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="tooltip-text" translatable="yes">Reaction Coordinate Scans</property>
+                    <property name="label" translatable="yes">Reaction Coordinate Scans</property>
+                    <property name="use-underline">True</property>
+                    <property name="child">image5</property>
+                    <signal name="clicked" handler="on_main_toolbar_clicked" swapped="no" />
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkButton" id="toolbutton_umbrella_sampling">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="tooltip-text" translatable="yes">Umbrella Sampling</property>
+                    <property name="label" translatable="yes">Umbrella Sampling</property>
+                    <property name="use-underline">True</property>
+                    <property name="child">image6</property>
+                    <signal name="clicked" handler="on_main_toolbar_clicked" swapped="no" />
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkButton" id="toolbutton_chain_of_states_opt">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="tooltip-text" translatable="yes">Nudged Elastic Band (NEB)</property>
+                    <property name="label" translatable="yes">Nudged Elastic Band (NEB)</property>
+                    <property name="use-underline">True</property>
+                    <property name="child">image7</property>
+                    <signal name="clicked" handler="on_main_toolbar_clicked" swapped="no" />
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkButton" id="toolbutton_export_img">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="tooltip-text" translatable="yes">Export Image</property>
+                    <property name="use-underline">True</property>
+                    <property name="child">image8</property>
+                    <signal name="clicked" handler="on_main_toolbar_clicked" swapped="no" />
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkButton" id="button_task_list">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="tooltip-text" translatable="yes">Process Monitor</property>
+                    <property name="label" translatable="yes">__glade_unnamed_7</property>
+                    <property name="use-underline">True</property>
+                    <property name="child">image9</property>
+                    <signal name="clicked" handler="on_main_toolbar_clicked" swapped="no" />
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkBox" id="toolbar5">
+                <property name="visible">True</property>
+                <property name="focusable">False</property>
+                <child>
+                  <object class="GtkBox" id="toolbutton_selection_box">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <child>
+                      <placeholder />
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkPaned" id="paned_V">
+            <property name="visible">True</property>
+            <property name="focusable">True</property>
+            <property name="valign">baseline</property>
+            <property name="orientation">vertical</property>
+            <property name="wide-handle">True</property>
+            <child>
+              <placeholder />
+            </child>
+            <child>
+              <placeholder />
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkStatusbar" id="statusbar1">
+            <property name="visible">True</property>
+            <property name="focusable">False</property>
+            <property name="margin-start">10</property>
+            <property name="margin-end">10</property>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

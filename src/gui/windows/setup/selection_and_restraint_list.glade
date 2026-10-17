@@ -1,0 +1,161 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<interface>
+  <requires lib="gtk" version="4.0" />
+  <object class="GtkWindow" id="window">
+    <property name="focusable">False</property>
+    <signal name="close-request" handler="close_window" swapped="no" />
+    <child type="titlebar">
+      <placeholder />
+    </child>
+    <child>
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="focusable">False</property>
+        <property name="margin-top">5</property>
+        <property name="margin-bottom">5</property>
+        <property name="margin-start">5</property>
+        <property name="margin-end">5</property>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="focusable">False</property>
+            <property name="orientation">vertical</property>
+            <property name="spacing">9</property>
+            <child>
+              <object class="GtkGrid">
+                <property name="visible">True</property>
+                <property name="focusable">False</property>
+                <property name="row-spacing">9</property>
+                <property name="column-spacing">6</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="halign">end</property>
+                    <property name="label" translatable="yes">System:</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="label" translatable="yes">Coordinates</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox" id="box_system">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="orientation">vertical</property>
+                    <child>
+                      <placeholder />
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox" id="box_coordinates">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="hexpand">True</property>
+                    <property name="orientation">vertical</property>
+                    <child>
+                      <placeholder />
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkPaned">
+                <property name="vexpand">True</property>
+                <property name="visible">True</property>
+                <property name="focusable">True</property>
+                <property name="orientation">vertical</property>
+                <property name="position">250</property>
+                <property name="position-set">True</property>
+                <property name="wide-handle">True</property>
+                <child>
+                  <object class="GtkScrolledWindow">
+                    <property name="visible">True</property>
+                    <property name="focusable">True</property>
+                    <child>
+                      <object class="GtkColumnView" id="selection_treeview">
+                        <property name="visible">True</property>
+                        <property name="focusable">True</property>
+                        <property name="vexpand">True</property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">8</property>
+                    <child>
+                      <object class="GtkGrid">
+                        <property name="visible">True</property>
+                        <property name="focusable">False</property>
+                        <property name="row-spacing">9</property>
+                        <property name="column-spacing">6</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="focusable">False</property>
+                            <property name="halign">end</property>
+                            <property name="label" translatable="yes">Restraints:</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkBox" id="box_restraints">
+                            <property name="visible">True</property>
+                            <property name="focusable">False</property>
+                            <property name="hexpand">True</property>
+                            <property name="orientation">vertical</property>
+                            <child>
+                              <object class="GtkDropDown" id="combobox_restraints">
+                                <property name="vexpand">True</property>
+                                <property name="visible">True</property>
+                                <property name="focusable">False</property>
+                                <property name="hexpand">True</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkPaned">
+                        <property name="vexpand">True</property>
+                        <property name="visible">True</property>
+                        <property name="focusable">True</property>
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <object class="GtkScrolledWindow">
+                            <property name="visible">True</property>
+                            <property name="focusable">True</property>
+                            <child>
+                              <object class="GtkColumnView" id="restraint_treeview">
+                                <property name="visible">True</property>
+                                <property name="focusable">True</property>
+                                <property name="vexpand">True</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <placeholder />
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

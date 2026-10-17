@@ -1,0 +1,265 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<interface>
+  <requires lib="gtk" version="4.0" />
+  <object class="GtkWindow" id="reaction_path_window">
+    <property name="focusable">False</property>
+    <signal name="close-request" handler="close_window" swapped="no" />
+    <child>
+      <object class="GtkBox" id="reaction_path_box">
+        <property name="visible">True</property>
+        <property name="focusable">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">7</property>
+        <child>
+          <object class="GtkFrame" id="rp_coordinates_frame">
+            <property name="visible">True</property>
+            <property name="focusable">False</property>
+            <property name="label_xalign">0.5</property>
+            <child>
+              <object class="GtkBox" id="box_coordinates">
+                <property name="visible">True</property>
+                <property name="focusable">False</property>
+                <property name="orientation">vertical</property>
+                <child>
+                  <placeholder />
+                </child>
+                <property name="margin-top">10</property>
+                <property name="margin-bottom">10</property>
+                <property name="margin-start">10</property>
+                <property name="margin-end">10</property>
+              </object>
+            </child>
+            <child type="label">
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="focusable">False</property>
+                <property name="label" translatable="yes">Coordinates</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel">
+            <property name="visible">True</property>
+            <property name="focusable">False</property>
+            <property name="label" translatable="yes">Method: steepest-descent reaction path. Requires a converged first-order saddle point (e.g. the result of a Search Transition State (Baker) run) -- the Hessian is computed once at the starting structure and its single negative-eigenvalue mode is followed downhill in both directions, producing the reactant-side and product-side branches one after the other. Each branch always takes the full number of iterations below, at a FIXED step size, with no convergence check -- the FINAL structure is therefore not a meaningful chemical end-point by itself. Always inspect the saved trajectory (its log's RMS Gradient column) and pick the frame where each branch's gradient bottoms out.</property>
+            <property name="wrap">True</property>
+            <property name="max-width-chars">56</property>
+            <property name="xalign">0</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkFrame" id="rp_parameters_frame">
+            <property name="visible">True</property>
+            <property name="focusable">False</property>
+            <property name="label_xalign">0.5</property>
+            <child>
+              <object class="GtkBox" id="rp_parm_box">
+                <property name="visible">True</property>
+                <property name="focusable">False</property>
+                <property name="orientation">vertical</property>
+                <property name="spacing">11</property>
+                <child>
+                  <object class="GtkGrid">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="row_spacing">8</property>
+                    <property name="column_spacing">10</property>
+                    <property name="column_homogeneous">True</property>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="focusable">False</property>
+                        <property name="label" translatable="yes">Log Frequency</property>
+                        <property name="xalign">1</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="entry_log_frequence">
+                        <property name="visible">True</property>
+                        <property name="focusable">True</property>
+                        <property name="text" translatable="yes">1</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="focusable">False</property>
+                        <property name="label" translatable="yes">Max. iterations (per branch):</property>
+                        <property name="xalign">1</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">1</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="entry_max_int">
+                        <property name="visible">True</property>
+                        <property name="focusable">True</property>
+                        <property name="text" translatable="yes">50</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">1</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="focusable">False</property>
+                        <property name="label" translatable="yes">Function step:</property>
+                        <property name="xalign">1</property>
+                        <property name="tooltip-text" translatable="yes">Controls the size of the very first displacement away from the saddle point, along the negative-eigenvalue eigenvector (larger = bigger initial jump off the saddle).</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">2</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="entry_function_step">
+                        <property name="visible">True</property>
+                        <property name="focusable">True</property>
+                        <property name="text" translatable="yes">0.2</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">2</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="focusable">False</property>
+                        <property name="label" translatable="yes">Path step:</property>
+                        <property name="xalign">1</property>
+                        <property name="tooltip-text" translatable="yes">Step size taken along the gradient direction at every iteration after the initial displacement off the saddle. Smaller values trace the path more finely but need more iterations to cover the same distance.</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">3</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="entry_path_step">
+                        <property name="visible">True</property>
+                        <property name="focusable">True</property>
+                        <property name="text" translatable="yes">0.025</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">3</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="focusable">False</property>
+                        <property name="label" translatable="yes">Mass-weighted:</property>
+                        <property name="xalign">1</property>
+                        <property name="tooltip-text" translatable="yes">Use mass-weighted coordinates, matching the classic (Fukui) definition of an intrinsic reaction coordinate. Off by default (plain Cartesian steepest descent).</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">4</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="checkbox_mass_weighting">
+                        <property name="visible">True</property>
+                        <property name="focusable">True</property>
+                        <property name="active">False</property>
+                        <property name="label" />
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">4</property>
+                        </layout>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="label" translatable="yes">Both branches are written into a single trajectory, in the order they are produced. Trajectory saving cannot be disabled for this tool -- it is the only chemically meaningful output.</property>
+                    <property name="wrap">True</property>
+                    <property name="max-width-chars">56</property>
+                    <property name="xalign">0</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkSeparator">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                  </object>
+                </child>
+                <child>
+                  <placeholder />
+                </child>
+                <property name="margin-top">10</property>
+                <property name="margin-bottom">10</property>
+                <property name="margin-start">10</property>
+                <property name="margin-end">10</property>
+              </object>
+            </child>
+            <child type="label">
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="focusable">False</property>
+                <property name="label" translatable="yes">Parameters</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <placeholder />
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="focusable">False</property>
+            <property name="spacing">8</property>
+            <child>
+              <placeholder />
+            </child>
+            <child>
+              <object class="GtkButton">
+                <property name="label" translatable="yes">Cancel</property>
+                <property name="visible">True</property>
+                <property name="focusable">True</property>
+                <signal name="clicked" handler="close_window" swapped="no" />
+                <property name="hexpand">True</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton">
+                <property name="label" translatable="yes">Run</property>
+                <property name="width_request">150</property>
+                <property name="visible">True</property>
+                <property name="focusable">True</property>
+                <signal name="clicked" handler="run_opt" swapped="no" />
+                <property name="hexpand">True</property>
+              </object>
+            </child>
+            <property name="orientation">horizontal</property>
+            <property name="halign">end</property>
+          </object>
+        </child>
+        <property name="margin-top">10</property>
+        <property name="margin-bottom">10</property>
+        <property name="margin-start">10</property>
+        <property name="margin-end">10</property>
+      </object>
+    </child>
+  </object>
+</interface>

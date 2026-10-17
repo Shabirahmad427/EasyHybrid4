@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<interface>
+  <requires lib="gtk" version="4.0" />
+  <object class="GtkAboutDialog" id="about_dialog">
+    <property name="focusable">False</property>
+    <property name="program-name">EasyHybrid</property>
+    <property name="version">4.0.0 Beta</property>
+    <property name="comments" translatable="yes">EasyHybrid is a molecular modeling environment based on pDynamo3, with a focus on QC/MM hybrid simulations.</property>
+    <property name="website">https://github.com/ferbachega/EasyHybrid3</property>
+    <property name="website-label" translatable="yes">EasyHybrid - project page on GitHub</property>
+    <property name="authors">Fernando Bachega (main developer)
+Carlos Cerqueiros
+Luis Fernando S. Timmers
+Martin John Field</property>
+    <property name="license-type">gpl-3-0</property>
+  </object>
+</interface>

@@ -1,0 +1,62 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<interface>
+  <requires lib="gtk" version="4.0" />
+  <object class="GtkNotebook" id="notebook_text_and_logs">
+    <property name="visible">True</property>
+    <property name="focusable">True</property>
+    <property name="tab-pos">left</property>
+    <property name="scrollable">True</property>
+    <property name="enable-popup">True</property>
+    <child>
+      <object class="GtkScrolledWindow">
+        <property name="visible">True</property>
+        <property name="focusable">True</property>
+        <child>
+          <object class="GtkColumnView" id="status_view">
+            <property name="visible">True</property>
+            <property name="focusable">True</property>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child type="tab">
+      <object class="GtkLabel">
+        <property name="visible">True</property>
+        <property name="focusable">False</property>
+        <property name="label" translatable="yes">Status:</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkScrolledWindow">
+        <property name="visible">True</property>
+        <property name="focusable">True</property>
+        <child>
+          <object class="GtkTextView" id="annontations_textviewer">
+            <property name="visible">True</property>
+            <property name="focusable">True</property>
+            <property name="tooltip-text" translatable="yes">Type here what you want, use it as a notice/scratch board</property>
+            <property name="wrap-mode">word</property>
+            <property name="left-margin">10</property>
+            <property name="right-margin">10</property>
+            <property name="top-margin">10</property>
+            <property name="bottom-margin">10</property>
+            <property name="monospace">True</property>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child type="tab">
+      <object class="GtkLabel">
+        <property name="visible">True</property>
+        <property name="focusable">False</property>
+        <property name="label" translatable="yes">Annotations:</property>
+      </object>
+    </child>
+    <child>
+      <placeholder />
+    </child>
+    <child type="tab">
+      <placeholder />
+    </child>
+  </object>
+</interface>

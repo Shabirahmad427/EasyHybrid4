@@ -1,0 +1,331 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<interface>
+  <requires lib="gtk" version="4.0" />
+  <object class="GtkAdjustment" id="adjustment1">
+    <property name="upper">100</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkWindow" id="window">
+    <property name="focusable">False</property>
+    <signal name="close-request" handler="close_window" swapped="no" />
+    <child>
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="focusable">False</property>
+        <property name="margin-top">5</property>
+        <property name="margin-bottom">5</property>
+        <property name="margin-start">5</property>
+        <property name="margin-end">5</property>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="focusable">False</property>
+            <property name="orientation">vertical</property>
+            <property name="spacing">6</property>
+            <child>
+              <!-- n-columns=2 n-rows=4 -->
+              <object class="GtkGrid">
+                <property name="vexpand">True</property>
+                <property name="visible">True</property>
+                <property name="focusable">False</property>
+                <property name="row-spacing">9</property>
+                <property name="column-spacing">6</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="halign">end</property>
+                    <property name="label" translatable="yes">System:</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="halign">end</property>
+                    <property name="label" translatable="yes">Coordinates:</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox" id="box_system">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="orientation">vertical</property>
+                    <child>
+                      <placeholder />
+                    </child>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox" id="box_coordinates">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="orientation">vertical</property>
+                    <child>
+                      <placeholder />
+                    </child>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="halign">end</property>
+                    <property name="label" translatable="yes">Surface Type:</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">2</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="label_external_file">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="halign">end</property>
+                    <property name="label" translatable="yes">External File:</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">3</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkButton" id="btn_external_file">
+                    <property name="label">Choose Folder</property>
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="hexpand">True</property>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">3</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox" id="box_surface_type">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="hexpand">True</property>
+                    <property name="orientation">vertical</property>
+                    <child>
+                      <placeholder />
+                    </child>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">2</property>
+                    </layout>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkScrolledWindow" id="orbital_scrolled_window">
+                <property name="visible">True</property>
+                <property name="focusable">True</property>
+                <property name="vexpand">True</property>
+                <child>
+                  <object class="GtkColumnView" id="orbital_column_view">
+                    <property name="visible">True</property>
+                    <property name="focusable">True</property>
+                    <property name="vexpand">True</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkBox">
+                <property name="visible">True</property>
+                <property name="focusable">False</property>
+                <property name="orientation">vertical</property>
+                <property name="spacing">8</property>
+                <child>
+                  <object class="GtkButton" id="btn_import_wavefunction">
+                    <property name="label" translatable="yes">Get Orbitals</property>
+                    <property name="visible">True</property>
+                    <property name="focusable">True</property>
+                    <property name="hexpand">True</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkSeparator">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkFrame">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="margin-top">5</property>
+                    <property name="margin-bottom">5</property>
+                    <property name="label-xalign">0.5</property>
+                    <child>
+                      <!-- n-columns=2 n-rows=4 -->
+                      <object class="GtkGrid">
+                        <property name="visible">True</property>
+                        <property name="focusable">False</property>
+                        <property name="margin-top">5</property>
+                        <property name="margin-bottom">5</property>
+                        <property name="row-spacing">9</property>
+                        <property name="column-spacing">6</property>
+                        <child>
+                          <object class="GtkBox" id="box_system1">
+                            <property name="visible">True</property>
+                            <property name="focusable">False</property>
+                            <property name="orientation">vertical</property>
+                            <child>
+                              <object class="GtkColorButton" id="btn_color_plus">
+                                <property name="visible">True</property>
+                                <property name="focusable">True</property>
+                                <property name="rgba">rgb(165,29,45)</property>
+                              </object>
+                            </child>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkEntry" id="entry_spacing">
+                            <property name="visible">True</property>
+                            <property name="focusable">True</property>
+                            <property name="hexpand">True</property>
+                            <property name="text" translatable="yes">0.5</property>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="row">3</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="focusable">False</property>
+                            <property name="halign">end</property>
+                            <property name="hexpand">False</property>
+                            <property name="label" translatable="yes">Isovalue:</property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">2</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="focusable">False</property>
+                            <property name="halign">end</property>
+                            <property name="label" translatable="yes">Grid Spacing:</property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">3</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="label_color_minus">
+                            <property name="visible">True</property>
+                            <property name="focusable">False</property>
+                            <property name="halign">end</property>
+                            <property name="label" translatable="yes">Color Minus:</property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">1</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="label_color_plus">
+                            <property name="visible">True</property>
+                            <property name="focusable">False</property>
+                            <property name="halign">end</property>
+                            <property name="label" translatable="yes">Color Plus:</property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkColorButton" id="btn_color_minus">
+                            <property name="visible">True</property>
+                            <property name="focusable">True</property>
+                            <property name="rgba">rgb(26,95,180)</property>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="row">1</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkEntry" id="entry_isovalue">
+                            <property name="visible">True</property>
+                            <property name="focusable">True</property>
+                            <property name="hexpand">True</property>
+                            <property name="text" translatable="yes">0.06</property>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="row">2</property>
+                            </layout>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child type="label">
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="focusable">False</property>
+                        <property name="label" translatable="yes">Surface Parameter</property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="halign">end</property>
+                    <property name="spacing">7</property>
+                    <child>
+                      <placeholder />
+                    </child>
+                    <child>
+                      <placeholder />
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="btn_render">
+                        <property name="hexpand">True</property>
+                        <property name="label" translatable="yes">Render</property>
+                        <property name="visible">True</property>
+                        <property name="focusable">True</property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

@@ -1,0 +1,1014 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#  
+#  EasyHybrid: Python interface for QM/MM and molecular simulations using pDynamo3
+#  Module: Selection utilities for pDynamo systems
+#
+#  Copyright 2022-2025 Fernando Bachega
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+#  MA 02110-1301, USA.
+#
+#  Maintainer:
+#      Fernando Bachega <ferbachega@gmail.com> or <easyhybrid3@gmail.com>
+#
+#  Description:
+#      Provides functions for selecting atoms and residues in pDynamo systems
+#      to facilitate QM/MM partitioning and molecular simulations.
+#
+from util.debug import dprint
+import gi
+gi.require_version("Gtk", "4.0")
+from gi.repository import Gtk, Gdk, GLib, GObject, Gio
+from src.gtk4_compat import GTK_INVALID_LIST_POSITION
+from gi.repository import GdkPixbuf
+from gui.widgets.custom_widgets  import get_colorful_square_pixel_buffer
+from gui.windows.setup.windows_and_dialogs import TextWindow, TabbedLogWindow
+from gui.windows.setup.windows_and_dialogs import SimpleDialog
+from gui.gtk4_context_menu import ContextMenu
+import os, sys, time, signal
+import psutil
+from pprint import pprint
+
+
+class JobHistoryRow(GObject.Object):
+    """Mutable job data shared by process manager GTK4 list models."""
+
+    system_name = GObject.Property(type=str, default="")
+    job_type = GObject.Property(type=str, default="")
+    potential = GObject.Property(type=str, default="")
+    started = GObject.Property(type=str, default="")
+    ended = GObject.Property(type=str, default="")
+    status = GObject.Property(type=str, default="")
+    icon = GObject.Property(type=GdkPixbuf.Pixbuf)
+    system_id = GObject.Property(type=int, default=-1)
+    step_counter = GObject.Property(type=int, default=-1)
+
+    def __init__(self, values):
+        (system_name, job_type, potential, started, ended, status,
+         icon, system_id, step_counter) = values
+        as_text = lambda value: "" if value is None else str(value)
+        super().__init__(system_name=as_text(system_name),
+                         job_type=as_text(job_type),
+                         potential=as_text(potential), started=as_text(started),
+                         ended=as_text(ended), status=as_text(status), icon=icon,
+                         system_id=int(system_id), step_counter=int(step_counter))
+
+
+def _get_descendant_pids ( pid ):
+    """ [EN] BUG FIX (real-world report: this used /proc/<pid>/task/
+    <tid>/children -- Linux-specific, does not exist at all on macOS,
+    which has no /proc filesystem by default). Confirmed while checking
+    macOS portability: this was the ONE genuinely OS-specific piece of
+    code in the whole project (grepped for "/proc/" across the entire
+    source tree -- this was the only hit). Every OTHER piece of this
+    Abort feature (os.kill, signal.SIGTERM/SIGKILL below) is plain
+    POSIX, already identical on Linux and macOS -- only the "find every
+    descendant" step needed a real fix, not a full rewrite.
+
+    Now uses psutil (a new dependency -- see install.py's own
+    PYTHON_LIBRARIES table, updated to match), whose children(
+    recursive=True) is implemented per-platform (via /proc on Linux, via
+    sysctl/libproc on macOS, via a different mechanism again on Windows)
+    behind the exact same API -- so this function itself no longer needs
+    ANY platform-specific code at all; psutil already did that work.
+
+    Needed because multiprocessing.Process.terminate() only sends
+    SIGTERM to the ONE direct child process it tracks -- confirmed by
+    reading pdynamo/p_methods/energy.py, surface_scan.py and
+    umbrella_sampling.py directly: all three spawn their OWN
+    multiprocessing.Pool workers (or shell out to external QM programs
+    like ORCA/XTB) INSIDE that child process, which terminate() has no
+    idea about and never signals -- aborting a job used to report
+    success while those grandchildren kept running, orphaned, still
+    consuming CPU.
+
+    Returns a plain list of ints (pids), matching the previous /proc-
+    based version's return type exactly, so every caller below
+    (_terminate_process_tree(), _force_kill_pids()) needed no changes at
+    all beyond this one function. """
+    try:
+        proc = psutil.Process ( pid )
+    except psutil.NoSuchProcess:
+        return [ ]
+    try:
+        return [ child.pid for child in proc.children ( recursive = True ) ]
+    except psutil.NoSuchProcess:
+        # [EN] the process tree can legitimately change WHILE we're
+        # walking it (a grandchild finishing on its own, mid-walk) --
+        # psutil raises NoSuchProcess for THAT specific vanished process
+        # rather than silently skipping it the way the old /proc-based
+        # try/except per-node did; treating it as "no descendants found"
+        # here is the same practical outcome (whatever already finished
+        # doesn't need signalling anyway).
+        return [ ]
+
+
+def _pid_alive ( pid ):
+    """ True if `pid` still exists (POSIX: signal 0 doesn't actually
+    signal anything, just checks for existence/permission). """
+    try:
+        os.kill ( pid, 0 )
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True   # exists, just not ours to signal (should not happen with our child processes)
+    return True
+
+
+def _terminate_process_tree ( pid ):
+    """ Sends SIGTERM to `pid` and every descendant found via
+    _get_descendant_pids() -- see that function's own docstring for why
+    this is necessary at all instead of just process.terminate().
+    Deliberately does NOT block waiting for them to actually exit -- see
+    the GLib.timeout_add-based polling in
+    ProcessManagerWindow._check_abort_progress() for that (a blocking
+    process.join(timeout=5) on the main GTK thread used to freeze the
+    whole UI for up to 5 seconds every time a job was aborted).
+
+    Returns the full list of PIDs signalled (pid + all descendants), so
+    the caller can later check/escalate to SIGKILL against the exact
+    same set. """
+    all_pids = _get_descendant_pids ( pid ) + [ pid ]
+    for p in all_pids:
+        try:
+            os.kill ( p, signal.SIGTERM )
+        except ProcessLookupError:
+            pass
+    return all_pids
+
+
+def _force_kill_pids ( pids ):
+    """ SIGKILL for anything in `pids` still alive -- last resort, called
+    once the grace period in _check_abort_progress() runs out and
+    SIGTERM alone wasn't enough. """
+    for p in pids:
+        if _pid_alive ( p ):
+            try:
+                os.kill ( p, signal.SIGKILL )
+            except ProcessLookupError:
+                pass
+
+
+class ProcessManagerWindow(Gtk.Window):
+    """
+    A GTK window that provides an interface to manage simulation or computational jobs.
+
+    This window displays a history of submitted jobs, their metadata, and allows
+    interaction through a popup menu (e.g., rerun, abort, remove, clear).
+    """
+    def __init__(self, main = None):
+        """
+        Initialize the ProcessManagerWindow.
+
+        Args:
+            main (MainWindow): Reference to the main EasyHybrid window.
+                Provides access to session objects and job history.
+        """
+        self.main                = main
+        self.p_session           = main.p_session
+        self.home                = main.home
+        self.Visible             = False
+
+    def open_window (self):
+        """
+        Open the process manager window.
+
+        If the window is not already visible, it creates a new GTK window,
+        sets up the treeview and popup menu, and shows the interface.
+        If the window is already open, it is brought to the front.
+        """
+        if not self.Visible:
+            self.window = Gtk.Window(title="Process Manager")
+            self.window.set_default_size(800, 300)
+            self.window.set_margin_top(10)
+            self.window.set_margin_bottom(10)
+            self.window.set_margin_start(10)
+            self.window.set_margin_end(10)
+
+            # Build widgets
+            self.build_treeview()
+            self.build_popupmenu()
+
+            # Add treeview inside a scrolled window
+            scrolled = Gtk.ScrolledWindow()
+            scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+            scrolled.set_child(self.treeview)
+            self.window.set_child(scrolled)
+
+            # Connect signals
+            self.window.connect("close-request", self.close_window)
+            self.treeview.connect("activate", self.on_row_activated)
+
+            self.window.present()
+            self.Visible = True
+        else:
+            # Bring existing window to front
+            self.window.present()
+
+    def close_window (self, button, data  = None):
+        """
+        Close the process manager window and update visibility state.
+
+        Args:
+            button (Gtk.Widget): The widget that triggered the close.
+            data (Any, optional): Additional signal data.
+        """
+        self.Visible    =  False
+        self.window = None
+        return False
+    
+    def build_popupmenu (self):
+        """
+        Build the context popup menu for job management.
+
+        Provides the following options:
+            - View Log
+            - Rerun a job
+            - Abort a job
+            - Remove a job from the list
+            - Clear the entire job list
+        """
+        self.popup_menu = ContextMenu(self.treeview)
+        self.popup_menu.add_item("View Log", self.on_view_log_activate)
+        self.popup_menu.add_separator()
+        self.popup_menu.add_item("Rerun", self.rerun_job)
+        self.popup_menu.add_item("Abort", self.on_stop_activate)
+        self.popup_menu.add_item("Remove", self.on_remove_activate)
+        self.popup_menu.add_item("Clear List", self.on_clear_list)
+
+    def build_treeview(self, model=None):
+        """Build the native GTK4 job history column view."""
+        self._item_handlers = {}
+        self.treeview = Gtk.ColumnView.new(None)
+        self.treeview.set_show_row_separators(True)
+        self.treeview.set_show_column_separators(True)
+
+        columns = (
+            ("id", "system_id", "number"),
+            ("System Name", "system_name", "icon"),
+            ("Job Type", "job_type", "text"),
+            ("job", "step_counter", "number"),
+            ("Potential", "potential", "text"),
+            ("Status", "status", "text"),
+            ("Started", "started", "text"),
+            ("Ended", "ended", "text"),
+        )
+        for title, attribute, kind in columns:
+            factory = Gtk.SignalListItemFactory()
+            if kind == "icon":
+                factory.connect("setup", self._setup_system_cell)
+            else:
+                factory.connect("setup", self._setup_text_cell)
+            factory.connect("bind", self._bind_job_cell, attribute, kind)
+            factory.connect("unbind", self._unbind_job_cell)
+            column = Gtk.ColumnViewColumn.new(title, factory)
+            expression = Gtk.PropertyExpression.new(
+                JobHistoryRow, None, attribute.replace("_", "-")
+            )
+            sorter = (Gtk.NumericSorter.new(expression) if kind == "number"
+                      else Gtk.StringSorter.new(expression))
+            column.set_sorter(sorter)
+            if attribute == "system_name":
+                column.set_expand(True)
+            self.treeview.append_column(column)
+
+        if model is None:
+            model = self.main.job_history_liststore
+        self.sorted_model = Gtk.SortListModel.new(model, self.treeview.get_sorter())
+        self.selection = Gtk.SingleSelection.new(self.sorted_model)
+        self.selection.set_autoselect(False)
+        self.selection.set_can_unselect(True)
+        self.treeview.set_model(self.selection)
+
+    def _setup_text_cell(self, factory, list_item):
+        label = Gtk.Label(xalign=0)
+        label.set_selectable(True)
+        label.set_hexpand(True)
+        self._install_row_context_gesture(label, list_item)
+        list_item.set_child(label)
+
+    def _setup_system_cell(self, factory, list_item):
+        box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        box.set_hexpand(True)
+        picture = Gtk.Picture()
+        picture.set_size_request(16, 16)
+        picture.set_can_shrink(True)
+        label = Gtk.Label(xalign=0)
+        label.set_selectable(True)
+        box.append(picture)
+        box.append(label)
+        self._install_row_context_gesture(box, list_item)
+        list_item.set_child(box)
+
+    def _install_row_context_gesture(self, widget, list_item):
+        click = Gtk.GestureClick()
+        click.set_button(Gdk.BUTTON_SECONDARY)
+        click.connect("released", self._on_row_context_click, list_item)
+        widget.add_controller(click)
+
+    def _on_row_context_click(self, gesture, _press_count, x, y, list_item):
+        position = list_item.get_position()
+        if position == GTK_INVALID_LIST_POSITION:
+            return
+        self.selection.set_selected(position)
+        widget = gesture.get_widget()
+        translated = widget.translate_coordinates(self.treeview, x, y)
+        if translated and translated[0]:
+            self.popup_menu.present(x=translated[1], y=translated[2])
+        else:
+            self.popup_menu.present()
+
+    def _bind_job_cell(self, factory, list_item, attribute, kind):
+        self._unbind_job_cell(factory, list_item)
+        row = list_item.get_item()
+        if kind == "icon":
+            box = list_item.get_child()
+            picture = box.get_first_child()
+            label = picture.get_next_sibling()
+            picture.set_pixbuf(row.icon)
+            label.set_text(row.system_name)
+            update = lambda item: (picture.set_pixbuf(item.icon),
+                                   label.set_text(item.system_name))
+            property_name = "system-name"
+        else:
+            label = list_item.get_child()
+            label.set_text(str(getattr(row, attribute)))
+            update = lambda item: label.set_text(str(getattr(item, attribute)))
+            property_name = attribute.replace("_", "-")
+        handler = row.connect(f"notify::{property_name}",
+                              lambda item, _pspec: update(item))
+        self._item_handlers[id(list_item)] = (row, handler)
+
+    def _unbind_job_cell(self, factory, list_item):
+        binding = self._item_handlers.pop(id(list_item), None)
+        if binding:
+            row, handler = binding
+            if row.handler_is_connected(handler):
+                row.disconnect(handler)
+
+    def _selected_job(self):
+        return self.selection.get_selected_item()
+
+    def add_new_process (self,
+                         system    = None, 
+                         _type      = None, 
+                         potential = None,
+                         start     = None, 
+                         end       = ' ', 
+                         status    = None,
+                         step      = None):
+        
+        """Add a new process entry to the process history list.
+
+        This method creates a new row in the job history ListStore, associated 
+        with the provided `system`. If no start time is given, the current time 
+        will be automatically generated. The function also updates the system's 
+        job history and assigns a step counter.
+
+        Args:
+            system (object, optional): The system object containing job history 
+                and identifier information.
+            _type (str, optional): Type of the process (e.g., minimization, 
+                dynamics).
+            potential (str, optional): The potential used in the process.
+            start (str, optional): Start time of the process. If not provided, 
+                the current time is used.
+            end (str, optional): End time of the process. Defaults to a single 
+                space (' ').
+            status (str, optional): Current status of the process (e.g., running, 
+                finished).
+            step (int, optional): Step counter of the process. If not provided, 
+                the value from `system.e_step_counter` is used.
+
+        Returns:
+            JobHistoryRow: The new stable row object in the Gio.ListStore.
+        """
+        
+        # Prepare process name and graphical square icon.
+        name  = ' '+ system.label
+        sqr_color = get_colorful_square_pixel_buffer(system)
+        
+        # If no start time was provided, generate current formatted timestamp.
+        if start is not None:
+            pass
+        else:
+            #----------------------------------------------------------------------------
+            current_time   = time.time()
+            formatted_time = time.strftime("%d/%m %H:%M:%S", time.localtime(current_time))
+            start     = formatted_time
+            #----------------------------------------------------------------------------
+        
+        #when the step is external - from load EH session.
+        # Use provided step counter or fallback to system default.
+        if step is not None:
+            step_counter = step
+        else:
+            step_counter = system.e_step_counter
+        
+        # Update system job history with the start time.
+        system.e_job_history[step_counter]['started'] = start
+        
+        row = JobHistoryRow([
+            name, _type, potential, start, end, status, sqr_color,
+            system.e_id, step_counter
+        ])
+        self.main.job_history_liststore.append(row)
+        return row
+
+    def set_status (self, treeiter = None, status = 'Queued' ):
+        """ Function doc """
+        row = treeiter
+        row.status = status
+        if status == 'Finished':
+            system_name = row.system_name
+            job_type = row.job_type
+            sys_num = row.system_id
+            job_num = row.step_counter
+            
+            msg = (
+                f"The job has finished!\n\n"    
+                f"System: {sys_num} - {system_name}\n"
+                f"Job type: {job_num} -  {job_type} \n"
+                #f"Potential: {potential}\n"
+                #f"Start time: {start_time}\n"
+                #f"End time: {end_time}\n"
+                #f"Status: {status}"
+                )            
+            dialog = SimpleDialog(self )
+            dialog.info(msg = msg, modal = False, title = 'Finished!' )
+            #dialog.error_details (parent = self, msg = msg, details = '', title ='Error!')
+            
+            
+            #dialog = dialog.create_finished_dialog( msg1 = msg, msg2 = msg2,  modal = False)
+            #dialog.present()
+            
+    def set_time (self, treeiter, start = False, end = False):
+        """ Function doc """
+        row = treeiter
+        e_id = row.system_id
+        step_counter = row.step_counter
+        try:
+            system = self.p_session.psystem[e_id]
+        except:
+            system = False
+        
+        if start:
+            current_time   = time.time()
+            #formatted_time = time.strftime("%Y-%m-%d   %H:%M:%S", time.localtime(current_time))
+            formatted_time = time.strftime("%d/%m %H:%M:%S", time.localtime(current_time))
+            row.started = formatted_time
+            if system:
+                system.e_job_history[step_counter]['started'] = formatted_time
+            
+            
+        if end:
+            current_time   = time.time()
+            #formatted_time = time.strftime("%Y-%m-%d   %H:%M:%S", time.localtime(current_time))
+            formatted_time = time.strftime("%d/%m %H:%M:%S", time.localtime(current_time))
+            row.ended = formatted_time
+            if system:
+                system.e_job_history[step_counter]['ended'] = formatted_time
+    
+    def set_step_counter (self, treeiter, e_step_counter):
+        """ Function doc """
+        treeiter.step_counter = e_step_counter
+        
+    def on_row_activated(self, treeview, position):
+        row = self.sorted_model.get_item(position)
+        if row is not None:
+            self._open_log_for_row(row)
+
+    def on_view_log_activate(self, widget):
+        """ Handler for the popup menu's new "View Log" item -- opens
+        the log for whichever row is currently selected (right-clicked),
+        same underlying logic double-click (on_row_activated) already
+        uses. """
+        row = self._selected_job()
+        if row is None:
+            return
+        self._open_log_for_row(row)
+
+    def _open_log_for_row(self, row):
+        """ [EN] Shared by both on_row_activated() (double-click) and
+        on_view_log_activate() (the popup menu's "View Log" item) --
+        opens the log file associated with this row, if one is actually
+        available and readable.
+
+        BUG FIXED (reported by the user: this only ever worked for
+        Geometry Optimization jobs, not other simulation types): the
+        underlying cause was that several simulation runner classes
+        (RelaxedSurfaceScan/AdvancedRelaxedSurfaceScan, UmbrellaSampling,
+        NormalModes, EnergyRefinement, and Geometry Optimization itself
+        when saving a trajectory) never corrected parameters['logfile']
+        to their OWN real, actual log path after computing it -- so
+        system.e_job_history[...]['logfile'] was left holding
+        simulations_mixin._configure_logfile()'s scratch-based GUESS,
+        which didn't match where that runner actually wrote its log.
+        Fixed at the source now (see each runner's own fix in
+        pdynamo/p_methods/*.py, all mirroring the pattern
+        molecular_dynamics.py/chain_of_states.py already used
+        correctly). This function ALSO defends against whatever's still
+        missing/wrong (an unknown future simulation type, a manually
+        moved/deleted log file, a job saved from before this feature
+        existed, a system that no longer exists in this session, ...)
+        with a friendly error dialog instead of a silent crash/
+        exception dumped to the terminal. """
+        e_id = row.system_id
+        step_counter = row.step_counter
+        system_name = row.system_name.strip()
+
+        system = self.p_session.psystem.get(e_id)
+        if system is None:
+            self.main.simple_dialog.error(
+                msg="Could not find the system for this job (internal id {}).\n\n"
+                    "It may have been removed from the session.".format(e_id))
+            return
+
+        job = system.e_job_history.get(step_counter)
+        if job is None:
+            self.main.simple_dialog.error(
+                msg="No job history found for '{}' (step {}).".format(system_name, step_counter))
+            return
+
+        logfile = job.get('logfile')
+        if not logfile:
+            self.main.simple_dialog.error(
+                msg="This job has no log file associated with it.\n\n"
+                    "System: {}\nStep: {}".format(system_name, step_counter))
+            return
+
+        if not os.path.isfile(logfile):
+            self.main.simple_dialog.error(
+                msg="The log file for this job could not be found on disk "
+                    "(it may still be being written, or was moved/deleted):\n\n{}".format(logfile))
+            return
+
+        try:
+            with open(logfile, 'r') as f:
+                data = f.read()
+        except Exception as exc:
+            self.main.simple_dialog.error(
+                msg="Could not read the log file:\n\n{}\n\nError: {}".format(logfile, exc))
+            return
+
+        # Look for a QC-program (ORCA/xTB) log in the same folder as the pDynamo
+        # log and, if found, show both in tabs. The QC log is written there by
+        # backup_qc_files() (see p_methods/_common.py). This matters especially
+        # for Single Point, which does not create a vobject, so its logs are only
+        # reachable here (the Process Manager), not via the vobject 'View Log'.
+        qc_label, qc_text = self._find_qc_log(logfile, system)
+        tabs = [("pDynamo", data)]
+        if qc_text:
+            tabs.append((qc_label, qc_text))
+        TabbedLogWindow(tabs, title=logfile)
+
+    def _find_qc_log(self, pdynamo_logfile, system=None):
+        """Locate and read the QC-program log that belongs to THIS job.
+
+        Robust matching (avoids picking up an unrelated ORCA/xTB log left in the
+        same folder by a previous run):
+          1. by NAME: the backup step writes the QC log with the same basename
+             as the pDynamo log, only swapping '.log' for '.orca.log'/'.xtb.log'
+             (see backup_orca_files/backup_xtb_files). So we look for exactly
+             '<base>.orca.log' and '<base>.xtb.log' first.
+          2. by QC MODEL: if the by-name match fails, fall back to scanning the
+             folder, but restrict the search to the program the system's qcModel
+             actually is (ORCA vs xTB) -- never return an ORCA log for an xTB job.
+
+        Returns (label, text); text is None when nothing suitable is found.
+        """
+        import glob
+        folder = os.path.dirname(pdynamo_logfile)
+        base = os.path.basename(pdynamo_logfile)
+        #if base.endswith(".log"):
+        if base.endswith(".log") or base.endswith(".out"):
+            base = base[:-4]
+
+        # which program did THIS job use? ('ORCA' / 'XTB' / None)
+        engine = None
+        try:
+            if system is not None and getattr(system, "qcModel", None):
+                tag = system.qcModel.SummaryItems()[0][0]  # 'ORCA QC Model'/'XTB QC Model'
+                if "ORCA" in tag.upper():
+                    engine = "ORCA"
+                elif "XTB" in tag.upper():
+                    engine = "XTB"
+        except Exception:
+            engine = None
+
+        # 1) exact name match (most reliable)
+        name_candidates = []
+        if engine == "ORCA" or engine is None:
+            name_candidates.append((os.path.join(folder, base + ".orca.log"), "ORCA"))
+            name_candidates.append((os.path.join(folder, base + ".orca.out"), "ORCA"))
+        
+        if engine == "XTB" or engine is None:
+            name_candidates.append((os.path.join(folder, base + ".xtb.log"), "xTB"))
+            name_candidates.append((os.path.join(folder, base + ".xtb.out"), "xTB"))
+        for path, label in name_candidates:
+            if os.path.isfile(path):
+                text = self._read_text(path)
+                if text is not None:
+                    return label, text
+
+        # 2) fallback: scan folder, but only for the engine this job used
+        if folder and os.path.isdir(folder) and engine is not None:
+            pattern = "*.orca.log" if engine == "ORCA" else "*.xtb.log"
+            label = "ORCA" if engine == "ORCA" else "xTB"
+            for path in sorted(glob.glob(os.path.join(folder, pattern))):
+                if path == pdynamo_logfile:
+                    continue
+                text = self._read_text(path)
+                if text is not None:
+                    return label, text
+
+        return "QC", None
+
+    def _read_text(self, path):
+        try:
+            with open(path, 'r', errors='replace') as f:
+                return f.read()
+        except Exception:
+            return None
+
+
+    def rerun_job(self, widget):
+        #return False
+        row = self._selected_job()
+        if row is None:
+            return
+        e_id = row.system_id
+        step_counter = row.step_counter
+        
+        self.main.main_treeview.set_active_system(e_id)
+        system = self.p_session.psystem[e_id]
+        
+        parameters = system.e_job_history[step_counter]['backup_parameters']
+        parameters['e_id'] = system.e_id
+        
+        #---------------------------------------------------------------------
+        if 'obj1_key6'in parameters.keys():
+            key6 = parameters['obj1_key6']
+            parameters['cb1_active'] = self.get_combobox_active_id(e_id, key6)
+        else:
+            parameters['cb1_active'] = -1
+        
+        if 'obj2_key6' in parameters.keys():
+            key6 = parameters['obj2_key6']
+            parameters['cb2_active'] = self.get_combobox_active_id(e_id, key6)
+        else:
+            parameters['cb2_active'] = -1
+        #---------------------------------------------------------------------
+            
+        if parameters['simulation_type'] == 'Geometry_Optimization':
+            if self.main.geometry_optimization_window.Visible:
+                self.main.geometry_optimization_window.close_window(None, None)
+            self.main.geometry_optimization_window.open_window()
+            self.main.geometry_optimization_window.restore_the_parameters_to_the_window (parameters)
+        
+        if parameters['simulation_type'] == 'Molecular_Dynamics':
+            if self.main.molecular_dynamics_window.Visible:
+                self.main.molecular_dynamics_window.close_window(None, None)
+            self.main.molecular_dynamics_window.open_window()
+            self.main.molecular_dynamics_window.restore_the_parameters_to_the_window (parameters)
+
+        if parameters['simulation_type'] == 'Relaxed_Surface_Scan':
+            if self.main.PES_scan_window.Visible:
+                self.main.PES_scan_window.close_window(None, None)
+            self.main.PES_scan_window.open_window()
+            self.main.PES_scan_window.restore_the_parameters_to_the_window (parameters)
+            
+        if parameters['simulation_type'] == 'Umbrella_Sampling':
+            if self.main.umbrella_sampling_window.Visible:
+                self.main.umbrella_sampling_window.close_window(None, None)
+            self.main.umbrella_sampling_window.open_window()
+            self.main.umbrella_sampling_window.restore_the_parameters_to_the_window (parameters)
+        
+        if parameters['simulation_type'] == 'Nudged_Elastic_Band':
+            if self.main.chain_of_states_opt_window.Visible:
+                self.main.chain_of_states_opt_window.close_window(None, None)
+            self.main.chain_of_states_opt_window.open_window()
+            self.main.chain_of_states_opt_window.restore_the_parameters_to_the_window (parameters)
+
+    def on_stop_activate(self, widget):
+        row = self._selected_job()
+
+        # [EN] BUG FIXED: used to build the confirmation message from
+        # model[treeiter][...] BEFORE ever checking treeiter was valid --
+        # crashed immediately (instead of just doing nothing) if nothing
+        # was selected when this fired.
+        if row is None:
+            return
+
+        job_num = row.step_counter
+        system_name = row.system_name
+
+        simple_dialog = SimpleDialog(self.main)
+        msg = 'Do you want to abort process number {}: {}?'.format(job_num, system_name)
+        simple_dialog.question(msg, lambda confirmed: self._stop_confirmed(row, job_num, confirmed))
+
+    def _stop_confirmed(self, row, job_num, confirmed):
+        if not confirmed:
+            return
+
+        status = row.status
+        if status != 'Running...':
+            # [EN] BUG FIXED: used to just silently `pass` here -- the
+            # user already said "yes" to a confirmation dialog and
+            # nothing visibly happened at all, with no explanation.
+            self.main.simple_dialog.error(
+                msg="This job is not currently running (status: {}) -- nothing to abort.".format(status))
+            return
+
+        e_id = row.system_id
+        if e_id not in self.main.p_session.process_pool:
+            self.main.simple_dialog.error(
+                msg="No running process found for this job (it may have just finished on its own).")
+            return
+
+        process = self.main.p_session.process_pool[e_id][1]
+        if not process.is_alive():
+            # [EN] Race: the job finished by itself between the row
+            # showing "Running..." and the user clicking Abort -- don't
+            # claim to have aborted something that already completed.
+            self.main.simple_dialog.error(
+                msg="This job already finished on its own -- nothing to abort.")
+            return
+
+        # [EN] BUG FIXED: used to read system.e_step_counter here (the
+        # SYSTEM's CURRENT/latest job number), not THIS row's OWN job
+        # number -- only ever gave the right answer because the app
+        # currently only allows one job per system at a time (see
+        # run_simulation()'s own is_alive() check); using the row's own
+        # value directly is correct regardless of that assumption ever
+        # changing later.
+        step_counter = job_num
+
+        # [EN] Kill the WHOLE process tree, not just the one direct
+        # child -- see _terminate_process_tree()'s own docstring for why
+        # process.terminate() alone wasn't enough (grandchild
+        # multiprocessing.Pool workers / external ORCA-XTB processes
+        # kept running, orphaned, after an "aborted" job). Does NOT
+        # block waiting for them to die -- see _check_abort_progress()
+        # below, polled via GLib.timeout_add instead of a blocking
+        # process.join(timeout=5) that used to freeze the whole UI for
+        # up to 5 seconds on every abort.
+        pids_to_watch = _terminate_process_tree(process.pid)
+
+        row.status = "Aborting..."
+
+        GLib.timeout_add(200, self._check_abort_progress,
+                          row, process, pids_to_watch, e_id, step_counter, time.time())
+
+    def _check_abort_progress(self, row, process, pids_to_watch, e_id, step_counter, started_at):
+        """ [EN] Non-blocking replacement for the old blocking
+        process.join(timeout=5) call in on_stop_activate() (see its own
+        comment) -- checked every 200ms via GLib.timeout_add, for up to
+        the same 5-second grace period the old code waited, just without
+        freezing the GTK main thread while doing it. Returns True to
+        keep being called again, False to stop. """
+        GRACE_PERIOD_SECONDS = 5.0
+
+        if process.is_alive() and (time.time() - started_at) < GRACE_PERIOD_SECONDS:
+            return True   # continua verificando no proximo timeout
+
+        if process.is_alive():
+            # [EN] Grace period ran out and it's STILL alive -- escalate
+            # to SIGKILL for the whole tree (the old code had no
+            # escalation at all: it declared "Aborted" regardless of
+            # whether terminate() actually worked).
+            _force_kill_pids(pids_to_watch)
+            process.join(timeout=1)   # SIGKILL isn't catchable -- this should return almost immediately, bounded just in case
+
+        row.status = "Aborted"
+        self.set_time(treeiter=row, end=True)
+
+        system = self.p_session.psystem.get(e_id)
+        if system is not None and step_counter in system.e_job_history:
+            system.e_job_history[step_counter]['status'] = "Aborted"
+
+        # [EN] BUG FIXED: the old code did
+        # `self.p_session.psystem[e_id].e_step_counter += 1` here --
+        # incrementing the system's NEXT-job counter as a side effect of
+        # ABORTING a job had no clear purpose (looks like a leftover
+        # copy-paste from job-CREATION code) and risked step_counter
+        # values drifting/skipping unexpectedly. Removed.
+
+        # [EN] Clean up the process_pool entry now that it's confirmed
+        # dead -- the old code left a reference to a terminated Process
+        # object sitting in the dict forever (harmless today only
+        # because run_simulation()'s own is_alive() check still happens
+        # to work fine against an already-dead Process object, but still
+        # just dead weight that never gets cleared).
+        if e_id in self.p_session.process_pool:
+            del self.p_session.process_pool[e_id]
+
+        return False   # para de verificar -- ja finalizado
+
+    def on_clear_list(self, widget):
+        simple_dialog = SimpleDialog(self.main)
+        
+        msg = 'You are about to delete the process history. This action is irreversible and some data may be permanently lost. \nDo you want to continue?'
+        simple_dialog.question(msg, lambda confirmed: self._clear_list_confirmed(confirmed))
+
+    def _clear_list_confirmed(self, confirmed):
+        if confirmed:
+            self.main.job_history_liststore.remove_all()
+            
+    def on_remove_activate(self, widget):
+        row = self._selected_job()
+        simple_dialog = SimpleDialog(self.main)
+        if row is None:
+            return
+        msg = 'Do you want to remove process number {}: {}?'.format(
+            row.step_counter, row.system_name
+        )
+        simple_dialog.question(msg, lambda confirmed: self._remove_confirmed(row, confirmed))
+
+    def _remove_confirmed(self, row, confirmed):
+        if not confirmed:
+            return
+        if row.status == "Running...":
+            return
+        model = self.main.job_history_liststore
+        for position in range(model.get_n_items()):
+            if model.get_item(position) is row:
+                model.remove(position)
+                break
+
+    def update (self, parameters = None):
+        """ Function doc """
+        pass
+
+    def clear_liststore_job_history (self, clear = True):
+        """ Function doc """
+        if clear:
+            self.main.job_history_liststore.remove_all()
+    
+    def build_liststore_from_job_history (self, clear = True):
+        """Rebuild the job history ListStore from the stored session data.
+
+        This method iterates over all systems in the current session (`p_session`),
+        accesses their job history, validates job attributes, and reconstructs the
+        corresponding entries in the `job_history_liststore`. Each valid job is 
+        added to the ListStore via `add_new_process`.
+
+        Args:
+            clear (bool, optional): Whether to clear the current ListStore before 
+                rebuilding. Defaults to True.
+
+        Returns:
+            bool: Returns False if an invalid job entry is found (e.g., with 
+            unknown step counter). Otherwise, returns None.
+        """
+        # TODO: Implement optional clearing logic for job_history_liststore if needed.
+        # Example:
+        # if clear and hasattr(self, "treeview"):
+        #     self.main.job_history_liststore.clear()
+        
+        # Iterate over all systems in the session.
+        for e_id in self.p_session.psystem.keys():
+            system    = self.p_session.psystem[e_id]
+            
+            
+            dprint (len(self.p_session.psystem.keys()),
+                   len(system.e_job_history.keys()),
+                   system.label
+                  
+                  )
+            # there might be several jobs in system.e_job_history dict for each system
+            for job_num in system.e_job_history.keys():
+                
+                #.the list of parameters to reload the liststore
+                keys = [
+                    "status",
+                    "step_counter",
+                    "simulation_type",
+                    "potential",
+                    "status",
+                    "started",
+                    "ended",
+                ]
+                
+                job = system.e_job_history[job_num]
+                
+                #. checking de parameters
+                for key in keys:
+                    if key in job.keys():
+                        pass
+                    else:
+                        job[key] = 'Unk'
+                
+                status    = job['status']
+                job_num   = job['step_counter']
+                job_type  = job['simulation_type']
+                potential = job['potential']
+               
+                started = job['started']
+                ended   = job['ended']
+                
+                name  = system.label  # System label (system name) for display purposes.
+                
+                #'''
+                #print('\n\n')
+                #print(status, job_num,job_type, potential, started,  ended)
+                #print('\n\n')
+                #'''
+                
+                # Validate job number (step counter).
+                if job_num == 'Unk':
+                    return False
+ 
+                # Append job to the ListStore.
+                self.add_new_process ( 
+                             system    = system, 
+                             _type     = job_type, 
+                             potential = potential,
+                             start     = started, 
+                             end       = ended, 
+                             status    = status,
+                             step      = job_num)
+ 
+    def get_combobox_active_id (self, e_id = None, key6 = None):
+        """ Function doc """
+        cb_active = -1
+        #--------------------------------------------------------------
+        liststore = self.main.vobject_liststore_dict[e_id]
+        index = None
+        # base on key6 num, find the index
+        for vobject in self.main.vm_session.vobject_names.values():
+            if vobject.key6 == key6:
+                index = vobject.index
+        #based on the index number, find the combobox line 
+        cb_active = -1
+        for row_num, row in enumerate(liststore):
+            nome          = row[0]   # coluna 0
+            vobject_index = row[1]   # coluna 1
+            if vobject_index == index:
+                cb_active = row_num
+                return cb_active
+        return -1
+        #--------------------------------------------------------------
+
+
+class ProcessManagerWindow_filtro(ProcessManagerWindow):
+    """Filtered GTK4 process manager using a native filter model."""
+
+    def __init__(self, main=None):
+        super().__init__(main=main)
+        self.current_filter_text = ""
+
+    def open_window(self):
+        if self.Visible:
+            self.window.present()
+            return
+
+        self.window = Gtk.Window(title="Process Manager")
+        self.window.set_default_size(600, 350)
+        self.window.set_margin_top(10)
+        self.window.set_margin_bottom(10)
+        self.window.set_margin_start(10)
+        self.window.set_margin_end(10)
+
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        self.window.set_child(box)
+        self.filter_entry = Gtk.Entry()
+        self.filter_entry.set_placeholder_text("Filter by system name…")
+        self.filter_entry.connect("changed", self.on_filter_entry_changed)
+        box.append(self.filter_entry)
+
+        self.job_filter = Gtk.CustomFilter.new(self.visible_func)
+        self.filtered_model = Gtk.FilterListModel.new(
+            self.main.job_history_liststore, self.job_filter
+        )
+        self.build_treeview(model=self.filtered_model)
+        scrolled = Gtk.ScrolledWindow()
+        scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        scrolled.set_child(self.treeview)
+        scrolled.set_vexpand(True)
+        box.append(scrolled)
+        self.build_popupmenu()
+        self.window.connect("close-request", self.close_window)
+        self.treeview.connect("activate", self.on_row_activated)
+        self.window.present()
+        self.Visible = True
+
+    def on_filter_entry_changed(self, entry):
+        self.current_filter_text = entry.get_text().casefold()
+        self.job_filter.changed(Gtk.FilterChange.DIFFERENT)
+
+    def visible_func(self, row):
+        return self.current_filter_text in row.system_name.casefold()

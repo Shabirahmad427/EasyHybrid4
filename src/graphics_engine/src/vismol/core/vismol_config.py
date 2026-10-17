@@ -1,0 +1,160 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+#  vismol_config.py
+#  
+#  Copyright 2022 Fernando <fernando@winter>
+#  
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#  
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#  
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+#  MA 02110-1301, USA.
+#  
+#  
+
+import os
+import json
+
+class VismolConfig:
+    """ Class doc """
+    
+    def __init__ (self, vismol_session):
+        """ Class initialiser """
+        self.vismol_session = vismol_session
+        self.gl_parameters = {"background_color": [0.0, 0.0, 0.0, 1.0],#[1.0, 1.0, 1.0, 1.0],#"background_color": [0.0, 0.0, 0.0, 1.0],
+                              
+                              "color_type": 0,
+                              "dot_size": 2,
+                              "dots_size": 2,
+                              "dot_type": 1,
+                              "dot_sel_size": 1.5,
+                              "dashed_dist_lines_color" : [0.4, 0.4, 0.4, 1.0],
+                              "line_width": 3,
+                              "line_width_selection": 80,
+                              "line_type": 0,
+                              "line_color": 0,
+                              "ribbon_width": 1000,
+                              "ribbon_width_selection": 100,
+                              "ribbon_type": 2,
+                              "ribbon_color": 0,
+                              "sphere_type": 0,
+                              "sphere_scale": 0.20,
+                              #"sphere_scale": 0.25,
+                              "sphere_quality": 2,
+                              "impostor_type": 0,
+                              #"sticks_radius": 2.5,
+                              "sticks_radius": 0.010,
+                              "sticks_color": 0,
+                              "sticks_type": 0,
+                              # Liga/desliga o desenho de ligacoes duplas/triplas
+                              # nos sticks. True = percebe e desenha as ordens;
+                              # False = tudo como ligacao simples (cilindro unico).
+                              # Pode ser alterado em runtime (ver SticksRepresentation).
+                              "multiple_bonds": True,
+                              # Liga/desliga a representacao pontilhada das ligacoes
+                              # de coordenacao metalica (metal-ligante). True =
+                              # ligacoes com metal viram linha pontilhada e saem
+                              # dos sticks; False = tratadas como ligacao normal.
+                              "metal_dashed_bonds": True,
+                              "antialias": True,
+                              "mouse_rotation_sensibility" : 1.5,
+
+                              "scroll_step": 0.9,
+                              "field_of_view": 10,
+                              "light_position": [0, 0, 10.0],
+                              #"light_position": [-2.5, 2.5, 3.0],
+                              "light_color": [ 1.0, 1.0, 1.0, 1.0],
+                              "light_ambient_coef": 0.4,
+                              "light_shininess": 5.5,
+                              "light_intensity": [0.6, 0.6, 0.6],
+                              "light_specular_color": [1.0, 1.0, 1.0],
+                              "center_on_coord_sleep_time": 0.01,
+                              "gridsize": 0.8,
+                              "maxbond": 2.4,
+                              "bond_tolerance": 1.4,
+                              #"dynamic_bond_tolerance": 2.0,
+                              "picking_dots_color": [0.0, 1.0, 1.0],
+                              "picking_dots_safe"          : True,
+                              "pk_label_color"             : [1.0, 1.0, 1.0, 1.0],
+                              "pk_dist_label_color"        : [1.0, 1.0, 0.0, 1.0],
+                              # Font family (bundled .ttf filename, see
+                              # vismol/libgl/fonts/) and size used to draw
+                              # every text label in the glArea: atom
+                              # labels, picking labels (#1, #2, ...) and
+                              # distance labels. Customizable via the
+                              # Preferences window ("Labels Font (glArea)").
+                              "label_font_file"            : "Amiko-SemiBold.ttf",
+                              "label_font_size"            : 0.35,
+                              # Separate font family/size for the "Labels"
+                              # representation (atom index, MM charge,
+                              # residue name/index, chain -- see
+                              # 'label_content' below), customizable
+                              # independently from the picking/distance
+                              # labels above via the Preferences window
+                              # ("Atom Labels (glArea)").
+                              "atom_label_font_file"       : "Amiko-SemiBold.ttf",
+                              "atom_label_font_size"       : 0.35,
+                              # What text each atom's persistent "Labels"
+                              # representation shows: one of 'name',
+                              # 'symbol', 'index', 'mm_charge',
+                              # 'residue_name', 'residue_index', 'chain'.
+                              # Set/applied from the Preferences window
+                              # ("Atom Labels (glArea)"). The same options
+                              # are also available per-selection via the
+                              # glArea right-click menu (Show > labels).
+                              "label_content"              : "name",
+                              "label_show_all"             : False,
+                              }
+        self.n_proc = 2
+        # self.representations_available = {"dots", "lines", "nonbonded", "dotted_lines",
+        #                                   "ribbon", "sticks", "spheres", "impostor",
+        #                                   "surface", "cartoon", "freetype",
+        #                                   "picking_dots"}
+        # [EN] "cartoon" re-added (was only in the commented-out version
+        # above, not the active set below -- meaning self.representations
+        # (built from this set in VismolObject.__init__) never had a
+        # "cartoon" key pre-declared at all). Without it,
+        # vm_session.show_or_hide() -- used by the terminal's "show"/
+        # "hide" commands -- would raise KeyError('cartoon') on
+        # `vm_object.representations[rep_type]`, since that line indexes
+        # the dict directly rather than using .get(). Safe to re-enable
+        # now that calculate_secondary_structure()'s vector-math bug
+        # (see cartoon_BCK.py) is fixed -- see the changelog there.
+        self.representations_available = {"dots", "lines", "nonbonded", "impostor",'dash', "posdot_type",
+                                          "sticks", "spheres", 'ribbons', 'cartoon', #'ribbon_sphere', 
+                                          'dynamic','vdw_spheres', 'picking_spheres', 'static_freetype'}
+    
+    
+    def save_easyhybrid_config(self):
+        """ Function doc """
+        config_path = os.path.join(os.environ["HOME"], ".VisMol", "VismolConfig.json")
+        with open(config_path, "w") as config_file:
+            json.dump(self.gl_parameters, config_file, indent=2)
+    
+    def load_easyhybrid_config(self, config_path):
+        """ Function doc """
+        if not os.path.isfile(config_path):
+          config_path = os.path.join(os.environ["HOME"], ".VisMol", "VismolConfig.json")
+        # Keep a copy of the built-in defaults (set in __init__) so that
+        # keys added in newer versions (e.g. 'label_font_file',
+        # 'label_font_size') are still present even when loading an older
+        # config file saved to disk before those keys existed. Without
+        # this, code that indexes gl_parameters[key] directly (instead of
+        # .get(key, default)) could raise KeyError after an update.
+        defaults = self.gl_parameters
+        with open(config_path, "r") as config_file:
+            loaded = json.load(config_file)
+        merged = dict(defaults)
+        merged.update(loaded)
+        self.gl_parameters = merged
+    

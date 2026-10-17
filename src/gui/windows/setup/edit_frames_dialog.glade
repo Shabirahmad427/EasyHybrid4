@@ -1,0 +1,142 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<interface>
+  <requires lib="gtk" version="4.0" />
+  <object class="GtkDialog" id="dialog">
+    <property name="name">dialog</property>
+    <property name="focusable">False</property>
+    <child internal-child="content_area">
+      <object class="GtkBox">
+        <property name="focusable">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">2</property>
+        <child internal-child="action_area">
+          <object class="GtkBox">
+            <property name="focusable">False</property>
+            <property name="halign">end</property>
+            <child>
+              <object class="GtkButton" id="button_cancel">
+                <property name="hexpand">True</property>
+                <property name="label" translatable="yes">Cancel</property>
+                <property name="visible">True</property>
+                <property name="focusable">True</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="button_apply">
+                <property name="hexpand">True</property>
+                <property name="label" translatable="yes">Apply</property>
+                <property name="visible">True</property>
+                <property name="focusable">True</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="focusable">False</property>
+            <property name="margin-top">10</property>
+            <property name="margin-bottom">10</property>
+            <property name="margin-start">10</property>
+            <property name="margin-end">10</property>
+            <child>
+              <!-- n-columns=2 n-rows=2 -->
+              <object class="GtkGrid">
+                <property name="visible">True</property>
+                <property name="focusable">False</property>
+                <property name="row-spacing">5</property>
+                <property name="column-spacing">5</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="label" translatable="yes">Delete Frames:</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="entry_delete_frames">
+                    <property name="visible">True</property>
+                    <property name="focusable">True</property>
+                    <property name="tooltip-text" translatable="yes">Enter the indices of the frames to be deleted, separated by commas. E.g., 1,2,5,6. Use a colon to delete a range of frames, e.g., 30:100.</property>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="focusable">False</property>
+                    <property name="label" translatable="yes">Interpolate Frames:</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="entry_interpol_frames">
+                    <property name="visible">True</property>
+                    <property name="focusable">True</property>
+                    <property name="tooltip-text" translatable="yes">Enter the indices of the frames to be deleted, separated by commas. E.g., 1,2,5,6. Use a colon to delete a range of frames, e.g., 30:100.</property>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkSeparator">
+            <property name="visible">True</property>
+            <property name="focusable">False</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="focusable">False</property>
+            <property name="margin-top">10</property>
+            <property name="margin-bottom">10</property>
+            <property name="margin-start">10</property>
+            <property name="margin-end">10</property>
+            <child>
+              <object class="GtkCheckButton" id="check_button_reverse">
+                <property name="label" translatable="yes">Invert Order.</property>
+                <property name="visible">True</property>
+                <property name="focusable">True</property>
+                <property name="tooltip-text" translatable="yes">Invert the order of the frames.</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="focusable">False</property>
+            <property name="margin-top">10</property>
+            <property name="margin-bottom">10</property>
+            <property name="margin-start">10</property>
+            <property name="margin-end">10</property>
+            <child>
+              <object class="GtkCheckButton" id="check_create_new_vobject">
+                <property name="label" translatable="yes">Create New Object</property>
+                <property name="visible">True</property>
+                <property name="focusable">True</property>
+                <property name="tooltip-text" translatable="yes">If active, a new object will be created as a copy of the reference object.</property>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

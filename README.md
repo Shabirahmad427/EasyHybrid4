@@ -1,0 +1,108 @@
+# EasyHybrid4
+
+EasyHybrid4 is the GTK4 port of Bachega's EasyHybrid3 graphical environment
+for pDynamo3. It preserves the EasyHybrid3 interface, scientific workflows,
+VisMol graphics engine, and project compatibility while using GTK4 APIs.
+
+> **Development status:** EasyHybrid4 uses native GTK4 APIs and supports GTK
+> 4.0 or newer. Full GUI verification needs a graphical desktop session.
+> EasyHybrid3 remains unchanged and usable. See
+> [GTK4_PORT.md](GTK4_PORT.md) for compatibility rules and migration status.
+
+EasyHybrid is developed using Python, Cython, GTK, and modern OpenGL. It
+allows users to run common pDynamo routines in a graphical interface and to
+inspect, edit, and export pDynamo systems for simulations using Python scripts.
+
+<img width="1589" height="908" alt="image" src="https://github.com/user-attachments/assets/fd399057-fd9d-47f4-b325-92f98f270b98" />
+
+The interface has been designed to make it easy to determine reaction pathways in biological systems, particularly when using hybrid quantum mechanics/molecular mechanics (QC/MM) methods. EasyHybrid allows users to access a variety of pDynamo capabilities within its graphical environment, including:
+
+Pure quantum chemistry (QC) simulations, both ab initio and semi-empirical
+
+Pure molecular mechanics (MM) simulations using AMBER, CHARMM, or OPLS force fields
+
+Hybrid QC/MM simulations
+
+Single point calculations
+
+Energy minimization
+
+Molecular dynamics
+
+Reaction coordinate scanning
+
+Umbrella sampling
+
+Reaction path calculations
+
+# Cloning and Installation
+
+EasyHybrid4 is currently maintained as a separate local port of EasyHybrid3.
+The original EasyHybrid3 project remains available independently.
+
+Clone it using:
+
+```bash
+git clone --recurse-submodules https://github.com/ferbachega/EasyHybrid3.git EasyHybrid4
+```
+
+This command obtains the upstream behavioral reference. The GTK4 port changes
+must then be applied in the separate `EasyHybrid4` working tree.
+
+## Verify Submodules
+
+Make sure the graphics engine was cloned correctly by checking whether the following directory exists:
+
+```bash
+../EasyHybrid4/src/graphics_engine
+```
+
+If this folder is missing, the submodules were not downloaded properly.
+
+## Installation
+
+Navigate to the main EasyHybrid directory:
+
+```bash
+cd ../EasyHybrid4/
+```
+
+There, you will find the installation script:
+
+```bash
+python3 ./install.py
+```
+
+> **Note:** Make sure all required dependencies are installed before running the installer.
+
+## Running EasyHybrid
+
+Once the graphics engine has been successfully compiled, you can launch EasyHybrid by running:
+
+```bash
+./activate_easyhybrid4.sh
+```
+
+
+# References
+pDynamo:
+
+  The second edition of the book M. J. Field, A Practical Introduction to the Simulation of Molecular Systems published by Cambridge University Press in 2007 [Amazon UK, Amazon US, CUP].
+
+  The paper M. J. Field, The pDynamo Library for Molecular Simulations using Hybrid Quantum Mechanical and Molecular Mechanical Potentials, J. Chem. Theo. Comp. 4, 1151–1161 (2008) [Link]. This paper provides a general introduction to pDynamo and its QC models and hybrid potentials.
+
+  pDynamo3 paper Martin J. Field Journal of Chemical Information and Modeling 2022 62 (23), 5849-5854 DOI: 10.1021/acs.jcim.2c01239 
+
+EasyHybrid:
+  Bachega, J. F. R., Hagen, G., Sequeiros-Borja, C., Nikklas, K., Chahine, J., Timmers, L. F. M., & Field, M. J. (2025). EasyHybrid: An interactive graphical environment for quantum, classical and hybrid simulations with pDynamo3. Journal of Chemical Information and Modeling.
+
+
+important links:
+
+https://sites.google.com/view/easyhybrid/home?authuser=0  (docs and tutorials)
+
+https://github.com/casebor/graphics_engines (engine based on OpenGL)
+
+https://www.pdynamo.org/home (pDynamo website)
+
+https://github.com/pdynamo/pDynamo3 
