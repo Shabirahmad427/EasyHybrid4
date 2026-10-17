@@ -188,18 +188,64 @@ jobs:
           )
           PY
 
+      - name: Diagnose WGL DLL resolution for GTK 4.8/4.10 on Windows
+        if: runner.os == 'Windows' && (matrix.gtk == '4.8' || matrix.gtk == '4.10')
+        run: |
+          set -o pipefail
+          micromamba run -n easyhybrid-gtk python - <<'PY' | tee -a platform-results.txt
+          import ctypes
+          import pathlib
+          import sys
+          import gi
+
+          gi.require_version('Gtk', '4.0')
+          from gi.repository import Gtk
+
+          kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+          kernel32.GetModuleHandleW.argtypes = [ctypes.c_wchar_p]
+          kernel32.GetModuleHandleW.restype = ctypes.c_void_p
+          kernel32.GetModuleFileNameW.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p, ctypes.c_uint32]
+          kernel32.GetModuleFileNameW.restype = ctypes.c_uint32
+          app_dir = pathlib.Path(sys.executable).parent
+
+          def module_path(handle):
+              buffer = ctypes.create_unicode_buffer(32768)
+              length = kernel32.GetModuleFileNameW(handle, buffer, len(buffer))
+              return buffer.value if length else f'<unresolved: winerror={ctypes.get_last_error()}>'
+
+          try:
+              opengl = ctypes.WinDLL('opengl32.dll', use_last_error=True)
+              opengl_handle = kernel32.GetModuleHandleW('opengl32.dll')
+              print(f'OPENGL32_LOADED={module_path(opengl_handle)}')
+              for symbol in ('wglCreateContext', 'wglMakeCurrent', 'wglChoosePixelFormatARB'):
+                  try:
+                      getattr(opengl, symbol)
+                      print(f'OPENGL32_EXPORT_{symbol}=available')
+                  except AttributeError:
+                      print(f'OPENGL32_EXPORT_{symbol}=unavailable')
+          except OSError as error:
+              print(f'OPENGL32_LOAD_FAILED={error}')
+
+          mesa_wgl = app_dir / 'libgallium_wgl.dll'
+          try:
+              ctypes.WinDLL(str(mesa_wgl), use_last_error=True)
+              print(f'MESA_WGL_LOAD=PASS path={mesa_wgl}')
+          except OSError as error:
+              print(f'MESA_WGL_LOAD=FAIL path={mesa_wgl} error={error}')
+
+          print(
+              f'GTK={Gtk.get_major_version()}.{Gtk.get_minor_version()}.{Gtk.get_micro_version()} '
+              f'PYTHON_EXE={sys.executable} APP_LOCAL_OPENGL32={(app_dir / "opengl32.dll").exists()}'
+          )
+          PY
+
       - name: Run native GTK window, Gio action, and real GLArea smoke
         run: |
           set -o pipefail
           if [[ "$RUNNER_OS" == "Linux" ]]; then
             LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe PYOPENGL_PLATFORM=glx xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" micromamba run -n easyhybrid-gtk python tests/test_gtk_icon_theme_smoke.py 2>&1 | tee -a platform-results.txt
           elif [[ "$RUNNER_OS" == "Windows" ]]; then
-            if [[ "${{ matrix.gtk }}" == "4.8" || "${{ matrix.gtk }}" == "4.10" ]]; then
-              GDK_DEBUG=opengl GSK_DEBUG=renderer,verbose GALLIUM_DRIVER=llvmpipe \
-                micromamba run -n easyhybrid-gtk python tests/test_gtk_icon_theme_smoke.py 2>&1 | tee -a platform-results.txt
-            else
-              GALLIUM_DRIVER=llvmpipe micromamba run -n easyhybrid-gtk python tests/test_gtk_icon_theme_smoke.py 2>&1 | tee -a platform-results.txt
-            fi
+            GALLIUM_DRIVER=llvmpipe micromamba run -n easyhybrid-gtk python tests/test_gtk_icon_theme_smoke.py 2>&1 | tee -a platform-results.txt
           else
             micromamba run -n easyhybrid-gtk python tests/test_gtk_icon_theme_smoke.py 2>&1 | tee -a platform-results.txt
           fi
