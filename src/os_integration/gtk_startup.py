@@ -9,6 +9,7 @@ import json
 import os
 import re
 import sys
+from pathlib import Path
 
 
 def load_vblank_mode_preference(config_path):
@@ -38,7 +39,10 @@ def configure_vblank_mode(*, config_path, platform=None, environ=None,
 
     paths = glob.glob("/sys/class/drm/card*/device/vendor") if vendor_paths is None else vendor_paths
     for vendor_path in paths:
-        card_name = vendor_path.split("/")[-3]
+        path_parts = Path(vendor_path).parents
+        if len(path_parts) < 2:
+            continue
+        card_name = path_parts[1].name
         if not re.fullmatch(r"card\d+", card_name):
             continue
         try:

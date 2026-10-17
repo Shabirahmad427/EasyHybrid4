@@ -85,6 +85,19 @@ def test_unknown_saved_preference_falls_back_to_automatic_detection(tmp_path):
     assert environment == {"vblank_mode": "0"}
 
 
+def test_malformed_gpu_vendor_path_is_ignored(tmp_path):
+    environment = {}
+
+    configure_vblank_mode(
+        config_path=tmp_path / "missing.json",
+        platform="linux",
+        environ=environment,
+        vendor_paths=["vendor"],
+    )
+
+    assert environment == {}
+
+
 def test_linux_gtk_gl_environment_aligns_egl_and_desktop_gl():
     environment = {"DISPLAY": ":99", "GDK_DEBUG": "portals"}
 
