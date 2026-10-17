@@ -18,6 +18,7 @@ status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).
 9. [Known limitations](#9-known-limitations-and-follow-up)
 10. [Platform/version evidence](#10-evidence-and-limitations-by-platformversion)
 11. [Preserved detailed topic reports](#11-preserved-topic-reports-and-detailed-evidence)
+12. [Graphics engine patch status](#1116-graphics-engine-fixes-patch)
 
 ## 1. Current status
 
@@ -1711,3 +1712,18 @@ The suite does not prove UI construction, rendering, pDynamo synchronization,
 simulation results, project/export round trips, or cross-platform support.
 Those checks are tracked in `docs/ROADMAP.md` and Section 6 of this report.
 Fixture requirements are documented in [Section 8 of this report](#8-safe-test-data-policy).
+
+
+## 11.16 Graphics engine fixes patch
+
+[`GRAPHICS_ENGINE_FIXES.patch`](GRAPHICS_ENGINE_FIXES.patch) is a tracked
+patch file moved here from the repository root. It proposes changes to
+`vismol_gtkwidget.py` and `vismol_glcore.py` for forwarding GTK release events
+to context menus, positioning popovers at the triggering pointer, and
+initializing/guarding selection-box coordinates.
+
+The patch is **not applied** to the working source. A non-mutating
+`git apply --check` against `src/graphics_engine` succeeded, which means it
+currently applies cleanly; it does not constitute behavior or platform
+verification. Review the changes and add regression coverage in EH4-200/203
+before applying them. The patch's original date was 2026-08-31.
