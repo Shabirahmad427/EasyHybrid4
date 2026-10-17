@@ -800,6 +800,7 @@ PYTHON_LIBRARIES = {
     "scipy":    "scipy",
     "OpenGL":   "PyOpenGL",
     "PIL":      "Pillow",
+    "yaml":     "PyYAML",
     "freetype": "freetype-py",
     "cairo":    "pycairo",
     "gi":       "PyGObject",

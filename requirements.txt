@@ -27,6 +27,7 @@ numpy>=1.20.0
 scipy>=1.7.0
 PyOpenGL>=3.1.0
 Pillow>=8.0.0
+PyYAML>=5.1
 Cython>=0.29.12
 freetype-py>=2.3.0
 pycairo>=1.20.0

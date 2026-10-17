@@ -6,7 +6,7 @@ import re
 import install
 
 
-def test_pillow_used_by_graphics_widget_is_declared_and_checked():
+def test_graphics_runtime_dependencies_are_declared_and_checked():
     requirements = Path(__file__).resolve().parents[1] / "requirements.txt"
     requirement_names = {
         re.split(r"[<>=!~]", line, maxsplit=1)[0].strip().lower()
@@ -16,3 +16,5 @@ def test_pillow_used_by_graphics_widget_is_declared_and_checked():
 
     assert install.PYTHON_LIBRARIES["PIL"] == "Pillow"
     assert "pillow" in requirement_names
+    assert install.PYTHON_LIBRARIES["yaml"] == "PyYAML"
+    assert "pyyaml" in requirement_names

@@ -49,16 +49,21 @@ jobs:
           create-args: >-
             python=3.12
             gtk4=${{ matrix.gtk }}.*
+            ${{ matrix.gtk == '4.8' && 'jpeg=9e' || '' }}
             pygobject
             pycairo
             pytest
-            numpy
-            scipy
-            cython
             pyopengl
-            pillow
-            freetype-py
-            psutil
+
+      - name: Install software OpenGL provider for Windows runner
+        if: runner.os == 'Windows'
+        run: micromamba install --yes -n easyhybrid-gtk --channel conda-forge mesalib
+
+      - name: Install full regression dependencies
+        if: matrix.gtk == '4.24'
+        run: >-
+          micromamba install --yes -n easyhybrid-gtk --channel conda-forge
+          numpy scipy cython pillow freetype-py psutil pyyaml
 
       - name: Record actual runtime and host
         run: |
@@ -74,10 +79,12 @@ jobs:
           fi
 
       - name: Build graphics engine extensions
+        if: matrix.gtk == '4.24'
         run: python setup.py build_ext --inplace
         working-directory: src/graphics_engine
 
       - name: Run complete regression suite with real GTK smoke enabled
+        if: matrix.gtk == '4.24'
         env:
           EASYHYBRID_RUN_GTK_GUI_TESTS: "1"
           PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
