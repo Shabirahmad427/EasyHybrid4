@@ -37,6 +37,8 @@ the direct Git results above are the current baseline.
   widget, OpenGL implementation, shaders, molecular parsers, Cython sources,
   and its own `setup.py`, `pyproject.toml`, and license. Git tracks its files
   directly, despite the stale `.gitmodules` entry.
+- Detailed package, GTK API, UI resource, dependency, and installer inventory
+  is recorded in `docs/DEPENDENCY_INVENTORY.md` (EH4-001).
 - Existing planning and compatibility notes include `GTK4_PORT.md`,
   `MACOS_TRACKPAD_PAN.md`, `GPU_PYSCF_CHANGES.md`, and
   `[remote Linux host]_GPU_INTEGRATION.md`; these remain in place.
