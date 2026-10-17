@@ -478,8 +478,7 @@ Run `39068617718` passed the real GLArea render on both cells. Windows GTK
 4.8.2 and GTK 4.10.1 each produced OpenGL 4.6 Core Profile with Mesa 26.2.4
 llvmpipe; output showed `legacy-wgl=True GSK_RENDERER=cairo`. The CI
 investigation scaffolding was then removed: the Frida trace, the DLL
-diagnosis step, and `EASYHYBRID_TEST_OPENGL_DLL`. Clean full-matrix run
-`39068863706` (push to `main` at `308c2d8`) is pending. Physical Windows GPUs remain **NOT TESTED**.
+diagnosis step, and `EASYHYBRID_TEST_OPENGL_DLL`. Clean full-matrix run `39068863706` (push to `main` at `308c2d8`): **PASS, 19/19 cells**: Linux GTK 4.8/4.10/4.12/4.14/4.20/4.22/4.24; Windows GTK 4.8/4.10/4.12/4.14/4.20/4.22/4.24; macOS arm64 GTK 4.12/4.14/4.20/4.22/4.24. GTK 4.16/4.18 on all OSes and macOS arm64 GTK 4.8/4.10 remain **NOT TESTED** (no conda-forge artifacts). Physical Windows GPUs remain **NOT TESTED**.
 Unit coverage is in `tests/test_win32_wgl.py`, using a fake Win32 API; it
 does not prove native behavior.
 
