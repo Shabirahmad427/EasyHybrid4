@@ -6,10 +6,12 @@ workflows, VisMol graphics engine, and project compatibility while using GTK4
 APIs. See the [consolidated development report](docs/EASYHYBRID4_REPORT.md)
 for compatibility, parity, and testing status.
 
-> **Development status:** EasyHybrid4 targets the GTK 4.0 API baseline. The
-> only runtime exercised in this checkout is GTK 4.14.5; GTK 4.0, current
-> stable GTK, and native Windows/macOS remain untested. This is not a claim of
-> compatibility with every GTK4 release. See
+> **Development status:** EasyHybrid4 requests the GTK 4.0 introspection
+> namespace and has a GTK 4.8 runtime minimum. Native Linux X11 tests have
+> exercised GTK 4.8.2, 4.14.5, and 4.24.1, including full application/GL
+> open-close checks at all three versions using Python 3.12 environments.
+> Windows, macOS, Linux Wayland, and intermediate GTK4 minor releases remain
+> untested. This is not a claim of compatibility with every GTK4 release. See
 > [consolidated report](docs/EASYHYBRID4_REPORT.md#3-gtk4-python-and-dependency-compatibility)
 > for the tested range.
 > Full GUI verification needs a graphical desktop session.

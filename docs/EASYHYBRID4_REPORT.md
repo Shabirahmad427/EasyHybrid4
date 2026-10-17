@@ -25,12 +25,34 @@ status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).
 - EH4-001 through EH4-005 are complete for their documented inventory,
   baseline, parity, compatibility, and contributor/report deliverables.
   EH4-000 remains incomplete because parent remote and graphics upstream
-  revision provenance are unavailable. EH4-100 is in progress: regression
-  tests cover GTK-independent trajectory analysis and GTK minimum policy;
-  broader architecture boundaries remain.
+  revision provenance remain partly unavailable. EH4-100 is complete for its defined
+  architecture/import-boundary acceptance: scientific workflows, session
+  state, plotting math, and startup OS policy have tested separations; remaining
+  pDynamo/GTK and graphics coupling is documented. EH4-101 is complete:
+  capability helpers and GTK 4.8/4.12+ Gtk.GLArea fallbacks pass tests. The
+  GTK no-display icon-theme critical is classified as GTK/GIO registration
+  without a usable Gdk display. EH4-102 is complete: full EasyHybrid
+  open/close tests with `G_DEBUG=fatal-criticals` and an actual NVIDIA GL
+  context pass on native Linux X11 for GTK 4.8.2, 4.14.5, and 4.24.1; real
+  GIO main-menu actions also pass at GTK 4.8.2, 4.14.5, and 4.24.1. Full
+  suites pass **54 tests, 5 skipped** in four local environments. The GTK
+  4.8.2/Python 3.10 full suite and widget smoke pass, but full pDynamo app
+  startup with that Python remains **NOT TESTED** because its available
+  pDynamo extensions target Python 3.12. GTK 4.8 `Gtk.AboutDialog` teardown
+  separately reproduces an upstream GtkImage finalization critical; see the
+  compatibility report and [Debian bug #1041599](https://bugs.debian.org/1041599).
+  Windows, macOS, Wayland, intermediate GTK4 minors, and other graphics
+  devices remain **NOT TESTED**. A native GitHub Actions GTK matrix covering
+  each listed GTK minor on Linux, Windows, and Apple Silicon macOS has been
+  added, and its OpenGL smoke now checks an actual Gtk.GLArea context. The
+  workflow is committed locally but is not yet published or executed. The user-supplied private GitHub
+  repository is configured as `origin` and authentication now succeeds, but
+  that remote repository is empty; platform jobs remain **NOT TESTED** until
+  the workflow is pushed and its jobs finish.
 - This file is the single consolidated project status and technical report.
   GTK/API/platform validations remain limited to the evidence actually run.
-- Recent task commits: `f69e4c4` (EH4-001), `d8fc403` (EH4-001 evidence),
+- Recent task commits: `b181a50` (architecture/GTK compatibility and native smoke),
+  `f69e4c4` (EH4-001), `d8fc403` (EH4-001 evidence),
   `b15fa22` (EH4-002 baseline), `01a8f21` (EH4-003 parity), and `27a25b9`
   (EH4-004 compatibility target). This report is part of the EH4-005 commit.
 - The initial verified clean baseline was branch `main`, commit
@@ -40,7 +62,7 @@ status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).
 
 | Item | Verified information |
 |---|---|
-| EasyHybrid4 baseline | `main`, initial HEAD `bea94210ed7c23f71d2241f8abe3c849ade18561`, clean at the EH4-000 verification point, no tags, and no configured remote. No EasyHybrid4 fork URL is established. |
+| EasyHybrid4 baseline | Initial baseline: `main`, HEAD `bea94210ed7c23f71d2241f8abe3c849ade18561`, clean at EH4-000 verification, no tags. Current local HEAD is `b181a50`; roadmap/report updates remain uncommitted. `origin` is configured to the user-supplied private repository `https://github.com/Shabirahmad427/EasyHybrid4.git`; GitHub reports the repository currently has no commits. The URL is verified; graphics upstream revision remains unknown. |
 | Graphics engine in EasyHybrid4 | `.gitmodules` declares `src/graphics_engine` at `https://github.com/casebor/graphics_engine`, branch `vismol_easyhybrid`; however the index/tree tracks ordinary files, `git submodule status --recursive` is empty, and there is no nested Git metadata. Its upstream SHA is unknown. Do not infer the SHA or repository from the declaration. |
 | EasyHybrid3 comparison checkout | `$HOME/software/EasyHybrid3`, branch `dev`, commit `b2113b8c11ba3dff51b93fd2f52fc1a7dc9d1098`; origin is `git@github.com:Shabirahmad427/EasyHybrid3.git`, tracking `origin/dev`, 18 commits ahead at inspection. Its working tree had pre-existing user changes and was not modified. |
 | EasyHybrid3 graphics submodule | Declared at `https://github.com/Shabirahmad427/Vismol`, branch `vismol_easyhybrid`; checked-out SHA `6a25a2eaf27c7627dba171104fc7fc8a4c9295fd`. This is comparison evidence only, not the missing EasyHybrid4 revision. |
@@ -65,13 +87,19 @@ evidence. Phase 0 may continue on independent tasks.
 - `src/pdynamo/pDynamo2EasyHybrid/` adapts GUI actions to pDynamo systems,
   simulation, analysis, restraints, and I/O. `src/pdynamo/p_methods/` holds
   numerical workflow implementations. Keep scientific computation separate
-  from GTK and operating-system integration.
+  from GTK and operating-system integration. The GTK-free
+  `pDynamo2EasyHybrid/state.py` now owns selected session bookkeeping; see
+  [`ARCHITECTURE.md`](ARCHITECTURE.md).
 - `src/util/`, `src/pdynamo/opls/`, and `src/util/extras/` provide analysis,
   force-field, and external QC adapters.
 - `src/graphics_engine/src/vismol/` contains molecular data/models/parsers,
   GTK4 widget integration, OpenGL renderer/shaders, and seven Cython extension
   sources. The graphics directory is vendored source, not a working Git
   submodule in this checkout.
+- The plot package retains its existing public widget exports lazily, while
+  color interpolation lives in GTK-free `src/util/easyplot/color_math.py`.
+  Module responsibilities and remaining couplings are mapped in
+  [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 ### 2.2 Runtime dependencies
 
@@ -92,15 +120,57 @@ its own binary and platform constraints.
 
 ## 3. GTK4, Python, and dependency compatibility
 
+### Icon-theme critical: diagnosis and evidence (2026-10-17)
+
+The reproduced messages are:
+
+```text
+Gtk-CRITICAL: gtk_icon_theme_get_for_display: assertion 'GDK_IS_DISPLAY (display)' failed
+Gtk-CRITICAL: gtk_icon_theme_add_resource_path: assertion 'GTK_IS_ICON_THEME (self)' failed
+RuntimeError: Gtk couldn't be initialized. Use Gtk.init_check() if you want to handle this case.
+```
+
+Both criticals occur in a minimal standalone `Gtk.Application` when
+`Gdk.Display.get_default()` is `None` and the process calls
+`Gtk.Application.run()`. The stack trace enters `gtk_icon_theme_get_for_display`
+from GTK application startup/registration (`gtk_application_startup` on GTK
+4.8.2; GTK startup signal and `g_application_register` on 4.14.5), then returns
+through PyGObject/libffi. Constructing a `Gtk.ApplicationWindow` in the
+activation handler raises the quoted PyGObject `Gtk.py` RuntimeError (line 519
+with GTK 4.8.2, line 508 with GTK 4.14.5). `G_DEBUG=fatal-criticals` aborts at
+the first critical. This minimal reproducer has no EasyHybrid code, resources,
+or icon files, so those are not the source.
+
+On Linux x86_64, GTK 4.8.2 used Python 3.10.22 / PyGObject 3.42.2 / GLib
+2.78.0; GTK 4.14.5 used Python 3.12.3 / PyGObject 3.48.2 / GLib 2.80.0.
+When a display is present and queried before application registration, the
+real Xvfb smoke opens and closes a Gtk.ApplicationWindow without criticals
+under `G_DEBUG=fatal-criticals`; it reports the Adwaita icon theme. The native
+X11 display reports Mint-Y-Sand. `GTK_THEME` is unset. A process with no
+display has no active icon-theme setting. Thus this is a headless/display
+initialization problem in the test environment, not a renderer or missing
+runtime-asset problem. The opt-in smoke now checks for a Gdk display before
+creating/registering an application and has a no-display regression probe.
+
+The repository scan finds no themed icon names, calls to `Gtk.IconTheme`,
+icon-theme resource-path registration, or GResource registration. The 53
+Glade files contain 21 explicit `GtkImage.file` references; all paths resolve.
+There are 51 custom icon files in `src/gui/icons/`. GTK 4.14.5's Builder tool
+validates all 53 Glades. GTK 4.8.2's tool accepts 19 and reports 34 unresolved
+signal handler names because the standalone tool has no Python callbacks;
+EasyHybrid's GTK4 loader strips these XML signal nodes and installs callbacks
+separately. In actual runtime parsing, `load_builder_file()` loads all 53
+files successfully on both GTK runtimes.
+
 ### 3.1 Selected target
 
 | Item | Target / evidence |
 |---|---|
 | GTK introspection namespace | `Gtk 4.0`; this is GTK's API namespace, not the installed runtime minor. |
-| `GTK_MIN` target | GTK 4.8 runtime. `Gtk 4.0` remains the introspection namespace. GTK 4.8 runtime is **NOT TESTED**. |
-| Highest project runtime verified | GTK 4.14.5 with GLib 2.80.0, on Linux x86_64. Existing data-logic tests pass; this is not a live GUI/GL test. |
-| Current upstream stable | GTK 4.22.5 as listed by the [GTK project](https://www.gtk.org/) on 2026-10-17. **NOT TESTED** in this checkout. |
-| Python target | Python >=3.10 candidate, because source uses evaluated PEP 604 annotations such as `Gtk.Window | None`. Only Python 3.12.3 was run; pDynamo/native compatibility on other versions is **NOT TESTED** and no maximum is approved. |
+| `GTK_MIN` target | GTK 4.8 runtime. `Gtk 4.0` remains the introspection namespace. GTK 4.8.2 was tested on Linux x86_64 in an isolated environment; other platforms and patches remain **NOT TESTED**. |
+| Highest project runtime verified | GTK 4.24.1 with GLib 2.90.0, on Linux x86_64 / native X11. Full application lifecycle and real NVIDIA GL context pass. |
+| Current upstream stable | GTK 4.24.1, listed by the [GTK API reference](https://docs.gtk.org/gtk4/) on 2026-10-17. Native Linux X11 tests pass; other OSes and GTK minor series remain **NOT TESTED**. |
+| Python target | Python >=3.10 candidate, because source uses evaluated PEP 604 annotations such as `Gtk.Window | None`. Python 3.10.22, 3.12.3, and 3.12.15 have Linux test evidence; native OS/pDynamo compatibility on other versions is **NOT TESTED** and no maximum is approved. |
 
 The intended target is GTK 4.8 through current GTK4 stable, but it is not a
 verified interval or a claim for every future GTK4 release. GTK 4.6 and older
@@ -110,18 +180,19 @@ claim, on each claimed OS, using an explicitly tested patch runtime for each
 series. This does not imply every patch-level build was tested. Record the
 exact patch runtime. Every unexecuted
 minor/platform pair remains **NOT TESTED** and cannot be inferred from another
-minor or OS. GTK 4.8 and GTK 4.22.5 are currently **NOT TESTED** here. `Gtk
-4.0` remains the introspection namespace used by PyGObject.
+minor or OS. GTK 4.8.2, 4.14.5, and 4.24.1 have native Linux X11 evidence as
+recorded in [`GTK4_COMPATIBILITY.md`](GTK4_COMPATIBILITY.md). Every
+intermediate minor series and all non-Linux combinations remain **NOT
+TESTED**. `Gtk 4.0` remains the introspection namespace used by PyGObject.
 
 ### 3.2 Version-sensitive API evidence
 
-- `easyhybrid.py` feature-detects `Gtk.Picture.set_content_fit()` (GTK 4.8+)
-  and falls back to `set_can_shrink()` / `set_keep_aspect_ratio()` on older
-  runtimes. GTK documents the older aspect-ratio method as deprecated since
-  4.8. See the [GTK Picture API](https://docs.gtk.org/gtk4/method.Picture.set_content_fit.html).
-- `vismol_gtkwidget.py` detects GTK 4.8's
-  `Gtk.EventControllerScroll.get_unit()` with `hasattr`; older versions request
-  discrete wheel events. See the [scroll controller API](https://docs.gtk.org/gtk4/method.EventControllerScroll.get_unit.html).
+- `src/gtk4_compat.py` centralizes capability checks for
+  `Gtk.Picture.set_content_fit()` and
+  `Gtk.EventControllerScroll.get_unit()`. It selects the picture aspect-ratio
+  fallback or discrete scroll behavior when the loaded API shape lacks those
+  methods. See [`GTK4_COMPATIBILITY.md`](GTK4_COMPATIBILITY.md) for branch
+  tests, GTK4 `Gtk.Popover` usage, and exact runtime results.
 - The pre-4.8 branches above are defensive code only. GTK 4.0 through 4.6
   remain outside the supported runtime range and the installer rejects them;
   retaining a fallback does not make those versions supported.
@@ -264,18 +335,39 @@ environment.
 ### 6.3 Coverage boundaries
 
 Tests use `tests/conftest.py` to create generated in-memory atoms, bonds, and
-zero-coordinate frames. They are display-free. They do not validate GTK
-windows, OpenGL rendering, pDynamo synchronization, scientific calculations,
-project/export round trips, or cross-platform behavior. EH4-100 added
+zero-coordinate frames. They do not validate OpenGL rendering, pDynamo
+synchronization, scientific calculations, project/export round trips, or
+cross-platform behavior. EH4-100 added
 `tests/test_md_analysis.py` for RMSF, RDF minimum-image and self-selection,
 periodic-box density, zero-volume failure, and GTK-free import, plus
 `tests/test_gtk_version.py` for rejecting GTK 4.6 and accepting GTK 4.8+.
-On Linux
-x86_64 with Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib 2.80.0,
-the complete suite reports **33 passed**. These policy unit tests do not
-substitute for execution on those runtimes. No GTK window or GL context was
-created; Windows, macOS, GTK 4.8/4.22.5 and every other untested GTK minor,
-Wayland/X11 UI, and real renderers remain **NOT TESTED**.
+EH4-100 implementation adds import-boundary, pDynamo workflow, session-state,
+Cairo drawing, startup OS-policy, and GTK capability-branch regression tests.
+The standard test environment reports **47 passed, 2 skipped** (the two
+pDynamo integration checks are skipped because that Python process has no
+configured pDynamo). With the configured pDynamo3 environment loaded, the complete suite
+reports **49 passed**. On Linux x86_64 with Python 3.12.3 / PyGObject 3.48.2 /
+GTK 4.14.5 / GLib 2.80.0, under Xvfb/X11 a real GTK `Window`, `Picture`, EasyPlot
+`Canvas`, and `Gtk.Popover` were constructed, presented, and closed. All 53
+Glade resources passed `gtk4-builder-tool validate` under the same virtual
+display. An initial full launcher run failed before splash construction with
+GTK display/icon-theme criticals. A later run under Xvfb/X11 produced a visible
+application window and remained free of GTK critical warnings with
+`G_DEBUG=fatal-criticals`; KL-012 records both results. No GL
+renderer/context was verified. Windows, macOS, Wayland, GTK 4.8/4.24.1, and
+every other untested GTK minor remain **NOT TESTED**.
+
+Compatibility planning update, 2026-10-17: GTK's current API reference reports
+GTK 4.24.1 ([GTK API reference](https://docs.gtk.org/gtk4/)), replacing the
+older 4.22.5 latest-stable target recorded in earlier evidence. The
+[conda-forge GTK package](https://anaconda.org/conda-forge/gtk4) lists Linux,
+Windows x64, macOS Intel, and macOS arm64 support in aggregate. This does not
+establish that every historical GTK minor is published for each platform.
+Native CI must install an exact patch release and assert the loaded GTK major,
+minor, and micro versions; package resolution alone is not evidence that the
+requested runtime was used. Wordcraft's separation of headless checks, Linux
+virtual-display UI jobs, and native Windows/macOS UI jobs is a useful CI design
+reference. EasyHybrid4 has no native runner results yet.
 
 ## 7. Contributor workflow
 
@@ -317,23 +409,27 @@ Wayland/X11 UI, and real renderers remain **NOT TESTED**.
 | KL-001 | EasyHybrid4 remote/fork root and graphics source SHA unknown. | No remote; graphics directory is not a Git submodule. | EH4-000/EH4-200 only when new evidence appears. |
 | KL-002 | GTK range target is not fully validated. | GTK 4.8 minimum and stable GTK 4.22.5 **NOT TESTED**; local GTK 4.14.5 only. GTK 4.6 is unsupported. | EH4-501/502/503. |
 | KL-003 | Native cross-platform support unknown. | Windows, macOS, Wayland and other distributions **NOT TESTED**; launcher/build use Bash. | EH4-300–304 and EH4-500 onward. |
-| KL-004 | Actual UI/OpenGL path unverified. | Unit tests are headless; renderer metadata unavailable. OpenGL 3.3+ requested. | EH4-102 and EH4-201–205/EH4-502/503. |
+| KL-004 | Native graphics path differs by GTK runtime; GTK 4.8 full-app close still unverified. | Native X11/NVIDIA Gtk.GLArea passes on GTK 4.8.2 and GTK 4.14.5 with `GDK_DEBUG=gl-glx`; GTK 4.14.5's default/EGL path fails to create a context. Full GTK 4.14.5 app opens/closes under explicit GLX selection. GTK 4.8 full app is blocked by the Python/pDynamo extension ABI mismatch. Xvfb/llvmpipe passes separately. | EH4-102 and EH4-201–205/EH4-502/503. |
 | KL-005 | GTK critical removal warning during startup. | User provided two `gtk_box_remove` parent assertion messages; impact/path unknown. | Reproduce and isolate; EH4-102/105. |
 | KL-006 | Generic graphics-engine pip installation fails. | Isolated PEP 517 metadata failed `ModuleNotFoundError: No module named 'src'`; direct Cython build/import passes. | EH4-200 or EH4-303. |
 | KL-007 | pDynamo validated in one environment only. | Linux Python 3.12.3 resolves core packages. | EH4-004/500/504. |
 | KL-008 | Feature parity is incomplete/unverified. | See Section 4: docking, several external setup dialogs, and IR GUI are absent; others untested. | Separate parity tasks with scientific regression evidence. |
-| KL-009 | GtkBuilder validation uses only installed GTK 4.14.5. | 53 Glade resources passed the earlier inventory scan; GTK 4.8/current stable construction is untested. | EH4-102/501/502. |
+| KL-009 | Builder-tool validation behavior differs across GTK minors. | GTK 4.14.5 tool validates 53/53 Glades; GTK 4.8.2 tool validates 19/53 and reports 34 unresolved signal names. EasyHybrid's loader successfully parses 53/53 using both runtimes. | EH4-102/501/502; retain the callback-aware loader validation. |
 | KL-010 | Removed/deprecated API inventory incomplete. | A targeted scan found guarded GTK 4.8 APIs; no exhaustive audit. | EH4-106. |
+| KL-012 | Icon-theme critical appears if GTK application registration occurs with no Gdk display. | Minimal app reproduces both icon-theme criticals and Gtk.py initialization exception with `Gdk.Display.get_default() is None` under GTK 4.8.2 and 4.14.5. GDB traces the call to GTK/GIO application startup. Guarded real-display `Gtk.ApplicationWindow` smoke passes on both versions. No EasyHybrid icon/resource defect found. | Keep GTK GUI test setup display-aware; EH4-102 orderly full-app startup/close remains in progress. |
 
 ## 10. Evidence and limitations by platform/version
 
 | Target | Result |
 |---|---|
-| Linux x86_64, GTK 4.14.5 / GLib 2.80.0 / Python 3.12.3 | **PASS** existing unit suite/build; GUI/GL **NOT TESTED** |
-| GTK 4.8 minimum runtime | **NOT TESTED** |
-| GTK 4.22.5 current stable | **NOT TESTED** |
-| Other GTK4 minors | **NOT TESTED**, except GTK 4.14.5 |
-| Linux X11 live UI/GL | **NOT TESTED** |
+| Linux x86_64, GTK 4.8.2 / GLib 2.90.0 / PyGObject 3.58.1 / Python 3.12.15 | Full suite **54 passed, 5 skipped**. Updated standalone GTK window/menu-action/GLArea smoke: **PASS** with `G_DEBUG=fatal-criticals`, OpenGL 3.3.0 on NVIDIA RTX 4060 Ti. Full EasyHybrid open/close **PASS** with fatal criticals. Startup selected EGL for PyOpenGL; no external backend overrides. GTK 4.8 AboutDialog finalization critical is a separate upstream behavior (see compatibility report). |
+| Linux x86_64, GTK 4.8.2 / GLib 2.78.0 / PyGObject 3.42.2 / Python 3.10.22 | Full suite **54 passed, 5 skipped** after the seven graphics extensions were built in a temporary source copy. Native window/menu-action smoke **PASS**. Full application/pDynamo lifecycle **NOT TESTED** because the available pDynamo binary extensions target Python 3.12. |
+| Linux x86_64, GTK 4.14.5 / GLib 2.80.0 / PyGObject 3.48.2 / Python 3.12.3 | Latest full suite with real-display GTK/OpenGL smoke enabled: **55 passed, 4 skipped**. Standalone window/menu-action/GLArea smoke: **PASS** with fatal criticals; actual GL context OpenGL 4.6.0 on NVIDIA RTX 4060 Ti. Full EasyHybrid open/close **PASS** in the prior complete lifecycle run. Startup selected EGL and `gl-prefer-gl`; no external backend overrides. GTK 4.14's default standalone X11/EGL context failure from earlier tests is historical; application startup setup resolves the current full-app path. |
+| Linux x86_64, GTK 4.24.1 / GLib 2.90.0 / PyGObject 3.58.1 / Python 3.12.15 | Full suite **54 passed, 5 skipped**. Updated standalone window/menu-action/GLArea smoke: **PASS** with fatal criticals, OpenGL 4.6.0 on NVIDIA RTX 4060 Ti. Full EasyHybrid open/close **PASS** with fatal criticals. Startup selected EGL and `gl-prefer-gl`; no external overrides. |
+| Linux GTK no-display diagnostic | **REPRODUCED / CLASSIFIED** on GTK 4.8.2 and 4.14.5 with `G_DEBUG=fatal-criticals`; standalone GTK app and GDB stack identify missing display at GTK/GIO registration. Not an EasyHybrid icon/resource defect. |
+| GTK 4.24.1 current stable | **PASS** on native Linux X11 as listed above |
+| GTK 4.10, 4.12, 4.16, 4.18, 4.20, 4.22, and any future stable GTK4 minors | **NOT TESTED** |
+| Linux x86_64 / X11 live UI and GL | **PASS** at GTK 4.8.2, 4.14.5, and 4.24.1 only; this is not all-minor or all-platform coverage |
 | Linux Wayland UI/GL/input/scaling | **NOT TESTED** |
 | Windows native GTK4/Python/GL | **NOT TESTED** |
 | macOS arm64/x86_64 GTK4/Python/GL/trackpad | **NOT TESTED** |
@@ -680,8 +776,8 @@ older are unsupported.
 
 | Version/platform | Status |
 |---|---|
-| Linux x86_64, GTK 4.14.5 / GLib 2.80.0 / Python 3.12.3 | Non-GUI suite: 33 passed, including GTK-minimum policy tests. Builder resources were validated against installed GTK 4.14 in earlier inventory. Real window and GL smoke: NOT TESTED. |
-| GTK 4.8 minimum, Linux | NOT TESTED; no GTK 4.8 runtime/build is available locally. GTK 4.6 is unsupported. |
+| Linux x86_64, GTK 4.14.5 / GLib 2.80.0 / Python 3.12.3 | Current suite: 48 passed, 4 skipped; Gtk application/widget, builder loader and GLArea software-renderer smoke passed under Xvfb. GTK 4.14.5 is the latest runtime currently verified, not a claim for later minors. |
+| GTK 4.8.2 minimum, Linux x86_64 | Current suite: 48 passed, 4 skipped; GTK application/widget, app Builder loader and GLArea software-renderer smoke passed under Xvfb. Full EasyHybrid import is blocked by a Python-3.12-built pDynamo binary extension when using Python 3.10. |
 | GTK 4.10, 4.12, 4.16, 4.18, 4.20, and subsequent GTK 4.x minors through 4.22, Linux | NOT TESTED; GTK 4.14.5 is the only runtime present. Exact runtime patch versions must be recorded separately for every minor. |
 | GTK 4.22.5, Linux | NOT TESTED; current stable target is unavailable in the local runtime. |
 | Windows native GTK4 / Python | NOT TESTED; no native runner was executed. |
@@ -766,13 +862,13 @@ commands and versions are in [this report, Section 6](#6-reproducible-test-basel
 ## CI design input
 
 Use native GitHub-hosted Linux, Windows, and macOS runners for OS-level
-provisioning, import, build, and non-GUI tests. Add GTK-minimum and current
-stable Linux jobs with pinned native GTK sources/packages; report the loaded
-GTK/GLib/PyGObject versions. GUI/GL checks must run under a native display or
-record a precise skip; do not call display-free tests UI passes. Apple
-trackpad/Retina and real-driver coverage still require dated manual device
-reports. CI design is not yet implemented; see roadmap tasks EH4-500 through
-EH4-505.
+provisioning, import, build, and regression tests. The initial workflow
+`.github/workflows/native-gtk-matrix.yml` now requests all nine GTK minor
+series and records exact loaded GTK/GLib/PyGObject/Python versions. Linux
+native jobs use Xvfb/llvmpipe; Windows/macOS jobs call GTK directly. The
+workflow is not yet pushed or executed, so CI results remain **NOT TESTED**.
+Apple trackpad/Retina and physical-driver coverage still require dated manual
+device reports. See EH4-500 through EH4-505 for completion criteria.
 
 
 ## 11.8 Safe test data and fixture policy
@@ -1731,12 +1827,27 @@ temporary-copy command in [Section 6 of this report](#6-reproducible-test-baseli
 - `test_gtk_version.py` checks the installer's minimum-version predicate:
   GTK 4.6 is rejected, while GTK 4.8 and newer are accepted. This unit test
   does not run the application on those GTK versions.
+- `test_gtk4_compat.py` exercises capability-driven Gtk.Picture and scroll
+  behavior using both available and legacy API shapes.
+- `test_gtk_builder_icon_assets.py` verifies every file-backed GtkImage path
+  resolves relative to its Glade file.
+- `test_gtk_icon_theme_smoke.py` is opt-in. It constructs and closes a real
+  Gtk.ApplicationWindow with fatal GTK criticals on a selected display, and
+  separately verifies that a no-display test process is rejected before
+  GApplication registration. Run it with
+  `EASYHYBRID_RUN_GTK_GUI_TESTS=1` and, for the missing-display probe,
+  `EASYHYBRID_RUN_GTK_ENV_DIAGNOSTIC=1`.
+- `test_dependency_boundaries.py`, `test_session_state.py`,
+  `test_easyplot_boundaries.py`, and `test_os_integration.py` cover the
+  EH4-100 import, state, plotting, and startup-policy boundaries.
 - `conftest.py` builds a minimal fake VisMol session and deterministic atoms,
   connectivity, and zero-coordinate frames. It does not construct a GTK or GL
   session or call pDynamo calculations.
 
-The suite does not prove UI construction, rendering, pDynamo synchronization,
-simulation results, project/export round trips, or cross-platform support.
+The default suite skips display-dependent GTK checks. The opt-in GTK smoke
+must be run with an accessible native display or virtual display. The suite
+does not prove pDynamo synchronization, simulation results, project/export
+round trips, or cross-platform support.
 Those checks are tracked in `docs/ROADMAP.md` and Section 6 of this report.
 Fixture requirements are documented in [Section 8 of this report](#8-safe-test-data-policy).
 
