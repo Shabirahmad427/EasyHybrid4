@@ -1,0 +1,65 @@
+name: TEMPORARY GTK 4.16 teardown diagnosis
+
+# Branch-only investigation of the GTK 4.16 libepoxy abort on window close.
+# Delete this file before merging.
+on:
+  push:
+    branches: [ci/missing-gtk-cells]
+    paths: [.github/workflows/diag-gtk416.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-24.04
+    container: fedora:41
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash {0}
+    steps:
+      - name: Install Fedora 41 GTK 4.16 runtime, gdb and debuginfod client
+        run: |
+          set -e
+          rm -f /etc/yum.repos.d/fedora-cisco-openh264.repo
+          sed -i -e 's|^metalink=|#metalink=|' \
+            -e 's|^#baseurl=http://download.example/pub/fedora/linux|baseurl=https://archives.fedoraproject.org/pub/archive/fedora/linux|' \
+            /etc/yum.repos.d/fedora*.repo
+          dnf -y install git python3 python3-gobject python3-cairo gtk4 \
+            python3-pyopengl python3-pytest xorg-x11-server-Xvfb xorg-x11-xauth \
+            mesa-dri-drivers mesa-libEGL mesa-libGL which gdb elfutils-debuginfod-client
+
+      - uses: actions/checkout@v5
+
+      - name: Startup policy as the application sees it
+        run: |
+          python3 - <<'PY'
+          import os
+          from src.os_integration.gtk_startup import gtk_runtime_version, configure_gl_context_environment
+          print("DETECTED_GTK_VERSION=", gtk_runtime_version())
+          env = {}
+          configure_gl_context_environment(environ=env)
+          print("STARTUP_ENV=", env)
+          PY
+
+      - name: Smoke per renderer
+        run: |
+          for renderer in default gl ngl cairo; do
+            if [ "$renderer" = default ]; then unset GSK_RENDERER; else export GSK_RENDERER=$renderer; fi
+            LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" \
+              python3 -c 'import sys; sys.path.insert(0, "."); from tests.test_gtk_icon_theme_smoke import _GTK_SMOKE; exec(compile(_GTK_SMOKE, "smoke", "exec"))' \
+              > out.txt 2>&1
+            echo "RENDERER=$renderer EXIT=$?"
+            grep -v Vulkan out.txt | tail -4
+          done
+
+      - name: gdb backtrace with debug symbols (default renderer)
+        env:
+          DEBUGINFOD_URLS: https://debuginfod.fedoraproject.org/
+        run: |
+          unset GSK_RENDERER
+          LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" \
+            gdb -q -batch -ex 'set debuginfod enabled on' -ex run -ex 'bt 30' --args python3 -c \
+            'import sys; sys.path.insert(0, "."); from tests.test_gtk_icon_theme_smoke import _GTK_SMOKE; exec(compile(_GTK_SMOKE, "smoke", "exec"))' \
+            2>&1 | grep -v -i 'vulkan\|downloading\|^\s*$' | tail -45
