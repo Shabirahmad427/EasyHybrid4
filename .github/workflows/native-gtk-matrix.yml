@@ -27,6 +27,26 @@ jobs:
           - os: macos-arm64
             runner: macos-14
         gtk: ["4.8", "4.10", "4.12", "4.14", "4.16", "4.18", "4.20", "4.22", "4.24"]
+        # conda-forge has no gtk4 builds for these platform/minor pairs.
+        # Keep them in the compatibility record as NOT TESTED; do not create
+        # jobs that can only fail during dependency solving.
+        exclude:
+          - os: linux-x86_64
+            gtk: "4.16"
+          - os: linux-x86_64
+            gtk: "4.18"
+          - os: windows-x86_64
+            gtk: "4.16"
+          - os: windows-x86_64
+            gtk: "4.18"
+          - os: macos-arm64
+            gtk: "4.8"
+          - os: macos-arm64
+            gtk: "4.10"
+          - os: macos-arm64
+            gtk: "4.16"
+          - os: macos-arm64
+            gtk: "4.18"
 
     defaults:
       run:
@@ -158,6 +178,8 @@ jobs:
           set -o pipefail
           if [[ "$RUNNER_OS" == "Linux" ]]; then
             LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe PYOPENGL_PLATFORM=glx xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" micromamba run -n easyhybrid-gtk python -m pytest -q -p no:cacheprovider tests/ 2>&1 | tee -a platform-results.txt
+          elif [[ "$RUNNER_OS" == "Windows" ]]; then
+            GALLIUM_DRIVER=llvmpipe micromamba run -n easyhybrid-gtk python -m pytest -q -p no:cacheprovider tests/ 2>&1 | tee -a platform-results.txt
           else
             micromamba run -n easyhybrid-gtk python -m pytest -q -p no:cacheprovider tests/ 2>&1 | tee -a platform-results.txt
           fi
