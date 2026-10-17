@@ -216,6 +216,14 @@ the corrected matrix must rerun before drawing conclusions from the GLib pin.
 
 ### Active task and blockers
 
+Windows GTK 4.8/4.10 follow-up: run `39067404621` reproduced both GL failures.
+The next diagnostic uses Frida 17.2.17 on the native Windows runner to trace
+GTK's actual GDI pixel-format and WGL calls, including DLL paths and Windows
+error codes. It is restricted to the two failing cells and does not alter
+arguments or return values. The normal, uninstrumented GTK/GL smoke remains
+mandatory. Local Python compilation and whitespace checks passed; native
+trace results are pending. This is investigation, not a verified fix.
+
 - **Current task:** `EH4-103` — migrate GTK3-era widgets/layout and model patterns to shared GTK4 patterns. Inspect the existing controls, add behavioral regression tests before changes, preserve scientific workflows, and retain the explicit cross-platform/GTK-minor gaps.
 - **EH4-000 provenance limitations (not blockers for independent implementation):** `origin` now points to the user-supplied private EasyHybrid4 repository, and GitHub confirms that repository exists but is empty. The graphics-engine files are still ordinary tracked files rather than an active submodule, and their upstream revision remains unknown. Keep the revision unresolved; do not infer it from EasyHybrid3 or `.gitmodules`. Graphics publishing/ownership-dependent work remains gated.
 - **Current implementation/testing blockers:** The GTK 4.8/Python 3.10 full application cannot use the available Python 3.12-built pDynamo binary extensions; a GTK 4.8/Python 3.12 + matching pDynamo combination passes full app/GL open-close. GTK 4.8 `Gtk.AboutDialog` produces an upstream GtkImage finalization critical (also reproduced with a bare dialog); this is not the GTK no-display icon-theme critical or the user's reported `gtk_box_remove` issue. In GitHub run `39066895345`, 17 matrix jobs passed and Windows GTK 4.8/4.10 failed at GTK GL context creation. A basic WGL compatibility context succeeds in the latest 4.10 diagnostic, but GTK's exact failing WGL operation remains unknown. Linux Wayland, physical Windows GPUs, and specifically excluded provider/platform/minor combinations remain **NOT TESTED**.

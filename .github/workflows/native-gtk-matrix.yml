@@ -307,6 +307,14 @@ jobs:
           )
           PY
 
+      - name: Trace actual GTK WGL bootstrap on older Windows runtimes
+        if: runner.os == 'Windows' && (matrix.gtk == '4.8' || matrix.gtk == '4.10')
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          micromamba run -n easyhybrid-gtk python -m pip install frida==17.2.17
+          GALLIUM_DRIVER=llvmpipe micromamba run -n easyhybrid-gtk python tests/diagnostics/trace_windows_wgl.py 2>&1 | tee -a platform-results.txt
+
       - name: Run native GTK window, Gio action, and real GLArea smoke
         run: |
           set -o pipefail

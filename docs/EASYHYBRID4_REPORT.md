@@ -429,6 +429,14 @@ conda GTK release builds omit `G_ENABLE_DEBUG`.
 
 ## 7. Contributor workflow
 
+Windows follow-up: `39067404621` reproduced the GTK 4.8/4.10 failures.
+`tests/diagnostics/trace_windows_wgl.py` now traces the actual GTK process's
+pixel-format and WGL calls using an optional, pinned Frida CI dependency.
+It logs native return values, error codes, and DLL paths without changing
+them. The separate uninstrumented smoke remains required; diagnostic failure
+cannot turn a failing GTK smoke green. Native trace results are pending;
+local Python compilation and `git diff --check` passed.
+
 1. Read root `AGENTS.md` and [`ROADMAP.md`](ROADMAP.md) completely before a
    coding session. Work the first eligible task and do not bypass phase gates.
 2. Use an isolated Python environment with root `requirements.txt`, native
