@@ -177,8 +177,8 @@ jobs:
           if-no-files-found: warn
 
   # GTK minors that conda-forge never published for Linux, taken from the
-  # distribution release that shipped them. Ubuntu 24.10 is end-of-life and
-  # served from old-releases; Debian 13 is the current stable release.
+  # distribution release that shipped them. Ubuntu 24.10 and Fedora 41 are
+  # end-of-life and served from their archives; Debian 13 is current stable.
   gtk-linux-distro:
     name: GTK ${{ matrix.gtk }} / linux-x86_64 (${{ matrix.distro }})
     if: inputs.scope != 'windows-legacy'
@@ -191,10 +191,17 @@ jobs:
         include:
           - gtk: "4.16"
             distro: ubuntu-24.10
+            family: debian
             image: ubuntu:24.10
+            eol: true
+          - gtk: "4.16"
+            distro: fedora-41
+            family: fedora
+            image: fedora:41
             eol: true
           - gtk: "4.18"
             distro: debian-13
+            family: debian
             image: debian:trixie
             eol: false
 
@@ -204,12 +211,25 @@ jobs:
 
     steps:
       - name: Point end-of-life Ubuntu at old-releases
-        if: matrix.eol
+        if: matrix.eol && matrix.family == 'debian'
         run: |
           sed -i -E 's#https?://(archive|security)\.ubuntu\.com/ubuntu/?#http://old-releases.ubuntu.com/ubuntu/#g' \
             /etc/apt/sources.list.d/ubuntu.sources
 
+      - name: Install Fedora GTK runtime and software GL from the archive
+        if: matrix.family == 'fedora'
+        run: |
+          set -e
+          rm -f /etc/yum.repos.d/fedora-cisco-openh264.repo
+          sed -i -e 's|^metalink=|#metalink=|' \
+            -e 's|^#baseurl=http://download.example/pub/fedora/linux|baseurl=https://archives.fedoraproject.org/pub/archive/fedora/linux|' \
+            /etc/yum.repos.d/fedora*.repo
+          dnf -y install git python3 python3-gobject python3-cairo gtk4 \
+            python3-pyopengl python3-pytest xorg-x11-server-Xvfb xorg-x11-xauth \
+            mesa-dri-drivers mesa-libEGL mesa-libGL which
+
       - name: Install distribution GTK runtime and software GL
+        if: matrix.family == 'debian'
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
@@ -228,6 +248,17 @@ jobs:
           printf 'GTK_REQUESTED=%s OS=linux-x86_64 PROVIDER=%s\n' '${{ matrix.gtk }}' '${{ matrix.distro }}' > platform-results.txt
           python3 .github/scripts/record_runtime.py '${{ matrix.distro }}' '${{ matrix.gtk }}' | tee -a platform-results.txt
 
+      # TEMPORARY (branch only): backtrace of the Ubuntu GTK 4.16.3 libepoxy
+      # abort. Remove before merging.
+      - name: Diagnose Ubuntu GTK 4.16.3 crash with gdb
+        if: matrix.distro == 'ubuntu-24.10'
+        continue-on-error: true
+        run: |
+          apt-get install --yes --no-install-recommends gdb >/dev/null
+          LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe DEBUGINFOD_URLS= xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" \
+            gdb -q -batch -ex run -ex 'bt 40' --args python3 -c \
+            'import sys; sys.path.insert(0, "."); from tests.test_gtk_icon_theme_smoke import _GTK_SMOKE; exec(compile(_GTK_SMOKE, "smoke", "exec"))' 2>&1 | tail -80
+
       - name: Run native GTK window, Gio action, and real GLArea smoke
         run: |
           set -o pipefail
@@ -240,7 +271,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: gtk-${{ matrix.gtk }}-linux-x86_64-results
+          name: gtk-${{ matrix.gtk }}-linux-x86_64-${{ matrix.distro }}-results
           path: platform-results.txt
           if-no-files-found: warn
 
@@ -365,13 +396,14 @@ jobs:
             pango
             harfbuzz
             fribidi
-            graphene
+            libgraphene
             epoxy
             gdk-pixbuf
             libpng
             libjpeg-turbo
             libtiff
             zlib
+            expat
             freetype
             fontconfig
             pixman
