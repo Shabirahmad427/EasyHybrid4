@@ -1,11 +1,17 @@
 # EasyHybrid4
 
 EasyHybrid4 is the GTK4 port of Bachega's EasyHybrid3 graphical environment
-for pDynamo3. It preserves the EasyHybrid3 interface, scientific workflows,
-VisMol graphics engine, and project compatibility while using GTK4 APIs.
+for pDynamo3. It aims to preserve EasyHybrid3's interface, scientific
+workflows, VisMol graphics engine, and project compatibility while using GTK4
+APIs. See the [feature parity audit](docs/FEATURE_PARITY.md) for known gaps
+and workflows that have not yet been verified.
 
-> **Development status:** EasyHybrid4 uses native GTK4 APIs and supports GTK
-> 4.0 or newer. Full GUI verification needs a graphical desktop session.
+> **Development status:** EasyHybrid4 targets the GTK 4.0 API baseline. The
+> only runtime exercised in this checkout is GTK 4.14.5; GTK 4.0, current
+> stable GTK, and native Windows/macOS remain untested. This is not a claim of
+> compatibility with every GTK4 release. See
+> [GTK4_COMPATIBILITY.md](docs/GTK4_COMPATIBILITY.md) for the tested range.
+> Full GUI verification needs a graphical desktop session.
 > EasyHybrid3 remains unchanged and usable. See
 > [GTK4_PORT.md](GTK4_PORT.md) for compatibility rules and migration status.
 

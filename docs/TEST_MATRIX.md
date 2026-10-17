@@ -77,12 +77,18 @@ this non-invasive baseline check.
 | Target | Status | Evidence / reason |
 |---|---|---|
 | Linux x86_64, GTK 4.14.5 / GLib 2.80.0 | PASS for existing tests and graphics extension build/import | Commands above; no real GUI or GL context test |
-| GTK 4.0 minimum candidate | NOT TESTED | No GTK 4.0 runtime/build available; `GTK_MIN` remains undecided |
-| Other GTK4 minors / latest stable | NOT TESTED | Only GTK 4.14.5 is installed |
+| GTK 4.0 selected minimum target | NOT TESTED | No GTK 4.0 runtime/build available |
+| Other GTK4 minors / latest stable | NOT TESTED | Only GTK 4.14.5 is installed locally |
 | Linux Wayland | NOT TESTED | No Wayland UI/GL session exercised |
 | Linux X11 GUI / real OpenGL context | NOT TESTED | No GUI/context smoke test in EH4-002 |
 | Windows native GTK4 | NOT TESTED | No Windows runner available in this session |
 | macOS native GTK4 (arm64 / x86_64) | NOT TESTED | No macOS runner available in this session |
+
+The GTK project website listed GTK 4.22.5 as the latest stable release on
+2026-10-17 ([release status](https://www.gtk.org/)); this runtime was not
+installed or tested. GTK 4.0 is the selected minimum target, not yet a
+validated minimum. See `GTK4_COMPATIBILITY.md` for the API audit and target
+contract.
 
 No runtime application or scientific behavior was modified in EH4-002, so no
 new behavioral regression test was needed; the existing test suite and a

@@ -1,14 +1,18 @@
 # EasyHybrid4 GTK4 port
 
-EasyHybrid4 is a faithful GTK4 port of EasyHybrid3. EasyHybrid3 remains the
-behavioral and visual reference. The port must not redesign workflows, rename
-scientific concepts, remove features, or add placeholder features.
+EasyHybrid4 aims to be a faithful GTK4 port of EasyHybrid3. EasyHybrid3 remains
+the behavioral and visual reference. The parity audit in
+[`docs/FEATURE_PARITY.md`](docs/FEATURE_PARITY.md) records workflows that are
+still unimplemented or unverified. The port must not redesign workflows,
+rename scientific concepts, remove features, or add placeholder features.
 
 ## Supported platforms
 
-- Linux with GTK 4.0+ and PyGObject
-- Windows with GTK 4.0+ and PyGObject
-- macOS with GTK 4.0+ and PyGObject
+- Linux, Windows, and macOS are intended targets for the GTK 4.0 API baseline
+  and PyGObject. This is not a verified platform support claim: only Linux
+  GTK 4.14.5 has been exercised so far. See
+  [`docs/GTK4_COMPATIBILITY.md`](docs/GTK4_COMPATIBILITY.md) for exact
+  results and untested combinations.
 
 Platform-specific code is allowed only for dependency discovery, packaging,
 native file integration, and graphics behavior that cannot be implemented
@@ -46,8 +50,10 @@ not be copied unless native GTK4 testing demonstrates that it is still needed.
 
 ## Current state — migration in progress
 
-The application requests the GTK 4.0 introspection namespace and supports
-GTK 4.0+ runtimes. Startup uses `Gtk.Application`; VisMol renders through
+The application requests the GTK 4.0 introspection namespace and targets a
+GTK 4.0 runtime minimum. GTK 4.14.5 is the only project runtime exercised;
+GTK 4.0 and current stable GTK have not yet been validated. Startup uses
+`Gtk.Application`; VisMol renders through
 `Gtk.GLArea` on every platform. GtkBuilder signal connections use explicit
 GTK4 helpers. The code does not monkeypatch GTK classes with GTK3 methods.
 The signal loader resolves relative image paths against the original UI file
