@@ -392,15 +392,20 @@ alternate package-manager result is inferred. The workflow exclusions mean
 unavailable on this platform.” See
 [`GTK4_COMPATIBILITY.md`](GTK4_COMPATIBILITY.md#gtk-binary-availability-audit-2026-10-17).
 
-The same workflow exposed a separate old-GTK Windows setup stall: the GTK
-4.8/4.10 conda transaction reaches the `gdk-pixbuf` post-link script. The
-initial transaction selected `libiconv 1.18`; conda-forge has documented a
-Windows loader-cache failure with a `libiconv 1.17` workaround. Run
-`39064516500` confirms that pin is active but the same post-link step still
-stalls, so it was insufficient. The next workflow revision skips package link
-scripts only in these two test environments, then invokes the pixbuf loader
-cache helper explicitly with a 60-second timeout and captured output. This
-diagnostic is not yet verified; both GTK cells remain **NOT TESTED**.
+The GTK 4.8/4.10 Windows setup stall was isolated in run `39065269579` by
+skipping conda link scripts only in those cells and invoking the pixbuf cache
+helper with a 60-second timeout. The helper exited successfully. GTK 4.10
+then passed runtime import and GTK/GL smoke. GTK 4.8 reached runtime
+identification but failed importing GdkPixbuf: Windows could not load
+`gdk_pixbuf-2.0-0.dll` (“The specified procedure could not be found”), then
+PyGObject asserted in `gi.overrides.GdkPixbuf`. This matches the loader ABI
+failure documented by [conda-forge GLib issue #162](https://github.com/conda-forge/glib-feedstock/issues/162).
+The earlier `libiconv=1.17` pin did not resolve the link-script hang. The
+workflow now tests the conda-forge build `libglib=2.82.2=h7025463_0` only for
+Windows GTK 4.8/4.10 and explicitly imports GdkPixbuf during runtime
+identification. This proposed CI-only fix has not run yet; Windows GTK 4.8
+remains **NOT TESTED**. GTK 4.10's result is limited to the smoke checks in
+run `39065269579`, not full application or scientific workflow validation.
 
 ## 7. Contributor workflow
 

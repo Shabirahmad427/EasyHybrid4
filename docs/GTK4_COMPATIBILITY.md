@@ -222,10 +222,22 @@ was at the same setup step. The solve selected `libiconv 1.18`. The upstream
 documents this post-link loader-cache failure mode and maintainers' temporary
 `libiconv 1.17` workaround; a later [feedstock issue](https://github.com/conda-forge/gdk-pixbuf-feedstock/issues/61)
 shows related loader-cache instability recurring in 2026. Run `39064516500`
-confirms the 1.17 pin is selected, but the transaction still stalls at the
-same post-link script, so that pin alone did **not** fix the observed hang.
-The workflow now skips link scripts only for Windows GTK 4.8/4.10 and runs
-`gdk-pixbuf-query-loaders --update-cache` explicitly with a 60-second timeout
-and captured output. This isolates the hanging command and checks whether the
-runtime cache can be created. The diagnostic rerun is pending; Windows 4.8/4.10
-remain **NOT TESTED** until the setup and GTK smoke complete.
+confirms the 1.17 pin was selected but did not fix the post-link hang. In run
+`39065269579`, skipping link scripts allowed Windows GTK 4.8 setup to finish
+and the explicit loader-cache command to exit successfully, but the first
+PyGObject import failed. The exact warning was that `gdk_pixbuf-2.0-0.dll`
+could not be loaded because “The specified procedure could not be found,”
+followed by an assertion in `gi.overrides.GdkPixbuf`. GTK 4.10 Windows passed
+runtime import and its native GTK/GL smoke in that same run. This isolates the
+remaining failure to the GTK 4.8 Windows runtime dependency combination,
+rather than GTK4 application code or cache generation.
+
+The workflow now tests a narrowly scoped conda-forge GLib build pin
+(`libglib=2.82.2=h7025463_0`) for Windows GTK 4.8/4.10, based on the matching
+Windows loader ABI failure documented in the [conda-forge GLib issue](https://github.com/conda-forge/glib-feedstock/issues/162).
+It explicitly imports and records GdkPixbuf alongside GTK and GLib so that
+this dependency failure is reported at the runtime-identification step.
+This is a CI environment workaround, not an application/platform code change.
+The pin has not yet been validated by a fresh run: GTK 4.8 Windows remains
+**NOT TESTED**; GTK 4.10 Windows has a GTK/GL smoke **PASS** in run
+`39065269579` (the complete matrix run was still in progress when logged).

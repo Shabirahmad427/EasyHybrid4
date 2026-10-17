@@ -187,17 +187,18 @@ recorded; its in-progress status is not a final result. See
 `docs/GTK4_COMPATIBILITY.md` for the cell-by-cell evidence and next provider
 work. This audit does not complete EH4-103 or EH4-500.
 
-Follow-up: Windows GTK 4.8 and 4.10 setup jobs stalled in `gdk-pixbuf`'s
-post-link script after resolving `libiconv 1.18` (run `39063905270`; the same
-cells were still at setup in `39064335791`). The conda-forge feedstock
-documents a Windows loader-cache failure and temporary `libiconv 1.17`
-workaround. The pin was applied only to Windows GTK 4.8/4.10; run
-`39064516500` confirms `libiconv 1.17` was selected but still hangs in the
-same post-link step. The next revision skips link scripts only in those test
-environments and runs the gdk-pixbuf cache utility directly with a 60-second
-timeout and captured output. Workflow YAML parses and `git diff --check`
-passes; that diagnostic and native smoke are pending. Both cells stay
-**NOT TESTED**.
+Follow-up: Windows GTK 4.8/4.10 initially stalled in `gdk-pixbuf`'s post-link
+script (`39063905270`). The `libiconv=1.17` workaround did not fix the hang
+(`39064516500`). Run `39065269579` then completed setup with link scripts
+skipped only in these two cells and a direct cache-generation diagnostic.
+Windows GTK 4.10 passed runtime import and GTK/GL smoke. Windows GTK 4.8
+failed during runtime identification: `gdk_pixbuf-2.0-0.dll` could not load
+because “The specified procedure could not be found,” and PyGObject raised
+an assertion in `gi.overrides.GdkPixbuf`. The same loader ABI error is
+documented in conda-forge GLib issue #162. The workflow now explicitly
+imports GdkPixbuf and tests `libglib=2.82.2=h7025463_0` only for Windows
+GTK 4.8/4.10. This pin is a hypothesis, not yet validated; the 4.8 Windows
+cell remains **NOT TESTED** until the fresh native runner succeeds.
 
 ### Active task and blockers
 
