@@ -84,6 +84,7 @@ jobs:
             gtk4=${{ matrix.gtk }}.*
             ${{ matrix.gtk == '4.8' && 'jpeg=9e' || '' }}
             ${{ matrix.os == 'windows-x86_64' && (matrix.gtk == '4.8' || matrix.gtk == '4.10') && 'libglib=2.82.2=h7025463_0' || '' }}
+            ${{ matrix.os == 'windows-x86_64' && (matrix.gtk == '4.8' || matrix.gtk == '4.10') && 'libiconv=1.17' || '' }}
             ${{ matrix.os == 'windows-x86_64' && (matrix.gtk == '4.8' || matrix.gtk == '4.10') && '--skip-run-link-scripts' || '' }}
             pygobject
             pycairo

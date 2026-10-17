@@ -195,10 +195,12 @@ Windows GTK 4.10 passed runtime import and GTK/GL smoke. Windows GTK 4.8
 failed during runtime identification: `gdk_pixbuf-2.0-0.dll` could not load
 because “The specified procedure could not be found,” and PyGObject raised
 an assertion in `gi.overrides.GdkPixbuf`. The same loader ABI error is
-documented in conda-forge GLib issue #162. The workflow now explicitly
-imports GdkPixbuf and tests `libglib=2.82.2=h7025463_0` only for Windows
-GTK 4.8/4.10. This pin is a hypothesis, not yet validated; the 4.8 Windows
-cell remains **NOT TESTED** until the fresh native runner succeeds.
+documented in conda-forge GLib issue #162. Run `39065624007` confirms both
+Windows GTK 4.8 and 4.10 selected `libglib=2.82.2=h7025463_0`, but both
+still failed importing GdkPixbuf with the same DLL error; this GLib pin alone
+is not a fix. The next workflow combines it with `libiconv=1.17` for another
+targeted run. Windows GTK 4.8/4.10 smoke remains **NOT TESTED** pending a
+successful import and native smoke.
 The first follow-up run (`39065500734`) also exposed a CI instrumentation
 regression: GdkPixbuf has no `MAJOR_VERSION` attribute, so all Linux and
 macOS jobs failed in the runtime-reporting step before their smoke tests.

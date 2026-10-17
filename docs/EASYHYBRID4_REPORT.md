@@ -401,15 +401,18 @@ identification but failed importing GdkPixbuf: Windows could not load
 PyGObject asserted in `gi.overrides.GdkPixbuf`. This matches the loader ABI
 failure documented by [conda-forge GLib issue #162](https://github.com/conda-forge/glib-feedstock/issues/162).
 The earlier `libiconv=1.17` pin did not resolve the link-script hang. The
-workflow now tests the conda-forge build `libglib=2.82.2=h7025463_0` only for
+workflow tested the conda-forge build `libglib=2.82.2=h7025463_0` only for
 Windows GTK 4.8/4.10 and explicitly imports GdkPixbuf during runtime
 identification. The first run of this diagnostic (`39065500734`) queried a
 nonexistent `GdkPixbuf.MAJOR_VERSION` attribute, causing Linux and macOS jobs
 to fail before smoke checks. The workflow now records the typelib namespace
-instead. The GLib pin has not yet been evaluated by a clean matrix run;
-Windows GTK 4.8 remains **NOT TESTED**. GTK 4.10's earlier result is limited
-to the smoke checks in run `39065269579`, not full application or scientific
-workflow validation.
+instead. In run `39065624007`, both Windows GTK 4.8 and 4.10 selected the
+pinned GLib build but still failed loading GdkPixbuf with the same DLL
+procedure-resolution error. The GLib pin alone is not a fix. The next
+attempt combines it with `libiconv=1.17` in those two cells; Windows GTK
+4.8/4.10 smoke remains **NOT TESTED** pending a successful import and native
+smoke. GTK 4.10's earlier result is limited to the smoke checks in run
+`39065269579`, not full application or scientific workflow validation.
 
 ## 7. Contributor workflow
 
