@@ -27,9 +27,12 @@ jobs:
           - os: macos-arm64
             runner: macos-14
         gtk: ["4.8", "4.10", "4.12", "4.14", "4.16", "4.18", "4.20", "4.22", "4.24"]
-        # conda-forge has no gtk4 builds for these platform/minor pairs.
-        # Keep them in the compatibility record as NOT TESTED; do not create
-        # jobs that can only fail during dependency solving.
+        # These exclusions describe missing conda-forge binaries for the
+        # requested runner architecture, not GTK upstream/platform support.
+        # GTK 4.16/4.18 have no conda-forge builds on any platform; GTK 4.8
+        # and 4.10 have osx-64 builds but no osx-arm64 builds. Keep all such
+        # cells NOT TESTED and add another native provider before claiming
+        # those GTK/platform combinations.
         exclude:
           - os: linux-x86_64
             gtk: "4.16"

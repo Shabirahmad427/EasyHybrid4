@@ -162,25 +162,27 @@ finish. Linux X11 evidence cannot substitute for another OS or backend.
 | GTK 4.14.5, Linux x86_64 / X11, Python 3.12.3, PyGObject 3.48.2, GLib 2.80.0 | Full suite: **54 passed, 5 skipped**. Native real-display UI/menu action smoke: **PASS**. Full application lifecycle: **PASS**, fatal GTK criticals enabled, actual GL context OpenGL 4.6.0, NVIDIA GeForce RTX 4060 Ti; application-selected EGL and `gl-prefer-gl`; orderly close **PASS**. GtkBuilder loads 53/53 resources without GTK criticals. |
 | GTK 4.24.1, Linux x86_64 / X11, Python 3.12.15, PyGObject 3.58.1, GLib 2.90.0 | Full suite: **54 passed, 5 skipped**. Native real-display UI/menu action smoke: **PASS**. Full application lifecycle: **PASS**, fatal GTK criticals enabled, actual GL context OpenGL 4.6.0, NVIDIA GeForce RTX 4060 Ti; application-selected EGL and `gl-prefer-gl`; orderly close **PASS**. GtkBuilder loads 53/53 resources without GTK criticals; GTK emits a nonfatal missing-ibus-module warning in this shell. |
 | GTK 4.8.2, Xvfb default renderer | **EGL WARNING REPRODUCED**: Mesa reports `DRI3 error: Could not get DRI3 device`; this Xvfb server does not provide a DRI3 device. Mesa EGL and DRI packages were already installed. Re-running with `LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe` created the real GL context and emitted no EGL warning. This validates the virtual-display software path only; hardware acceleration and a native desktop display are **NOT TESTED**. For widget-only smoke tests, `GSK_RENDERER=cairo` also avoids the GL probe, but it must not be used for GL tests. |
-| GTK 4.8 minimum | **PARTIAL**; GTK 4.8.2 tested on Linux as above. Other OSes and GTK patch releases are **NOT TESTED**. |
-| GTK 4.10, 4.12, 4.16, 4.18, 4.20, 4.22 and any later released minor | **NOT TESTED**; no local runtime or native CI results were executed. Record exact patch releases before claiming each minor. |
+| GTK 4.8 / 4.10 | Linux x86_64 and macOS arm64 GTK smoke jobs passed for available conda artifacts; GTK 4.8/4.10 Windows jobs are still running in workflow `39063905270`. macOS arm64 4.8/4.10 are provider-excluded and **NOT TESTED**. |
+| GTK 4.12, 4.14, 4.20, 4.22, 4.24 | Native GTK window/Gio action/GLArea smoke jobs passed on Linux x86_64, Windows x86_64, and macOS arm64 in workflow `39063905270`. The run remains in progress pending GTK 4.8/4.10 Windows. |
+| GTK 4.16 and 4.18 | **NOT TESTED** on every OS in the current conda matrix because conda-forge publishes no artifacts for these versions. Linux distro packages exist; add a separate pinned-provider job. Windows/macOS alternative providers remain to be investigated. |
 | Linux Wayland | **NOT TESTED**. |
 | Windows native GTK4 | **NOT TESTED**. |
 | macOS arm64/x86_64 native GTK4 | **NOT TESTED**. |
 
-## Native platform CI preparation (2026-10-17)
+## Native platform CI (2026-10-17)
 
-`.github/workflows/native-gtk-matrix.yml` defines 27 native runner combinations:
-GTK 4.8, 4.10, 4.12, 4.14, 4.16, 4.18, 4.20, 4.22, and 4.24 on Linux
-x86_64, Windows x86_64, and Apple Silicon macOS. Linux uses Xvfb and llvmpipe
-only because GitHub-hosted Linux jobs do not provide an attached desktop; the
-workflow keeps those GL results distinct from native hardware rendering.
-Windows and macOS run the same UI/GL checks directly on their native runners.
-The workflow also attempts the compiled graphics-engine build and complete
-test suite, and uploads runner logs as artifacts. The matrix is pending its
-first push and execution; no Windows, macOS, or additional GTK-version
-combination is marked passed yet. Hardware GPU, physical trackpad, Retina,
-Wayland, and real desktop behavior require separate testing.
+`.github/workflows/native-gtk-matrix.yml` currently defines 19 conda-provisioned
+native runner combinations after excluding unavailable artifact/platform pairs.
+Linux uses Xvfb and llvmpipe; Windows x86_64 and Apple Silicon macOS run the
+same UI/GL checks on native runners. Workflow `39063905270` has 17 completed
+successful jobs (Linux 4.8/4.10/4.12/4.14/4.20/4.22/4.24; Windows
+4.12/4.14/4.20/4.22/4.24; macOS arm64 4.12/4.14/4.20/4.22/4.24), with
+Windows 4.8 and 4.10 still in progress at last check. These are real GTK
+window/Gio action/GLArea smoke results; only GTK 4.24 runs the full test suite
+and graphics-extension build. Hardware GPU, physical trackpad, Retina, Linux
+Wayland, excluded cells, and real Linux desktop behavior require separate
+testing. The exclusions are package-provider gaps rather than support-policy
+decisions; see the availability audit below.
 
 ## Verification requirements
 
@@ -190,3 +192,23 @@ when applicable. Test real GtkBuilder/window lifecycle at the minimum and
 latest verified runtime. A test not executed is **NOT TESTED**, not passed by
 inference. Add new released GTK4 minors to the matrix before expanding the
 compatibility claim. See `ROADMAP.md` for task ownership and acceptance gates.
+
+## GTK binary availability audit (2026-10-17)
+
+The setup failures were checked against conda-forge's package metadata API,
+including each artifact's platform subdirectory:
+
+| Failed runner cell | Exact conda-forge artifact finding | Interpretation |
+|---|---|---|
+| Linux x86_64 / GTK 4.16 and 4.18 | Neither release appears in the package version list; no Linux artifacts exist. | The solver failure is real for this provider. GTK 4.16.x and 4.18.x Linux distribution packages do exist, so these GTK series must not be dropped from Linux testing. Provision them through a pinned system-package or source-build job. |
+| Windows x86_64 / GTK 4.16 and 4.18 | Neither release appears in the package version list; no Windows artifacts exist. | These versions cannot be provisioned by this workflow's current conda-forge method. Windows GTK support is not disproved; exact native tests remain **NOT TESTED** pending another provider. |
+| macOS arm64 / GTK 4.8 and 4.10 | GTK 4.8.2 and 4.10.1 exist for `osx-64`; no `osx-arm64` artifacts exist. | The exact packages are unavailable for this Apple Silicon runner architecture through conda-forge. Intel macOS artifacts do not count as arm64 test evidence. |
+| macOS arm64 / GTK 4.16 and 4.18 | Neither release appears in the package version list; no macOS artifacts exist. | These versions cannot be provisioned by this workflow's current provider. macOS support is not disproved; exact native tests remain **NOT TESTED** pending another provider. |
+
+Thus `.github/workflows/native-gtk-matrix.yml` excludes unavailable
+conda-forge artifacts, not GTK/OS combinations from the product support
+contract. The Linux 4.16/4.18 omissions specifically need an alternate
+provider. GTK's upstream [source archive](https://download.gnome.org/sources/gtk/)
+and the [Ubuntu GTK package archive](https://mirrors.edge.kernel.org/ubuntu/pool/main/g/gtk4/)
+show released source and Linux distribution builds. No Windows/macOS source
+build is claimed or inferred here.

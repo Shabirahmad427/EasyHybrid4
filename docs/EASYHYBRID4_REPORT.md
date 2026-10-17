@@ -354,8 +354,9 @@ display. An initial full launcher run failed before splash construction with
 GTK display/icon-theme criticals. A later run under Xvfb/X11 produced a visible
 application window and remained free of GTK critical warnings with
 `G_DEBUG=fatal-criticals`; KL-012 records both results. No GL
-renderer/context was verified. Windows, macOS, Wayland, GTK 4.8/4.24.1, and
-every other untested GTK minor remain **NOT TESTED**.
+renderer/context was verified in that earlier EH4-100 coverage run. Current
+native GTK4 window/GL smoke results from GitHub Actions are listed below;
+Wayland and matrix-excluded provider/version cells remain **NOT TESTED**.
 
 Compatibility planning update, 2026-10-17: GTK's current API reference reports
 GTK 4.24.1 ([GTK API reference](https://docs.gtk.org/gtk4/)), replacing the
@@ -367,7 +368,29 @@ Native CI must install an exact patch release and assert the loaded GTK major,
 minor, and micro versions; package resolution alone is not evidence that the
 requested runtime was used. Wordcraft's separation of headless checks, Linux
 virtual-display UI jobs, and native Windows/macOS UI jobs is a useful CI design
-reference. EasyHybrid4 has no native runner results yet.
+reference. At the time of this initial CI-planning note, EasyHybrid4 had no
+native runner results; see the current run and exact package-availability
+audit below.
+
+### GTK 4.16/4.18 package-resolution failures (2026-10-17)
+
+The failed setup cells were audited against conda-forge's GTK4 package API,
+including exact artifact platform tags. GTK 4.16 and 4.18 do not appear in its
+published version list, so the Linux and Windows solver failures and macOS
+4.16/4.18 failures indicate a provider gap, not that GTK itself is absent on
+those operating systems. Linux distribution packages for GTK 4.16.x and
+4.18.x exist. Add Linux checks through an exact system runtime or another
+pinned provider instead of dropping those GTK series from Linux testing.
+
+The macOS arm64 GTK 4.8/4.10 failures have a different cause: conda-forge has
+GTK 4.8.2 and 4.10.1 artifacts for Intel `osx-64`, but no corresponding
+`osx-arm64` artifacts. This does not establish that those series cannot run
+on Apple Silicon; they remain **NOT TESTED** there. Windows/macOS 4.16/4.18
+exact native runtime tests likewise remain **NOT TESTED**. No source build or
+alternate package-manager result is inferred. The workflow exclusions mean
+“no exact artifact from the current conda-forge provider,” not “GTK
+unavailable on this platform.” See
+[`GTK4_COMPATIBILITY.md`](GTK4_COMPATIBILITY.md#gtk-binary-availability-audit-2026-10-17).
 
 ## 7. Contributor workflow
 
