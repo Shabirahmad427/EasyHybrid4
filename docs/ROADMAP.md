@@ -187,6 +187,14 @@ recorded; its in-progress status is not a final result. See
 `docs/GTK4_COMPATIBILITY.md` for the cell-by-cell evidence and next provider
 work. This audit does not complete EH4-103 or EH4-500.
 
+Follow-up: Windows GTK 4.8 and 4.10 setup jobs stalled in `gdk-pixbuf`'s
+post-link script after resolving `libiconv 1.18` (run `39063905270`; the same
+cells were still at setup in `39064335791`). The conda-forge feedstock
+documents a Windows loader-cache failure and temporary `libiconv 1.17`
+workaround. Added a conditional pin for only Windows GTK 4.8/4.10. Workflow
+YAML parses and `git diff --check` passes; a native rerun is required before
+calling the fix verified. These cells stay **NOT TESTED** until then.
+
 ### Active task and blockers
 
 - **Current task:** `EH4-103` — migrate GTK3-era widgets/layout and model patterns to shared GTK4 patterns. Inspect the existing controls, add behavioral regression tests before changes, preserve scientific workflows, and retain the explicit cross-platform/GTK-minor gaps.

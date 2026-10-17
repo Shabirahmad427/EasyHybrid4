@@ -212,3 +212,17 @@ provider. GTK's upstream [source archive](https://download.gnome.org/sources/gtk
 and the [Ubuntu GTK package archive](https://mirrors.edge.kernel.org/ubuntu/pool/main/g/gtk4/)
 show released source and Linux distribution builds. No Windows/macOS source
 build is claimed or inferred here.
+
+### Windows GTK 4.8/4.10 environment setup
+
+In Actions run `39063905270`, GTK 4.8/Windows resolved the environment but
+remained at the `gdk-pixbuf` post-link script for over six minutes; GTK 4.10
+was at the same setup step. The solve selected `libiconv 1.18`. The upstream
+[gdk-pixbuf Windows issue](https://github.com/conda-forge/gdk-pixbuf-feedstock/issues/48)
+documents this post-link loader-cache failure mode and maintainers' temporary
+`libiconv 1.17` workaround; a later [feedstock issue](https://github.com/conda-forge/gdk-pixbuf-feedstock/issues/61)
+shows related loader-cache instability recurring in 2026. The workflow now
+conditionally pins `libiconv=1.17` for Windows GTK 4.8/4.10 only. This is a
+CI dependency workaround, not an application dependency or verified fix yet.
+The new native rerun must complete its setup and GTK smoke before these cells
+can be marked **PASS**; until then they remain **NOT TESTED**.

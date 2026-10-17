@@ -76,10 +76,13 @@ jobs:
           cache-environment: true
           init-shell: none
           post-cleanup: none
+          # GTK 4.8/4.10 resolve to old gdk-pixbuf on Windows; its post-link
+          # loader-cache command is incompatible with libiconv 1.18 there.
           create-args: >-
             python=3.12
             gtk4=${{ matrix.gtk }}.*
             ${{ matrix.gtk == '4.8' && 'jpeg=9e' || '' }}
+            ${{ matrix.os == 'windows-x86_64' && (matrix.gtk == '4.8' || matrix.gtk == '4.10') && 'libiconv=1.17' || '' }}
             pygobject
             pycairo
             pytest

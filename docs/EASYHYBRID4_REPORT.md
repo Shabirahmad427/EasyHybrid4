@@ -392,6 +392,13 @@ alternate package-manager result is inferred. The workflow exclusions mean
 unavailable on this platform.” See
 [`GTK4_COMPATIBILITY.md`](GTK4_COMPATIBILITY.md#gtk-binary-availability-audit-2026-10-17).
 
+The same workflow exposed a separate old-GTK Windows setup stall: the GTK
+4.8/4.10 conda transaction reaches the `gdk-pixbuf` post-link script with
+`libiconv 1.18`. Conda-forge has documented a Windows loader-cache failure
+with that package and a `libiconv 1.17` workaround. The workflow now applies
+that version only to those two Windows cells; this remains **UNVERIFIED** until
+the native rerun completes.
+
 ## 7. Contributor workflow
 
 1. Read root `AGENTS.md` and [`ROADMAP.md`](ROADMAP.md) completely before a
