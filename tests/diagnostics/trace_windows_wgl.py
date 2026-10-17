@@ -16,11 +16,11 @@ TRACE = r"""
 const hooked = new Set();
 const observer = Process.attachModuleObserver({
   onAdded(module) {
-    if (!/^(gdi32|gdi32full|user32|opengl32|libgallium_wgl|kernel32)\.dll$/i.test(module.name))
+    if (!/^(gdi32|gdi32full|user32|opengl32|libgallium_wgl|kernel32|ntdll)\.dll$/i.test(module.name))
       return;
     send({event: 'module', path: module.path});
     const names = ['ChoosePixelFormat', 'SetPixelFormat', 'GetPixelFormat',
-      'wglCreateContext', 'wglMakeCurrent', 'glGetString', 'ExitProcess'];
+      'wglCreateContext', 'wglMakeCurrent', 'glGetString', 'ExitProcess', 'RtlExitUserProcess'];
     for (const name of names) {
       const address = module.findExportByName(name);
       if (address === null || hooked.has(address.toString())) continue;
@@ -29,7 +29,7 @@ const observer = Process.attachModuleObserver({
         onEnter(args) {
           this.record = {event: 'call', module: module.path, name: name,
             args: [args[0].toString(), args[1].toString(), args[2].toString()]};
-          if (name === 'ExitProcess') {
+          if (name === 'ExitProcess' || name === 'RtlExitUserProcess') {
             send({event: 'exit', code: args[0].toUInt32()});
           }
           if (name === 'ChoosePixelFormat' || name === 'SetPixelFormat') {
@@ -49,6 +49,10 @@ const observer = Process.attachModuleObserver({
         }
       });
     }
+  },
+  onRemoved(module) {
+    if (/^(opengl32|libgallium_wgl)\.dll$/i.test(module.name))
+      send({event: 'module-unloaded', path: module.path});
   }
 });
 """
@@ -100,7 +104,9 @@ def main():
         if not done.is_set():
             device.kill(pid)
     print("WGL_TRACE_RESULT=" + json.dumps(result), flush=True)
-    return 1 if result["trace_errors"] else (result["exit_code"] or 0)
+    if result["trace_errors"] or result["exit_code"] is None:
+        return 1
+    return result["exit_code"]
 
 
 if __name__ == "__main__":

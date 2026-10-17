@@ -158,6 +158,10 @@ jobs:
             Copy-Item -Path $source -Destination $appDir -Force
           }
           Write-Output "Pinned Mesa WGL llvmpipe runtime deployed beside $pythonExe"
+          if ('${{ matrix.gtk }}' -in @('4.8', '4.10')) {
+            "EASYHYBRID_TEST_OPENGL_DLL=$(Join-Path $appDir 'opengl32.dll')" |
+              Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          }
 
       - name: Install full regression dependencies
         if: matrix.gtk == '4.24'

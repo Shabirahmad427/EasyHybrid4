@@ -217,6 +217,13 @@ the corrected matrix must rerun before drawing conclusions from the GLib pin.
 ### Active task and blockers
 
 Windows GTK 4.8/4.10 follow-up: run `39067404621` reproduced both GL failures.
+Focused run `39067671751` traced the actual GTK process in both versions:
+ChoosePixelFormat returned 75, SetPixelFormat succeeded, but GetPixelFormat
+later returned 0 for the same HDC across repeated Mesa DLL loads. A candidate
+CI-only fix retains the explicitly configured Mesa DLL before GTK import in
+the existing real GLArea regression. Native validation is pending; shared
+application code is unchanged. Future investigative dispatches select only
+Windows GTK 4.8 and 4.10 as requested.
 The next diagnostic uses Frida 17.2.17 on the native Windows runner to trace
 GTK's actual GDI pixel-format and WGL calls, including DLL paths and Windows
 error codes. It is restricted to the two failing cells and does not alter

@@ -10,9 +10,20 @@ import pytest
 
 _GTK_SMOKE = textwrap.dedent(
     """
-    import gi
     import importlib.util
     import os
+
+    # The Windows CI software driver must remain loaded while GDI chooses
+    # and sets the pixel format. Older GTK bootstraps can otherwise unload
+    # Mesa between those calls, discarding its per-HDC pixel-format state.
+    # This opt-in test setup never selects a driver on user installations.
+    ci_opengl = None
+    if os.name == "nt" and os.environ.get("EASYHYBRID_TEST_OPENGL_DLL"):
+        import ctypes
+        ci_opengl = ctypes.WinDLL(os.environ["EASYHYBRID_TEST_OPENGL_DLL"])
+        print("CI_OPENGL_DLL_RETAINED=" + os.environ["EASYHYBRID_TEST_OPENGL_DLL"], flush=True)
+
+    import gi
 
     from src.os_integration.gtk_startup import configure_startup_environment
     configure_startup_environment(os.path.abspath("."))

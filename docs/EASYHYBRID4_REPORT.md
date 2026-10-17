@@ -430,6 +430,11 @@ conda GTK release builds omit `G_ENABLE_DEBUG`.
 ## 7. Contributor workflow
 
 Windows follow-up: `39067404621` reproduced the GTK 4.8/4.10 failures.
+The focused native trace in `39067671751` found identical pixel-format state
+loss in both runtimes: format 75 was set successfully, then read as 0 on the
+same HDC across repeated Mesa DLL loads. The real GTK smoke now optionally
+retains the CI-provided Mesa library before GTK import. The option is set
+only on Windows 4.8/4.10 CI cells; native rerun results are pending.
 `tests/diagnostics/trace_windows_wgl.py` now traces the actual GTK process's
 pixel-format and WGL calls using an optional, pinned Frida CI dependency.
 It logs native return values, error codes, and DLL paths without changing
