@@ -1,4 +1,4 @@
-"""Print Meson arguments for a minimal macOS GTK4 source build in CI.
+"""Print Meson arguments for a minimal GTK4 source build in CI.
 
 GTK renames and adds build options between minor releases (for example
 ``demos`` became ``build-demos``, ``gtk_doc`` became ``documentation``).
@@ -6,16 +6,19 @@ This reads the release's own ``meson.options``/``meson_options.txt`` and
 emits only options it defines, typed as boolean or feature, so one CI step
 can build GTK 4.8 through 4.18 without per-version argument lists.
 
-Usage: python gtk_meson_options.py SOURCE_DIR
+Usage: python gtk_meson_options.py SOURCE_DIR [macos|win32]
 """
 
 import re
 import sys
 from pathlib import Path
 
-# Desired value per option name; absent options are skipped.
+BACKENDS = ("macos", "win32")
+
+# Desired value per option name; absent options are skipped. The selected
+# native backend is enabled by ``meson_arguments``.
 DESIRED = {
-    "macos-backend": True,
+    "macos-backend": False,
     "introspection": True,
     "x11-backend": False,
     "wayland-backend": False,
@@ -53,10 +56,14 @@ def parse_option_types(text):
     return {name: kind for name, kind in _OPTION.findall(text)}
 
 
-def meson_arguments(option_types):
+def meson_arguments(option_types, backend="macos"):
     """Return ``-Dname=value`` arguments for the options this release has."""
+    if backend not in BACKENDS:
+        raise ValueError("unsupported GTK backend: %s" % backend)
+    desired = dict(DESIRED)
+    desired["%s-backend" % backend] = True
     arguments = []
-    for name, enabled in DESIRED.items():
+    for name, enabled in desired.items():
         kind = option_types.get(name)
         if kind == "boolean":
             value = "true" if enabled else "false"
@@ -70,10 +77,11 @@ def meson_arguments(option_types):
 
 def main(argv):
     source = Path(argv[1])
+    backend = argv[2] if len(argv) > 2 else "macos"
     for filename in ("meson.options", "meson_options.txt"):
         path = source / filename
         if path.is_file():
-            print(" ".join(meson_arguments(parse_option_types(path.read_text()))))
+            print(" ".join(meson_arguments(parse_option_types(path.read_text()), backend)))
             return 0
     print("no Meson options file in %s" % source, file=sys.stderr)
     return 1

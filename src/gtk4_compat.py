@@ -108,3 +108,59 @@ def apply_legacy_win32_wgl_workaround(gl_area, gtk=Gtk, platform=None):
         platform=sys.platform if platform is None else platform,
         version=(gtk.get_major_version(), gtk.get_minor_version()),
     )
+
+
+def gl_area_required_version(gtk=Gtk, platform=None):
+    """Return the GL version to request for EasyHybrid's ``#version 330`` shaders.
+
+    GTK 4.8/4.10's macOS backend maps only exact 3.2 and 4.1 requests to Core
+    profiles; any other version (including 3.3) silently gets a Legacy
+    profile, which cannot share objects with GDK's Core context and fails
+    with "invalid share context". GTK 4.12 fixed the mapping. On macOS a
+    3.2 Core request returns the highest Core version the Mac supports
+    (4.1), which runs ``#version 330``; callers still verify the real
+    context version after realization.
+    """
+    platform = sys.platform if platform is None else platform
+    version = (gtk.get_major_version(), gtk.get_minor_version())
+    if platform == "darwin" and version < (4, 12):
+        return (3, 2)
+    return (3, 3)
+
+
+def keep_gl_context_current_during_teardown(gl_area, gtk=Gtk, gdk=Gdk):
+    """Work around GTK 4.16's GL renderer teardown with a Gtk.GLArea.
+
+    During toplevel unrealize, Gtk.GLArea clears the current GL context and
+    GTK 4.16's GL renderer then frees its backbuffer without making a
+    context current, so libepoxy aborts ("Couldn't find current GLX or EGL
+    context") when the window closes. Keep the GLArea's context (which
+    shares objects with the renderer's) current until the main loop runs
+    again. Returns whether the workaround was connected.
+    """
+    if not (4, 16) <= (gtk.get_major_version(), gtk.get_minor_version()) < (4, 18):
+        return False
+
+    from gi.repository import GLib
+
+    held = {}
+
+    def remember_context(area):
+        held["context"] = area.get_context()
+
+    def restore_current_context(_area):
+        context = held.pop("context", None)
+        if context is None:
+            return
+        context.make_current()
+
+        def release():
+            if gdk.GLContext.get_current() is context:
+                gdk.GLContext.clear_current()
+            return GLib.SOURCE_REMOVE
+
+        GLib.idle_add(release)
+
+    gl_area.connect("unrealize", remember_context)
+    gl_area.connect_after("unrealize", restore_current_context)
+    return True

@@ -248,17 +248,6 @@ jobs:
           printf 'GTK_REQUESTED=%s OS=linux-x86_64 PROVIDER=%s\n' '${{ matrix.gtk }}' '${{ matrix.distro }}' > platform-results.txt
           python3 .github/scripts/record_runtime.py '${{ matrix.distro }}' '${{ matrix.gtk }}' | tee -a platform-results.txt
 
-      # TEMPORARY (branch only): backtrace of the Ubuntu GTK 4.16.3 libepoxy
-      # abort. Remove before merging.
-      - name: Diagnose Ubuntu GTK 4.16.3 crash with gdb
-        if: matrix.distro == 'ubuntu-24.10'
-        continue-on-error: true
-        run: |
-          apt-get install --yes --no-install-recommends gdb >/dev/null
-          LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe DEBUGINFOD_URLS= xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" \
-            gdb -q -batch -ex run -ex 'bt 40' --args python3 -c \
-            'import sys; sys.path.insert(0, "."); from tests.test_gtk_icon_theme_smoke import _GTK_SMOKE; exec(compile(_GTK_SMOKE, "smoke", "exec"))' 2>&1 | tail -80
-
       - name: Run native GTK window, Gio action, and real GLArea smoke
         run: |
           set -o pipefail
@@ -275,21 +264,25 @@ jobs:
           path: platform-results.txt
           if-no-files-found: warn
 
-  # GTK 4.16/4.18 for Windows from the MSYS2 UCRT64 package archive, with
-  # the same pinned Mesa software renderer as the conda-forge cells.
+  # conda-forge has no Windows GTK 4.16/4.18. Archived MSYS2 gtk4 binaries
+  # do not load against current MSYS2 libraries (removed symbols, renamed
+  # DLLs), so build the SHA-256-pinned GNOME release with current MSYS2
+  # UCRT64 dependencies, then test with the same pinned Mesa renderer.
   gtk-windows-msys2:
-    name: GTK ${{ matrix.gtk }} / windows-x86_64 (msys2)
+    name: GTK ${{ matrix.gtk }} / windows-x86_64 (msys2 source ${{ matrix.version }})
     if: inputs.scope != 'windows-legacy'
     runs-on: windows-2022
-    timeout-minutes: 30
+    timeout-minutes: 75
     strategy:
       fail-fast: false
       matrix:
         include:
           - gtk: "4.16"
-            package: 4.16.12-2
+            version: 4.16.13
+            sha256: ddf3d9e12b848139a945d191d5ca56b78d0647f53b55b8bca5f9902b61624498
           - gtk: "4.18"
-            package: 4.18.6-2
+            version: 4.18.6
+            sha256: e1817c650ddc3261f9a8345b3b22a26a5d80af154630dedc03cc7becefffd0fa
 
     defaults:
       run:
@@ -298,24 +291,55 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Create MSYS2 UCRT64 Python runtime
+      - name: Create MSYS2 UCRT64 build and Python runtime
         id: msys2
         uses: msys2/setup-msys2@v2
         with:
           msystem: UCRT64
           update: true
           install: >-
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-meson
+            mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-pkgconf
+            mingw-w64-ucrt-x86_64-gobject-introspection
+            mingw-w64-ucrt-x86_64-glib2
+            mingw-w64-ucrt-x86_64-cairo
+            mingw-w64-ucrt-x86_64-pango
+            mingw-w64-ucrt-x86_64-harfbuzz
+            mingw-w64-ucrt-x86_64-fribidi
+            mingw-w64-ucrt-x86_64-graphene
+            mingw-w64-ucrt-x86_64-libepoxy
+            mingw-w64-ucrt-x86_64-gdk-pixbuf2
+            mingw-w64-ucrt-x86_64-libpng
+            mingw-w64-ucrt-x86_64-libjpeg-turbo
+            mingw-w64-ucrt-x86_64-libtiff
+            mingw-w64-ucrt-x86_64-sassc
+            mingw-w64-ucrt-x86_64-adwaita-icon-theme
             mingw-w64-ucrt-x86_64-python
             mingw-w64-ucrt-x86_64-python-gobject
             mingw-w64-ucrt-x86_64-python-cairo
             mingw-w64-ucrt-x86_64-python-pyopengl
             mingw-w64-ucrt-x86_64-python-pytest
+            tar
+            xz
 
-      - name: Install archived MSYS2 GTK ${{ matrix.package }}
+      - name: Build and install GTK ${{ matrix.version }} from source
         run: |
-          set -e
-          pacman -U --noconfirm \
-            https://repo.msys2.org/mingw/ucrt64/mingw-w64-ucrt-x86_64-gtk4-${{ matrix.package }}-any.pkg.tar.zst
+          set -eo pipefail
+          if pacman -Q mingw-w64-ucrt-x86_64-gtk4 >/dev/null 2>&1; then
+            echo "A packaged GTK4 is installed; refusing to mix it with the source build." >&2
+            exit 1
+          fi
+          curl -fsSL "https://download.gnome.org/sources/gtk/${{ matrix.gtk }}/gtk-${{ matrix.version }}.tar.xz" -o gtk.tar.xz
+          echo "${{ matrix.sha256 }}  gtk.tar.xz" | sha256sum -c -
+          tar -xJf gtk.tar.xz
+          args=$(python .github/scripts/gtk_meson_options.py gtk-${{ matrix.version }} win32)
+          echo "MESON_ARGS=$args"
+          meson setup gtk-build gtk-${{ matrix.version }} --prefix="$MINGW_PREFIX" \
+            --buildtype=release --wrap-mode=nofallback $args
+          meson compile -C gtk-build
+          meson install -C gtk-build
 
       - name: Install pinned Mesa WGL software renderer
         shell: pwsh
@@ -326,8 +350,8 @@ jobs:
       - name: Record actual runtime and host
         run: |
           set -o pipefail
-          printf 'GTK_REQUESTED=%s OS=windows-x86_64 PROVIDER=msys2-%s\n' '${{ matrix.gtk }}' '${{ matrix.package }}' > platform-results.txt
-          python .github/scripts/record_runtime.py 'msys2-${{ matrix.package }}' '${{ matrix.gtk }}' | tee -a platform-results.txt
+          printf 'GTK_REQUESTED=%s OS=windows-x86_64 PROVIDER=msys2-source-%s\n' '${{ matrix.gtk }}' '${{ matrix.version }}' > platform-results.txt
+          python .github/scripts/record_runtime.py 'msys2-source-${{ matrix.version }}' '${{ matrix.gtk }}' | tee -a platform-results.txt
 
       - name: Run native GTK window, Gio action, and real GLArea smoke
         run: |

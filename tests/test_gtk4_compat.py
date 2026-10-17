@@ -138,3 +138,69 @@ def test_loaded_gtk_gl_area_exposes_runtime_capability_truthfully():
     else:
         assert result is True
         assert gl_area.use_es is False
+
+
+class _FakeGtkVersion:
+    def __init__(self, minor):
+        self._minor = minor
+
+    def get_major_version(self):
+        return 4
+
+    def get_minor_version(self):
+        return self._minor
+
+
+def test_macos_legacy_gtk_requests_core_mappable_gl_version():
+    from src.gtk4_compat import gl_area_required_version
+
+    assert gl_area_required_version(_FakeGtkVersion(8), platform="darwin") == (3, 2)
+    assert gl_area_required_version(_FakeGtkVersion(10), platform="darwin") == (3, 2)
+    assert gl_area_required_version(_FakeGtkVersion(12), platform="darwin") == (3, 3)
+    assert gl_area_required_version(_FakeGtkVersion(8), platform="linux") == (3, 3)
+    assert gl_area_required_version(_FakeGtkVersion(8), platform="win32") == (3, 3)
+
+
+class _FakeTeardownArea:
+    def __init__(self, context):
+        self.context = context
+        self.handlers = []
+
+    def get_context(self):
+        return self.context
+
+    def connect(self, signal, handler):
+        self.handlers.append(("before", signal, handler))
+
+    def connect_after(self, signal, handler):
+        self.handlers.append(("after", signal, handler))
+
+
+def test_teardown_workaround_only_for_gtk_416():
+    from src.gtk4_compat import keep_gl_context_current_during_teardown
+
+    for minor, expected in ((14, False), (16, True), (17, True), (18, False)):
+        area = _FakeTeardownArea(object())
+        assert keep_gl_context_current_during_teardown(area, _FakeGtkVersion(minor)) is expected
+        assert bool(area.handlers) is expected
+
+
+def test_teardown_workaround_makes_glarea_context_current_after_unrealize():
+    from src.gtk4_compat import keep_gl_context_current_during_teardown
+
+    class Context:
+        made_current = False
+
+        def make_current(self):
+            self.made_current = True
+
+    context = Context()
+    area = _FakeTeardownArea(context)
+    keep_gl_context_current_during_teardown(area, _FakeGtkVersion(16))
+    handlers = {stage: handler for stage, signal, handler in area.handlers if signal == "unrealize"}
+
+    handlers["before"](area)
+    area.context = None  # GtkGLArea drops its own reference while unrealizing
+    handlers["after"](area)
+
+    assert context.made_current

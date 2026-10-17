@@ -23,6 +23,8 @@ _GTK_SMOKE = textwrap.dedent(
     from gi.repository import Gdk, GLib, Gtk, Gio
     from src.gtk4_compat import (
         apply_legacy_win32_wgl_workaround,
+        gl_area_required_version,
+        keep_gl_context_current_during_teardown,
         set_picture_contain,
         supports_scroll_unit,
     )
@@ -63,8 +65,9 @@ _GTK_SMOKE = textwrap.dedent(
         window.set_default_size(320, 240)
         gl_area = Gtk.GLArea()
         gl_area.set_size_request(160, 120)
-        gl_area.set_required_version(3, 3)
+        gl_area.set_required_version(*gl_area_required_version(Gtk))
         state["legacy_wgl_workaround"] = apply_legacy_win32_wgl_workaround(gl_area, Gtk)
+        keep_gl_context_current_during_teardown(gl_area, Gtk, Gdk)
         state["gl_ready"] = False
 
         def realize(area):
@@ -89,6 +92,12 @@ _GTK_SMOKE = textwrap.dedent(
                 if not gl_version or not gl_renderer:
                     raise RuntimeError("Gtk.GLArea has no current OpenGL context")
                 state["gl_version"] = gl_version.decode("ascii", errors="replace")
+                import re
+                match = re.search(r"(\\d+)\\.(\\d+)", state["gl_version"])
+                if not match or tuple(map(int, match.groups())) < (3, 3):
+                    raise RuntimeError(
+                        "EasyHybrid needs OpenGL 3.3+, got %s" % state["gl_version"]
+                    )
                 state["gl_renderer"] = gl_renderer.decode("utf-8", errors="replace")
                 state["gl_ready"] = True
                 GLib.timeout_add(100, lambda: (window.close(), app.quit(), False)[2])

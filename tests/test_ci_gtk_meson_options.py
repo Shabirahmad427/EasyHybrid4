@@ -54,3 +54,14 @@ def test_main_reads_either_options_file_name(tmp_path, capsys):
 
     assert gtk_meson_options.main(["prog", str(tmp_path)]) == 0
     assert "-Ddemos=false" in capsys.readouterr().out
+
+
+def test_win32_backend_enables_win32_and_disables_macos():
+    types = gtk_meson_options.parse_option_types(
+        "option('macos-backend', type: 'boolean', value: true)\n"
+        "option('win32-backend', type: 'boolean', value: true)\n"
+    )
+
+    assert gtk_meson_options.meson_arguments(types, "win32") == [
+        "-Dmacos-backend=false", "-Dwin32-backend=true",
+    ]
