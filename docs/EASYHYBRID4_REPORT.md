@@ -394,25 +394,19 @@ unavailable on this platform.” See
 
 The GTK 4.8/4.10 Windows setup stall was isolated in run `39065269579` by
 skipping conda link scripts only in those cells and invoking the pixbuf cache
-helper with a 60-second timeout. The helper exited successfully. GTK 4.10
-then passed runtime import and GTK/GL smoke. GTK 4.8 reached runtime
-identification but failed importing GdkPixbuf: Windows could not load
-`gdk_pixbuf-2.0-0.dll` (“The specified procedure could not be found”), then
-PyGObject asserted in `gi.overrides.GdkPixbuf`. This matches the loader ABI
-failure documented by [conda-forge GLib issue #162](https://github.com/conda-forge/glib-feedstock/issues/162).
-The earlier `libiconv=1.17` pin did not resolve the link-script hang. The
-workflow tested the conda-forge build `libglib=2.82.2=h7025463_0` only for
-Windows GTK 4.8/4.10 and explicitly imports GdkPixbuf during runtime
-identification. The first run of this diagnostic (`39065500734`) queried a
-nonexistent `GdkPixbuf.MAJOR_VERSION` attribute, causing Linux and macOS jobs
-to fail before smoke checks. The workflow now records the typelib namespace
-instead. In run `39065624007`, both Windows GTK 4.8 and 4.10 selected the
-pinned GLib build but still failed loading GdkPixbuf with the same DLL
-procedure-resolution error. The GLib pin alone is not a fix. The next
-attempt combines it with `libiconv=1.17` in those two cells; Windows GTK
-4.8/4.10 smoke remains **NOT TESTED** pending a successful import and native
-smoke. GTK 4.10's earlier result is limited to the smoke checks in run
-`39065269579`, not full application or scientific workflow validation.
+helper with a 60-second timeout. The helper exited successfully, but
+GdkPixbuf import failed with `gdk_pixbuf-2.0-0.dll: The specified procedure
+could not be found`, followed by a PyGObject assertion. Pinning GLib build
+`2.82.2=h7025463_0`, alone or with `libiconv=1.17`, did not fix the import
+(`39065624007`, `39065795981`). The solver package comparison points to the
+older GdkPixbuf 2.42.10 build in the failing cells: the passing Windows GTK
+4.12 job used GdkPixbuf 2.44.8. The workflow now tests 2.44.8 only for
+Windows GTK 4.8/4.10 and restores normal package link scripts; this candidate
+is pending validation. Both Windows cells remain **NOT TESTED** until the
+GdkPixbuf import and native GTK/GL smoke pass. A separate diagnostic bug in
+`39065500734` queried nonexistent `GdkPixbuf.MAJOR_VERSION` and caused
+Linux/macOS jobs to fail before smoke; reporting now uses the typelib
+namespace (`2.0`), and later Linux matrix smoke jobs passed again.
 
 ## 7. Contributor workflow
 

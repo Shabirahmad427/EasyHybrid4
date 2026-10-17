@@ -187,20 +187,21 @@ recorded; its in-progress status is not a final result. See
 `docs/GTK4_COMPATIBILITY.md` for the cell-by-cell evidence and next provider
 work. This audit does not complete EH4-103 or EH4-500.
 
-Follow-up: Windows GTK 4.8/4.10 initially stalled in `gdk-pixbuf`'s post-link
-script (`39063905270`). The `libiconv=1.17` workaround did not fix the hang
-(`39064516500`). Run `39065269579` then completed setup with link scripts
-skipped only in these two cells and a direct cache-generation diagnostic.
-Windows GTK 4.10 passed runtime import and GTK/GL smoke. Windows GTK 4.8
-failed during runtime identification: `gdk_pixbuf-2.0-0.dll` could not load
-because “The specified procedure could not be found,” and PyGObject raised
-an assertion in `gi.overrides.GdkPixbuf`. The same loader ABI error is
-documented in conda-forge GLib issue #162. Run `39065624007` confirms both
-Windows GTK 4.8 and 4.10 selected `libglib=2.82.2=h7025463_0`, but both
-still failed importing GdkPixbuf with the same DLL error; this GLib pin alone
-is not a fix. The next workflow combines it with `libiconv=1.17` for another
-targeted run. Windows GTK 4.8/4.10 smoke remains **NOT TESTED** pending a
-successful import and native smoke.
+Follow-up: Windows GTK 4.8/4.10 initially stalled in the old `gdk-pixbuf`
+post-link script (`39063905270`). The `libiconv=1.17` pin did not fix that
+hang (`39064516500`). Skipping link scripts and generating the cache
+explicitly exposed a DLL import failure: `gdk_pixbuf-2.0-0.dll` reports “The
+specified procedure could not be found,” then PyGObject asserts in
+`gi.overrides.GdkPixbuf` (`39065269579`). Pinning GLib build
+`2.82.2=h7025463_0`, alone or with iconv 1.17, did not fix the import
+(`39065624007`, `39065795981`). Package comparison shows the failing cells
+used GdkPixbuf 2.42.10 / GLib 2.82.2, while passing Windows GTK 4.12 used
+GdkPixbuf 2.44.8 / GLib 2.90.1. The workflow now tests GdkPixbuf 2.44.8 only
+for Windows GTK 4.8/4.10, restoring normal package link scripts. This
+candidate fix is pending; both cells remain **NOT TESTED** until native GTK
+and GL smoke pass. The broad failure in run `39065500734` was a separate CI
+reporting bug (querying nonexistent GdkPixbuf `MAJOR_VERSION`); it has been
+corrected and later Linux jobs pass again.
 The first follow-up run (`39065500734`) also exposed a CI instrumentation
 regression: GdkPixbuf has no `MAJOR_VERSION` attribute, so all Linux and
 macOS jobs failed in the runtime-reporting step before their smoke tests.

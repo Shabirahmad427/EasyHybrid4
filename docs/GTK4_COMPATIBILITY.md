@@ -213,39 +213,27 @@ and the [Ubuntu GTK package archive](https://mirrors.edge.kernel.org/ubuntu/pool
 show released source and Linux distribution builds. No Windows/macOS source
 build is claimed or inferred here.
 
-### Windows GTK 4.8/4.10 environment setup
+### Windows GTK 4.8/4.10 GdkPixbuf runtime
 
-In Actions run `39063905270`, GTK 4.8/Windows resolved the environment but
-remained at the `gdk-pixbuf` post-link script for over six minutes; GTK 4.10
-was at the same setup step. The solve selected `libiconv 1.18`. The upstream
-[gdk-pixbuf Windows issue](https://github.com/conda-forge/gdk-pixbuf-feedstock/issues/48)
-documents this post-link loader-cache failure mode and maintainers' temporary
-`libiconv 1.17` workaround; a later [feedstock issue](https://github.com/conda-forge/gdk-pixbuf-feedstock/issues/61)
-shows related loader-cache instability recurring in 2026. Run `39064516500`
-confirms the 1.17 pin was selected but did not fix the post-link hang. In run
-`39065269579`, skipping link scripts allowed Windows GTK 4.8 setup to finish
-and the explicit loader-cache command to exit successfully, but the first
-PyGObject import failed. The exact warning was that `gdk_pixbuf-2.0-0.dll`
-could not be loaded because “The specified procedure could not be found,”
-followed by an assertion in `gi.overrides.GdkPixbuf`. GTK 4.10 Windows passed
-runtime import and its native GTK/GL smoke in that same run. This isolates the
-remaining failure to the GTK 4.8 Windows runtime dependency combination,
-rather than GTK4 application code or cache generation.
+The initial GTK 4.8/4.10 Windows setup stalled in the `gdk-pixbuf` post-link
+loader-cache script (`39063905270`). Skipping link scripts and running the
+cache helper directly let setup finish, but PyGObject then failed importing
+GdkPixbuf with `gdk_pixbuf-2.0-0.dll: The specified procedure could not be
+found`, followed by `AssertionError` in `gi.overrides.GdkPixbuf`
+(`39065269579`). The 1.17 `libiconv` pin did not resolve the hang, and the
+`libglib=2.82.2=h7025463_0` build did not resolve the DLL import error
+(`39065624007`). A combined GLib/iconv pin also failed on Windows GTK 4.8
+(`39065795981`).
 
-The workflow tested a narrowly scoped conda-forge GLib build pin
-(`libglib=2.82.2=h7025463_0`) for Windows GTK 4.8/4.10, based on the matching
-Windows loader ABI failure documented in the [conda-forge GLib issue](https://github.com/conda-forge/glib-feedstock/issues/162).
-It explicitly imports GdkPixbuf and records its typelib namespace (2.0)
-alongside GTK and GLib so that this dependency failure is reported at runtime
-identification. The first run of this reporting change (`39065500734`) failed
-across Linux and macOS too because GdkPixbuf does not expose
-`MAJOR_VERSION`; no GTK smoke ran in those jobs. That instrumentation error
-has been corrected by recording the typelib namespace instead of nonexistent
-constants. This is a CI environment workaround, not an application/platform
-code change. In run `39065624007`, both affected jobs selected the pinned
-GLib build, but both still failed importing GdkPixbuf with the same DLL
-procedure-resolution warning. Thus the GLib pin alone is **NOT A FIX**. The
-workflow now combines it with `libiconv=1.17` for a further test. Windows
-GTK 4.8/4.10 remain **NOT TESTED** at the GTK smoke level in the latest run;
-the prior GTK 4.10 smoke **PASS** from `39065269579` used different diagnostic
-code and is retained only as evidence for that earlier test configuration.
+Comparing the solver's package records identified a useful difference:
+failing Windows GTK 4.8 and 4.10 cells resolved `gdk-pixbuf 2.42.10` with
+`libglib 2.82.2`; passing Windows GTK 4.12 resolved `gdk-pixbuf 2.44.8` with
+`libglib 2.90.1`, and its GdkPixbuf import and real GTK/GL smoke passed.
+This points to the old GdkPixbuf build/dependency combination. The workflow
+now pins only Windows GTK 4.8/4.10 to `gdk-pixbuf=2.44.8` and removes the
+GLib/iconv pins and link-script bypass. This targeted combination has not yet
+run successfully; the two cells remain **NOT TESTED** until the import and
+native smoke pass. A separate instrumentation regression in run
+`39065500734` queried a nonexistent `GdkPixbuf.MAJOR_VERSION`; it is fixed by
+reporting the typelib namespace (`2.0`) and did not indicate GTK runtime
+failures on Linux or macOS.
