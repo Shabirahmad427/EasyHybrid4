@@ -5,6 +5,14 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      scope:
+        description: Runtime combinations to execute
+        type: choice
+        default: windows-legacy
+        options:
+          - windows-legacy
+          - all
 
 permissions:
   contents: read
@@ -12,21 +20,14 @@ permissions:
 jobs:
   gtk-runtime:
     name: GTK ${{ matrix.gtk }} / ${{ matrix.os }}
-    runs-on: ${{ matrix.runner }}
+    runs-on: ${{ matrix.os == 'linux-x86_64' && 'ubuntu-24.04' || matrix.os == 'windows-x86_64' && 'windows-2022' || 'macos-14' }}
     timeout-minutes: 45
     strategy:
       fail-fast: false
       max-parallel: 9
       matrix:
-        os: [linux-x86_64, windows-x86_64, macos-arm64]
-        include:
-          - os: linux-x86_64
-            runner: ubuntu-24.04
-          - os: windows-x86_64
-            runner: windows-2022
-          - os: macos-arm64
-            runner: macos-14
-        gtk: ["4.8", "4.10", "4.12", "4.14", "4.16", "4.18", "4.20", "4.22", "4.24"]
+        os: ${{ fromJSON(inputs.scope == 'windows-legacy' && '["windows-x86_64"]' || '["linux-x86_64", "windows-x86_64", "macos-arm64"]') }}
+        gtk: ${{ fromJSON(inputs.scope == 'windows-legacy' && '["4.8", "4.10"]' || '["4.8", "4.10", "4.12", "4.14", "4.16", "4.18", "4.20", "4.22", "4.24"]') }}
         # These exclusions describe missing conda-forge binaries for the
         # requested runner architecture, not GTK upstream/platform support.
         # GTK 4.16/4.18 have no conda-forge builds on any platform; GTK 4.8
