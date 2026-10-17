@@ -57,9 +57,48 @@ jobs:
             pytest
             pyopengl
 
-      - name: Install software OpenGL provider for Windows runner
+      - name: Install pinned Mesa WGL software renderer for Windows runner
         if: runner.os == 'Windows'
-        run: micromamba install --yes -n easyhybrid-gtk --channel conda-forge mesalib
+        shell: pwsh
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP 'mesa3d-26.2.4-release-msvc.7z'
+          $url = 'https://github.com/pal1000/mesa-dist-win/releases/download/26.2.4/mesa3d-26.2.4-release-msvc.7z'
+          $expectedSha256 = '351fc8c8b695878ffb3eaa044b3ead08672a48b1a045e3c3e3975811df0f6695'
+          Invoke-WebRequest -Uri $url -OutFile $archive
+          $actualSha256 = (Get-FileHash -Path $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actualSha256 -ne $expectedSha256) {
+            throw "Mesa archive SHA-256 mismatch: $actualSha256"
+          }
+
+          $sevenZip = (Get-Command 7z.exe -ErrorAction SilentlyContinue).Source
+          if (-not $sevenZip) {
+            $sevenZip = Join-Path $env:ProgramFiles '7-Zip\7z.exe'
+          }
+          if (-not (Test-Path $sevenZip)) {
+            throw '7-Zip is required to extract the pinned Mesa runtime.'
+          }
+          $extractDir = Join-Path $env:RUNNER_TEMP 'mesa3d-26.2.4'
+          & $sevenZip x $archive "-o$extractDir" -y
+          if ($LASTEXITCODE -ne 0) {
+            throw "7-Zip extraction failed with exit code $LASTEXITCODE"
+          }
+
+          $mesaDir = Get-ChildItem -Path $extractDir -Directory -Filter x64 -Recurse |
+            Select-Object -First 1 -ExpandProperty FullName
+          if (-not $mesaDir) {
+            throw 'The pinned Mesa archive contains no x64 runtime directory.'
+          }
+          $pythonExe = (micromamba run -n easyhybrid-gtk python -c 'import sys; print(sys.executable)' |
+            Select-Object -Last 1).Trim()
+          $appDir = Split-Path -Parent $pythonExe
+          foreach ($dll in @('opengl32.dll', 'libgallium_wgl.dll')) {
+            $source = Join-Path $mesaDir $dll
+            if (-not (Test-Path $source)) {
+              throw "Required Mesa WGL file is missing: $source"
+            }
+            Copy-Item -Path $source -Destination $appDir -Force
+          }
+          Write-Output "Pinned Mesa WGL llvmpipe runtime deployed beside $pythonExe"
 
       - name: Install full regression dependencies
         if: matrix.gtk == '4.24'
@@ -94,6 +133,8 @@ jobs:
           set -o pipefail
           if [[ "$RUNNER_OS" == "Linux" ]]; then
             LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe PYOPENGL_PLATFORM=glx xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" micromamba run -n easyhybrid-gtk python tests/test_gtk_icon_theme_smoke.py 2>&1 | tee -a platform-results.txt
+          elif [[ "$RUNNER_OS" == "Windows" ]]; then
+            GALLIUM_DRIVER=llvmpipe micromamba run -n easyhybrid-gtk python tests/test_gtk_icon_theme_smoke.py 2>&1 | tee -a platform-results.txt
           else
             micromamba run -n easyhybrid-gtk python tests/test_gtk_icon_theme_smoke.py 2>&1 | tee -a platform-results.txt
           fi
