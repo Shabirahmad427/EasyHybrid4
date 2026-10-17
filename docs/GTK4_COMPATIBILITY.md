@@ -220,20 +220,21 @@ loader-cache script (`39063905270`). Skipping link scripts and running the
 cache helper directly let setup finish, but PyGObject then failed importing
 GdkPixbuf with `gdk_pixbuf-2.0-0.dll: The specified procedure could not be
 found`, followed by `AssertionError` in `gi.overrides.GdkPixbuf`
-(`39065269579`). The 1.17 `libiconv` pin did not resolve the hang, and the
-`libglib=2.82.2=h7025463_0` build did not resolve the DLL import error
-(`39065624007`). A combined GLib/iconv pin also failed on Windows GTK 4.8
-(`39065795981`).
+(`39065269579`). The 1.17 `libiconv` pin did not resolve the hang, and
+`libglib=2.82.2=h7025463_0`, alone or combined with that iconv pin, did not
+resolve the import (`39065624007`, `39065795981`).
 
-Comparing the solver's package records identified a useful difference:
-failing Windows GTK 4.8 and 4.10 cells resolved `gdk-pixbuf 2.42.10` with
-`libglib 2.82.2`; passing Windows GTK 4.12 resolved `gdk-pixbuf 2.44.8` with
-`libglib 2.90.1`, and its GdkPixbuf import and real GTK/GL smoke passed.
-This points to the old GdkPixbuf build/dependency combination. The workflow
-now pins only Windows GTK 4.8/4.10 to `gdk-pixbuf=2.44.8` and removes the
-GLib/iconv pins and link-script bypass. This targeted combination has not yet
-run successfully; the two cells remain **NOT TESTED** until the import and
-native smoke pass. A separate instrumentation regression in run
-`39065500734` queried a nonexistent `GdkPixbuf.MAJOR_VERSION`; it is fixed by
-reporting the typelib namespace (`2.0`) and did not indicate GTK runtime
-failures on Linux or macOS.
+Package comparison showed Windows GTK 4.8/4.10 are constrained to GdkPixbuf
+2.42.10 because their `jpeg`/`libtiff` ABI requirements cannot resolve with
+the newer 2.44.8 build used by passing GTK 4.12. The older GdkPixbuf permits
+GLib 2.78.4 but the environment had selected GLib 2.82.2. The upstream
+[conda-forge GLib issue](https://github.com/conda-forge/glib-feedstock/issues/162)
+identifies the `libglib 2.78.4 h55e6270_1` build as faulty and recommends
+the `_0` build. The next test pins the matching good pair
+`libglib=2.78.4=h16e383f_0` and
+`glib-tools=2.78.4=h12be248_0`, plus `libiconv=1.17`, only on Windows GTK
+4.8/4.10; it keeps the link-script bypass and explicit cache generation for
+those cells. This candidate has not yet run. A separate instrumentation
+regression in run `39065500734` queried nonexistent `GdkPixbuf.MAJOR_VERSION`;
+it is fixed by reporting the typelib namespace (`2.0`) and did not indicate
+GTK runtime failures on Linux or macOS.

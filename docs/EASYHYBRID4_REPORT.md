@@ -398,15 +398,18 @@ helper with a 60-second timeout. The helper exited successfully, but
 GdkPixbuf import failed with `gdk_pixbuf-2.0-0.dll: The specified procedure
 could not be found`, followed by a PyGObject assertion. Pinning GLib build
 `2.82.2=h7025463_0`, alone or with `libiconv=1.17`, did not fix the import
-(`39065624007`, `39065795981`). The solver package comparison points to the
-older GdkPixbuf 2.42.10 build in the failing cells: the passing Windows GTK
-4.12 job used GdkPixbuf 2.44.8. The workflow now tests 2.44.8 only for
-Windows GTK 4.8/4.10 and restores normal package link scripts; this candidate
-is pending validation. Both Windows cells remain **NOT TESTED** until the
-GdkPixbuf import and native GTK/GL smoke pass. A separate diagnostic bug in
-`39065500734` queried nonexistent `GdkPixbuf.MAJOR_VERSION` and caused
-Linux/macOS jobs to fail before smoke; reporting now uses the typelib
-namespace (`2.0`), and later Linux matrix smoke jobs passed again.
+(`39065624007`, `39065795981`). A GdkPixbuf 2.44.8 override was unsatisfiable
+because of GTK 4.8's JPEG and GTK 4.10's libtiff constraints
+(`39065992963`). The upstream conda-forge GLib issue identifies the bad
+`2.78.4 h55e6270_1` build; metadata confirms matching `libglib 2.78.4
+h16e383f_0` and `glib-tools 2.78.4 h12be248_0` builds. The workflow now
+tests those exact builds plus iconv 1.17 only for Windows GTK 4.8/4.10,
+keeping the cache-script workaround. This candidate is pending validation;
+both cells remain **NOT TESTED** until the GdkPixbuf import and native GTK/GL
+smoke pass. A separate diagnostic bug in `39065500734` queried nonexistent
+`GdkPixbuf.MAJOR_VERSION` and caused Linux/macOS jobs to fail before smoke;
+reporting now uses the typelib namespace (`2.0`), and later Linux matrix
+smoke jobs passed again.
 
 ## 7. Contributor workflow
 
