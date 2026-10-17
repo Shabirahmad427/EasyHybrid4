@@ -162,3 +162,17 @@ def test_startup_keeps_user_selected_gsk_renderer():
     configure_gl_context_environment(platform="win32", environ=environment, runtime_version=(4, 8))
 
     assert environment["GSK_RENDERER"] == "gl"
+
+
+def test_gtk_416_defaults_to_previous_gl_renderer_on_every_platform():
+    for platform in ("linux", "win32", "darwin"):
+        for minor, expected in ((14, None), (16, "gl"), (17, "gl"), (18, None)):
+            environment = {}
+            configure_gl_context_environment(
+                platform=platform, environ=environment, runtime_version=(4, minor)
+            )
+            assert environment.get("GSK_RENDERER") == expected, (platform, minor)
+
+    environment = {"GSK_RENDERER": "ngl"}
+    configure_gl_context_environment(platform="linux", environ=environment, runtime_version=(4, 16))
+    assert environment["GSK_RENDERER"] == "ngl"

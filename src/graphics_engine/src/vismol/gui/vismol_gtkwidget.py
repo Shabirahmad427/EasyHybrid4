@@ -30,7 +30,6 @@ from src.gtk4_compat import (
     GTK_INVALID_LIST_POSITION,
     apply_legacy_win32_wgl_workaround,
     gl_area_required_version,
-    keep_gl_context_current_during_teardown,
     get_scroll_unit,
     scroll_controller_flags,
     set_gl_area_allowed_apis,
@@ -122,7 +121,6 @@ class VismolGTKWidget(_WidgetBase):
         set_gl_area_allowed_apis(self, Gdk)
         self.set_required_version(*gl_area_required_version(Gtk))
         apply_legacy_win32_wgl_workaround(self, Gtk)
-        keep_gl_context_current_during_teardown(self, Gtk, Gdk)
         self.connect("realize", self.initialize)
         self.connect("render", self.render)
         self.connect("resize", self.reshape)

@@ -24,7 +24,6 @@ _GTK_SMOKE = textwrap.dedent(
     from src.gtk4_compat import (
         apply_legacy_win32_wgl_workaround,
         gl_area_required_version,
-        keep_gl_context_current_during_teardown,
         set_picture_contain,
         supports_scroll_unit,
     )
@@ -67,7 +66,6 @@ _GTK_SMOKE = textwrap.dedent(
         gl_area.set_size_request(160, 120)
         gl_area.set_required_version(*gl_area_required_version(Gtk))
         state["legacy_wgl_workaround"] = apply_legacy_win32_wgl_workaround(gl_area, Gtk)
-        keep_gl_context_current_during_teardown(gl_area, Gtk, Gdk)
         state["gl_ready"] = False
 
         def realize(area):
