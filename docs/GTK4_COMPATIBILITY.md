@@ -142,16 +142,12 @@ full-app startup under that Python combination remains **NOT TESTED**. All
 three full-app runs used the real native X11 display, NVIDIA hardware, and
 fatal criticals; they were not Xvfb/software-renderer substitutions.
 
-Linux Wayland, Windows, and macOS remain **NOT TESTED**. A GitHub Actions
-workflow now provisions GTK/PyGObject on native Linux, Windows, and Apple
-Silicon macOS runners for every GTK minor series from 4.8 through 4.24. It
-records the exact runtime, constructs a real GTK window and Gio menu actions,
-and requires a real Gtk.GLArea OpenGL 3.3 context before running the suite.
-The workflow has not yet been pushed or executed, so its platform results are
-still **NOT TESTED**. The supplied private GitHub repository is configured as
-`origin` and authentication succeeds; GitHub reports that repository is
-currently empty. Native CI evidence will be added only after actual runs
-finish. Linux X11 evidence cannot substitute for another OS or backend.
+Native GitHub Actions jobs now provision GTK/PyGObject on Linux, Windows, and
+Apple Silicon macOS runners where the selected conda-forge provider has
+matching artifacts. They construct real GTK windows, activate Gio menu
+actions, and require a real Gtk.GLArea OpenGL 3.3 context. Results are listed
+below by exact runtime and platform. Linux X11 evidence does not substitute
+for another OS or backend.
 
 ## Compatibility matrix
 
@@ -162,27 +158,28 @@ finish. Linux X11 evidence cannot substitute for another OS or backend.
 | GTK 4.14.5, Linux x86_64 / X11, Python 3.12.3, PyGObject 3.48.2, GLib 2.80.0 | Full suite: **54 passed, 5 skipped**. Native real-display UI/menu action smoke: **PASS**. Full application lifecycle: **PASS**, fatal GTK criticals enabled, actual GL context OpenGL 4.6.0, NVIDIA GeForce RTX 4060 Ti; application-selected EGL and `gl-prefer-gl`; orderly close **PASS**. GtkBuilder loads 53/53 resources without GTK criticals. |
 | GTK 4.24.1, Linux x86_64 / X11, Python 3.12.15, PyGObject 3.58.1, GLib 2.90.0 | Full suite: **54 passed, 5 skipped**. Native real-display UI/menu action smoke: **PASS**. Full application lifecycle: **PASS**, fatal GTK criticals enabled, actual GL context OpenGL 4.6.0, NVIDIA GeForce RTX 4060 Ti; application-selected EGL and `gl-prefer-gl`; orderly close **PASS**. GtkBuilder loads 53/53 resources without GTK criticals; GTK emits a nonfatal missing-ibus-module warning in this shell. |
 | GTK 4.8.2, Xvfb default renderer | **EGL WARNING REPRODUCED**: Mesa reports `DRI3 error: Could not get DRI3 device`; this Xvfb server does not provide a DRI3 device. Mesa EGL and DRI packages were already installed. Re-running with `LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe` created the real GL context and emitted no EGL warning. This validates the virtual-display software path only; hardware acceleration and a native desktop display are **NOT TESTED**. For widget-only smoke tests, `GSK_RENDERER=cairo` also avoids the GL probe, but it must not be used for GL tests. |
-| GTK 4.8 / 4.10 | Linux x86_64 and macOS arm64 GTK smoke jobs passed for available conda artifacts; GTK 4.8/4.10 Windows jobs are still running in workflow `39063905270`. macOS arm64 4.8/4.10 are provider-excluded and **NOT TESTED**. |
-| GTK 4.12, 4.14, 4.20, 4.22, 4.24 | Native GTK window/Gio action/GLArea smoke jobs passed on Linux x86_64, Windows x86_64, and macOS arm64 in workflow `39063905270`. The run remains in progress pending GTK 4.8/4.10 Windows. |
+| GTK 4.8.2 / Windows x86_64, Windows Server 2022 | GTK 4.8.2 and GdkPixbuf import: **PASS**; local Mesa WGL DLL load and basic WGL context: **PASS**, OpenGL 4.6 Mesa llvmpipe; GTK window/Gio/GLArea smoke: **FAIL**, GDK reports `No GL implementation is available`. The basic probe does not validate GTK's context request. See the focused WGL investigation below. |
+| GTK 4.10.1 / Windows x86_64, Windows Server 2022 | GTK 4.10.1 and GdkPixbuf import: **PASS**; local Mesa WGL DLL load and basic compatibility-profile WGL context: **PASS**, OpenGL 4.6 Mesa llvmpipe; GTK window/Gio/GLArea smoke: **FAIL**, GDK reports `No GL implementation is available`. See the focused WGL investigation below. |
+| GTK 4.8 / 4.10, Linux x86_64 | GTK window/Gio/GLArea smoke passed in workflow `39066895345`. |
+| GTK 4.12, 4.14, 4.20, 4.22, 4.24 | Native GTK window/Gio/GLArea smoke jobs passed on Linux x86_64, Windows x86_64, and macOS arm64 in workflow `39066895345`. |
 | GTK 4.16 and 4.18 | **NOT TESTED** on every OS in the current conda matrix because conda-forge publishes no artifacts for these versions. Linux distro packages exist; add a separate pinned-provider job. Windows/macOS alternative providers remain to be investigated. |
 | Linux Wayland | **NOT TESTED**. |
-| Windows native GTK4 | **NOT TESTED**. |
-| macOS arm64/x86_64 native GTK4 | **NOT TESTED**. |
+| Windows GTK4 native runner smoke | **PARTIAL / FAIL**: GTK 4.12+ tested matrix cells pass; GTK 4.8/4.10 fail while creating GTK's GL context. This is hosted Mesa software-WGL evidence, not physical-GPU coverage. |
+| macOS arm64 native GTK4 runner smoke | **PARTIAL / PASS**: GTK 4.12/4.14/4.20/4.22/4.24 smoke passed; other provider-excluded versions, physical GPU, Retina, and trackpad behavior remain **NOT TESTED**. |
+| macOS x86_64 native GTK4 | **NOT TESTED**. |
 
 ## Native platform CI (2026-10-17)
 
 `.github/workflows/native-gtk-matrix.yml` currently defines 19 conda-provisioned
 native runner combinations after excluding unavailable artifact/platform pairs.
 Linux uses Xvfb and llvmpipe; Windows x86_64 and Apple Silicon macOS run the
-same UI/GL checks on native runners. Workflow `39063905270` has 17 completed
-successful jobs (Linux 4.8/4.10/4.12/4.14/4.20/4.22/4.24; Windows
-4.12/4.14/4.20/4.22/4.24; macOS arm64 4.12/4.14/4.20/4.22/4.24), with
-Windows 4.8 and 4.10 still in progress at last check. These are real GTK
-window/Gio action/GLArea smoke results; only GTK 4.24 runs the full test suite
-and graphics-extension build. Hardware GPU, physical trackpad, Retina, Linux
-Wayland, excluded cells, and real Linux desktop behavior require separate
-testing. The exclusions are package-provider gaps rather than support-policy
-decisions; see the availability audit below.
+same UI/GL checks on native runners. Workflow `39066895345` completed with 17
+successful jobs and two failures: Windows GTK 4.8 and 4.10, both at GL context
+creation. Only GTK 4.24 runs the full test suite and graphics-extension build.
+Hardware GPU, physical trackpad, Retina, Linux Wayland, excluded cells, and
+real Linux desktop behavior require separate testing. The exclusions are
+package-provider gaps rather than support-policy decisions; see the
+availability audit below.
 
 ## Verification requirements
 
@@ -230,11 +227,47 @@ the newer 2.44.8 build used by passing GTK 4.12. The older GdkPixbuf permits
 GLib 2.78.4 but the environment had selected GLib 2.82.2. The upstream
 [conda-forge GLib issue](https://github.com/conda-forge/glib-feedstock/issues/162)
 identifies the `libglib 2.78.4 h55e6270_1` build as faulty and recommends
-the `_0` build. The next test pins the matching good pair
+the `_0` build. CI pins the matching good pair
 `libglib=2.78.4=h16e383f_0` and
 `glib-tools=2.78.4=h12be248_0`, plus `libiconv=1.17`, only on Windows GTK
 4.8/4.10; it keeps the link-script bypass and explicit cache generation for
-those cells. This candidate has not yet run. A separate instrumentation
-regression in run `39065500734` queried nonexistent `GdkPixbuf.MAJOR_VERSION`;
-it is fixed by reporting the typelib namespace (`2.0`) and did not indicate
-GTK runtime failures on Linux or macOS.
+those cells. Both cells now import GdkPixbuf successfully. A separate
+instrumentation regression in run `39065500734` queried nonexistent
+`GdkPixbuf.MAJOR_VERSION`; it is fixed by reporting the typelib namespace
+(`2.0`) and did not indicate GTK runtime failures on Linux or macOS.
+
+### Windows GTK 4.8/4.10 WGL smoke failure
+
+The targeted CI probe uses the same pinned Mesa 26.2.4 build as the GTK smoke
+and independently creates a basic native WGL context with Tk's window. The
+latest GTK 4.10.1 log reports OpenGL 4.6 Compatibility Profile and
+`llvmpipe (LLVM 23.1.2, 256 bits)`. GTK 4.10.1, GdkPixbuf imports, and
+app-local Mesa DLL loads also pass. In the same job, EasyHybrid's minimal GTK smoke fails with
+`Gsk-Message: Failed to realize renderer ... No GL implementation is available`
+and Gtk.GLArea reports the same GDK error. The basic context proves that Mesa
+WGL can create a compatibility-profile context; it does not exercise GTK's
+dummy-window HDC or pixel-format setup. GTK 4.10's upstream
+[`gdk_win32_display_init_wgl()`](https://github.com/GNOME/gtk/blob/4.10.0/gdk/win32/gdkglcontext-win32-wgl.c#L251-L296)
+uses the generic `No GL implementation is available` message if its dummy
+pixel-format/context setup returns no format or the initial `wglMakeCurrent`
+fails. A separate branch uses the same message if the resulting GL version
+is below 2 and `GL_ARB_shader_objects` is absent. The current CI output does
+not distinguish those branches. The failure occurs before EasyHybrid's
+scientific graphics code runs; the exact failing GDK WGL operation has not
+been captured.
+
+An upstream source comparison supports this classification. GTK 4.8's
+`gdk_win32_display_init_gl()` obtains the bootstrap HDC from
+`GetDC(display_win32->hwnd)` in
+[`gdkdisplay-win32.c` at GTK 4.8](https://github.com/GNOME/gtk/blob/4.8.0/gdk/win32/gdkdisplay-win32.c).
+GTK 4.12 creates a dedicated hidden `GdkGLDummyWindow` with `CS_OWNDC` and
+uses its own HDC in
+[`gdkglcontext-win32-wgl.c` at GTK 4.12](https://github.com/GNOME/gtk/blob/4.12.0/gdk/win32/gdkglcontext-win32-wgl.c).
+GTK 4.12.1 passes the Windows smoke with the same Mesa 26.2.4 llvmpipe
+renderer (OpenGL 4.6). This evidence is consistent with an older GTK Win32
+bootstrap incompatibility in this hosted software-WGL setup, but does not
+identify the precise failed WGL call or prove that all physical Windows
+drivers fail on GTK 4.8/4.10. Native hardware Windows results remain
+**NOT TESTED**; the hosted GTK 4.8/4.10 GL smoke result is **FAIL**. The
+unsupported `GDK_DEBUG=opengl` diagnostic was removed because
+the conda GTK release binaries were built without `G_ENABLE_DEBUG`.

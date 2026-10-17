@@ -41,17 +41,16 @@ status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).
   pDynamo extensions target Python 3.12. GTK 4.8 `Gtk.AboutDialog` teardown
   separately reproduces an upstream GtkImage finalization critical; see the
   compatibility report and [Debian bug #1041599](https://bugs.debian.org/1041599).
-  Windows, macOS, Wayland, intermediate GTK4 minors, and other graphics
-  devices remain **NOT TESTED**. A native GitHub Actions GTK matrix covering
-  each listed GTK minor on Linux, Windows, and Apple Silicon macOS has been
-  added, and its OpenGL smoke now checks an actual Gtk.GLArea context. The
-  workflow is committed locally but is not yet published or executed. The user-supplied private GitHub
-  repository is configured as `origin` and authentication now succeeds, but
-  that remote repository is empty; platform jobs remain **NOT TESTED** until
-  the workflow is pushed and its jobs finish.
+  Windows GTK 4.8/4.10 GLArea smoke has **FAILED** on hosted Windows Server
+  2022; GTK 4.12/4.14/4.20/4.22/4.24 native-window and GLArea checks passed
+  on Windows. GTK 4.8/4.10 on macOS arm64, GTK 4.16/4.18 provider-excluded
+  cells, Wayland, and physical hardware graphics remain **NOT TESTED**. The
+  native GitHub Actions matrix has run; exact results and a WGL bootstrap
+  investigation are recorded in `GTK4_COMPATIBILITY.md`.
 - This file is the single consolidated project status and technical report.
   GTK/API/platform validations remain limited to the evidence actually run.
-- Recent task commits: `b181a50` (architecture/GTK compatibility and native smoke),
+- Recent commits: `8fb0bd6`, `cb5ca10`, `21e49db` (focused Windows WGL
+  diagnosis), `ecb93b2` (matched GLib runtime), `b181a50` (architecture/GTK compatibility and native smoke),
   `f69e4c4` (EH4-001), `d8fc403` (EH4-001 evidence),
   `b15fa22` (EH4-002 baseline), `01a8f21` (EH4-003 parity), and `27a25b9`
   (EH4-004 compatibility target). This report is part of the EH4-005 commit.
@@ -404,12 +403,29 @@ because of GTK 4.8's JPEG and GTK 4.10's libtiff constraints
 `2.78.4 h55e6270_1` build; metadata confirms matching `libglib 2.78.4
 h16e383f_0` and `glib-tools 2.78.4 h12be248_0` builds. The workflow now
 tests those exact builds plus iconv 1.17 only for Windows GTK 4.8/4.10,
-keeping the cache-script workaround. This candidate is pending validation;
-both cells remain **NOT TESTED** until the GdkPixbuf import and native GTK/GL
-smoke pass. A separate diagnostic bug in `39065500734` queried nonexistent
+keeping the cache-script workaround. GdkPixbuf import now passes in both
+cells, but their GTK GLArea smoke fails; see the focused WGL results in
+`GTK4_COMPATIBILITY.md`. A separate diagnostic bug in `39065500734` queried nonexistent
 `GdkPixbuf.MAJOR_VERSION` and caused Linux/macOS jobs to fail before smoke;
 reporting now uses the typelib namespace (`2.0`), and later Linux matrix
 smoke jobs passed again.
+
+Run `39066895345` completed with 17 successes and only two failures: GTK
+4.8/4.10 on Windows. Both import GTK/GdkPixbuf and load the app-local Mesa
+26.2.4 DLLs. The latest GTK 4.10.1 job also creates a basic Tk-window WGL
+context reporting OpenGL 4.6 Compatibility Profile and
+`llvmpipe (LLVM 23.1.2, 256 bits)`, but the GTK window/Gio/GLArea smoke still
+fails with `No GL implementation is available`. A basic compatibility
+context does not verify GTK's requested profile, pixel format, or sharing
+behavior. GTK 4.10's source emits this generic error when dummy pixel-format
+or context setup fails, when initial `wglMakeCurrent` fails, or when GL is
+below 2 without `GL_ARB_shader_objects`; CI has not distinguished those
+branches. GTK 4.12.1 passes the smoke on the same runner and Mesa driver. Upstream sources show a
+different WGL bootstrap-window strategy in GTK 4.12, making an older GDK
+Win32 bootstrap incompatibility plausible, but not proven. The failure is
+before EasyHybrid's molecular graphics code; physical Windows hardware
+remains **NOT TESTED**. The `GDK_DEBUG=opengl` diagnostic was removed because
+conda GTK release builds omit `G_ENABLE_DEBUG`.
 
 ## 7. Contributor workflow
 
@@ -470,11 +486,13 @@ smoke jobs passed again.
 | Linux x86_64, GTK 4.24.1 / GLib 2.90.0 / PyGObject 3.58.1 / Python 3.12.15 | Full suite **54 passed, 5 skipped**. Updated standalone window/menu-action/GLArea smoke: **PASS** with fatal criticals, OpenGL 4.6.0 on NVIDIA RTX 4060 Ti. Full EasyHybrid open/close **PASS** with fatal criticals. Startup selected EGL and `gl-prefer-gl`; no external overrides. |
 | Linux GTK no-display diagnostic | **REPRODUCED / CLASSIFIED** on GTK 4.8.2 and 4.14.5 with `G_DEBUG=fatal-criticals`; standalone GTK app and GDB stack identify missing display at GTK/GIO registration. Not an EasyHybrid icon/resource defect. |
 | GTK 4.24.1 current stable | **PASS** on native Linux X11 as listed above |
-| GTK 4.10, 4.12, 4.16, 4.18, 4.20, 4.22, and any future stable GTK4 minors | **NOT TESTED** |
+| GTK 4.10, 4.12, 4.20, 4.22 | Native matrix smoke **PASS** on Linux; 4.12/4.20/4.22 also **PASS** on Windows and macOS arm64. Windows GTK 4.10 GL context smoke **FAIL**. |
+| GTK 4.16 and 4.18 | **NOT TESTED**; no conda-forge artifacts for the current matrix provider. |
 | Linux x86_64 / X11 live UI and GL | **PASS** at GTK 4.8.2, 4.14.5, and 4.24.1 only; this is not all-minor or all-platform coverage |
 | Linux Wayland UI/GL/input/scaling | **NOT TESTED** |
-| Windows native GTK4/Python/GL | **NOT TESTED** |
-| macOS arm64/x86_64 GTK4/Python/GL/trackpad | **NOT TESTED** |
+| Windows GTK4/Python/GL smoke | **PARTIAL**: matrix smoke passes on GTK 4.12/4.14/4.20/4.22/4.24; GTK 4.8/4.10 fail GL context creation on hosted software WGL. Physical GPUs and packaging **NOT TESTED**. |
+| macOS arm64 GTK4/Python/GL smoke | **PARTIAL**: GTK 4.12/4.14/4.20/4.22/4.24 pass native CI smoke. GTK 4.8/4.10/4.16/4.18 and trackpad/Retina/hardware-driver coverage **NOT TESTED**. |
+| macOS x86_64 GTK4/Python/GL | **NOT TESTED** |
 
 No Linux pass is evidence of Windows/macOS or GTK-minimum compatibility.
 Update this consolidated report and the task evidence in `ROADMAP.md` as new
@@ -908,9 +926,12 @@ provisioning, import, build, and regression tests. The initial workflow
 `.github/workflows/native-gtk-matrix.yml` now requests all nine GTK minor
 series and records exact loaded GTK/GLib/PyGObject/Python versions. Linux
 native jobs use Xvfb/llvmpipe; Windows/macOS jobs call GTK directly. The
-workflow is not yet pushed or executed, so CI results remain **NOT TESTED**.
-Apple trackpad/Retina and physical-driver coverage still require dated manual
-device reports. See EH4-500 through EH4-505 for completion criteria.
+workflow has run: Windows GTK 4.8/4.10 fail during GTK GL context creation;
+the other included matrix cells passed in run `39066895345`. Cell-by-cell
+results and the limits of the WGL diagnostic are in
+`GTK4_COMPATIBILITY.md`. Apple trackpad/Retina and physical-driver coverage
+still require dated manual device reports. See EH4-500 through EH4-505 for
+completion criteria.
 
 
 ## 11.8 Safe test data and fixture policy
