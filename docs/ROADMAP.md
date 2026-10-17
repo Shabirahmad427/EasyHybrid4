@@ -157,11 +157,12 @@ A task may be **implemented but NOT VERIFIED**; in that case leave unchecked and
 | Date (UTC) | Task | Commit(s) | Environment (OS/arch) | Python / PyGObject / GTK / GLib | Test commands & outcomes | Graphics context | Status / gap |
 |---|---|---|---|---|---|---|---|
 | 2026-10-17 | EH4-000 | None; EasyHybrid4 `.git` metadata unavailable | Linux x86_64, kernel 6.8.0-147-generic | Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib 2.80.0 | `git -C . status/rev-parse` and branch/remotes/tags: BLOCKED (`.git/` empty, read-only); read `.gitmodules`, both license files, and EasyHybrid3 Git/submodule metadata. No runtime tests for this inventory task. | NOT TESTED | PARTIAL; EH4 remote, branch, commit, tags, dirty state, and local graphics SHA are unknown. See `docs/ARCHITECTURE.md`. |
+| 2026-10-17 | EH4-000 | `bea94210ed7c23f71d2241f8abe3c849ade18561` baseline; evidence update pending commit | Linux x86_64, kernel 6.8.0-147-generic | Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib 2.80.0 | Verified `main`, HEAD `bea94210ed7c23f71d2241f8abe3c849ade18561`, clean tree, no configured remotes, and no tags. `.gitmodules` declares graphics submodule, but `git ls-tree` gives mode `040000`, `git submodule status --recursive` is empty, and files are tracked individually. EasyHybrid3 reference and both licenses recorded in `docs/ARCHITECTURE.md`. | NOT TESTED | INCOMPLETE: no EasyHybrid4 remote/fork URL and no graphics upstream SHA/submodule metadata. Missing information recorded; no inference made. |
 
 ### Active task and blockers
 
-- **Next task:** `EH4-000` — repository/remote/submodule baseline (resume after restoring EasyHybrid4 Git metadata).
-- **Current blocker:** This workspace contains an empty, read-only `.git/` directory; the actual EasyHybrid4 repository history and working-tree state cannot be read. Do not initialize a replacement repository or infer EH4 metadata from EasyHybrid3.
+- **Next task:** `EH4-001` — package/module, GTK, resource, dependency, and installer inventory. EH4-000's verified details are recorded; its fork remote and graphics upstream revision remain unresolved and EH4-000 stays unchecked.
+- **Current blocker:** EasyHybrid4 has no configured remote and its declared graphics submodule is an ordinary tracked directory without an upstream SHA. Keep both unresolved; do not infer the source revision from EasyHybrid3 or `.gitmodules`.
 - **Compatibility policy:** `GTK_MIN = TBD`, `GTK_LATEST_VERIFIED = TBD`, Python support = TBD. Codex must fill these from evidence during Phase 0.
 - **Rule:** Update the active task pointer after a completed or blocked task. Do not change task ordering without recording why.
 
