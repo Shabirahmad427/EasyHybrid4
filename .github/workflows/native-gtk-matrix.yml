@@ -192,7 +192,7 @@ jobs:
         if: runner.os == 'Windows' && (matrix.gtk == '4.8' || matrix.gtk == '4.10')
         run: |
           set -o pipefail
-          micromamba run -n easyhybrid-gtk python - <<'PY' | tee -a platform-results.txt
+          GALLIUM_DRIVER=llvmpipe LIBGL_DEBUG=verbose micromamba run -n easyhybrid-gtk python - <<'PY' | tee -a platform-results.txt
           import ctypes
           import pathlib
           import sys
@@ -217,7 +217,7 @@ jobs:
               opengl = ctypes.WinDLL('opengl32.dll', use_last_error=True)
               opengl_handle = kernel32.GetModuleHandleW('opengl32.dll')
               print(f'OPENGL32_LOADED={module_path(opengl_handle)}')
-              for symbol in ('wglCreateContext', 'wglMakeCurrent', 'wglChoosePixelFormatARB'):
+              for symbol in ('wglCreateContext', 'wglMakeCurrent'):
                   try:
                       getattr(opengl, symbol)
                       print(f'OPENGL32_EXPORT_{symbol}=available')
@@ -232,6 +232,74 @@ jobs:
               print(f'MESA_WGL_LOAD=PASS path={mesa_wgl}')
           except OSError as error:
               print(f'MESA_WGL_LOAD=FAIL path={mesa_wgl} error={error}')
+
+          # Probe the WGL stack independently of GTK so a successful DLL load
+          # cannot be mistaken for a working OpenGL context.
+          import tkinter
+          user32 = ctypes.WinDLL('user32', use_last_error=True)
+          gdi32 = ctypes.WinDLL('gdi32', use_last_error=True)
+
+          class PixelFormatDescriptor(ctypes.Structure):
+              _fields_ = [
+                  ('nSize', ctypes.c_ushort), ('nVersion', ctypes.c_ushort),
+                  ('dwFlags', ctypes.c_uint32), ('iPixelType', ctypes.c_ubyte),
+                  ('cColorBits', ctypes.c_ubyte), ('cRedBits', ctypes.c_ubyte),
+                  ('cRedShift', ctypes.c_ubyte), ('cGreenBits', ctypes.c_ubyte),
+                  ('cGreenShift', ctypes.c_ubyte), ('cBlueBits', ctypes.c_ubyte),
+                  ('cBlueShift', ctypes.c_ubyte), ('cAlphaBits', ctypes.c_ubyte),
+                  ('cAlphaShift', ctypes.c_ubyte), ('cAccumBits', ctypes.c_ubyte),
+                  ('cAccumRedBits', ctypes.c_ubyte), ('cAccumGreenBits', ctypes.c_ubyte),
+                  ('cAccumBlueBits', ctypes.c_ubyte), ('cAccumAlphaBits', ctypes.c_ubyte),
+                  ('cDepthBits', ctypes.c_ubyte), ('cStencilBits', ctypes.c_ubyte),
+                  ('cAuxBuffers', ctypes.c_ubyte), ('iLayerType', ctypes.c_byte),
+                  ('bReserved', ctypes.c_ubyte), ('dwLayerMask', ctypes.c_uint32),
+                  ('dwVisibleMask', ctypes.c_uint32), ('dwDamageMask', ctypes.c_uint32),
+              ]
+
+          root = tkinter.Tk()
+          root.geometry('1x1+0+0')
+          root.update()
+          hwnd = root.winfo_id()
+          user32.GetDC.argtypes = [ctypes.c_void_p]
+          user32.GetDC.restype = ctypes.c_void_p
+          gdi32.ChoosePixelFormat.argtypes = [ctypes.c_void_p, ctypes.POINTER(PixelFormatDescriptor)]
+          gdi32.ChoosePixelFormat.restype = ctypes.c_int
+          gdi32.SetPixelFormat.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.POINTER(PixelFormatDescriptor)]
+          gdi32.SetPixelFormat.restype = ctypes.c_int
+          hdc = user32.GetDC(hwnd)
+          pfd = PixelFormatDescriptor()
+          pfd.nSize = ctypes.sizeof(PixelFormatDescriptor)
+          pfd.nVersion = 1
+          pfd.dwFlags = 0x00000004 | 0x00000020 | 0x00000001
+          pfd.iPixelType = 0
+          pfd.cColorBits = 32
+          pfd.cAlphaBits = 8
+          pfd.iLayerType = 0
+          pixel_format = gdi32.ChoosePixelFormat(hdc, ctypes.byref(pfd))
+          if not pixel_format:
+              print(f'BASIC_WGL_CHOOSE_PIXEL_FORMAT=FAIL winerror={ctypes.get_last_error()}')
+          elif not gdi32.SetPixelFormat(hdc, pixel_format, ctypes.byref(pfd)):
+              print(f'BASIC_WGL_SET_PIXEL_FORMAT=FAIL winerror={ctypes.get_last_error()}')
+          else:
+              opengl.wglCreateContext.argtypes = [ctypes.c_void_p]
+              opengl.wglCreateContext.restype = ctypes.c_void_p
+              opengl.wglMakeCurrent.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+              opengl.wglMakeCurrent.restype = ctypes.c_int
+              opengl.wglDeleteContext.argtypes = [ctypes.c_void_p]
+              opengl.wglDeleteContext.restype = ctypes.c_int
+              context = opengl.wglCreateContext(hdc)
+              if not context:
+                  print(f'BASIC_WGL_CREATE_CONTEXT=FAIL winerror={ctypes.get_last_error()}')
+              elif not opengl.wglMakeCurrent(hdc, context):
+                  print(f'BASIC_WGL_MAKE_CURRENT=FAIL winerror={ctypes.get_last_error()}')
+              else:
+                  opengl.glGetString.argtypes = [ctypes.c_uint]
+                  opengl.glGetString.restype = ctypes.c_char_p
+                  print(f'BASIC_WGL_VERSION={opengl.glGetString(0x1F02)!r}')
+                  print(f'BASIC_WGL_RENDERER={opengl.glGetString(0x1F01)!r}')
+                  opengl.wglMakeCurrent(None, None)
+                  opengl.wglDeleteContext(context)
+          root.destroy()
 
           print(
               f'GTK={Gtk.get_major_version()}.{Gtk.get_minor_version()}.{Gtk.get_micro_version()} '
