@@ -231,7 +231,10 @@ jobs:
       - name: Run native GTK window, Gio action, and real GLArea smoke
         run: |
           set -o pipefail
-          LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe PYOPENGL_PLATFORM=glx xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" python3 tests/test_gtk_icon_theme_smoke.py 2>&1 | tee -a platform-results.txt
+          # GTK 4.16+ renders through EGL on X11. Keep the application's own
+          # PyOpenGL platform choice (EGL on Linux); forcing GLX loads libGL
+          # and makes libepoxy look for a GLX context GTK never created.
+          LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" python3 tests/test_gtk_icon_theme_smoke.py 2>&1 | tee -a platform-results.txt
 
       - name: Upload runtime and test evidence
         if: always()
@@ -368,6 +371,10 @@ jobs:
             libpng
             libjpeg-turbo
             libtiff
+            zlib
+            freetype
+            fontconfig
+            pixman
             gettext
             sassc
             adwaita-icon-theme
@@ -385,7 +392,7 @@ jobs:
             echo "MESON_ARGS=$args"
             export LDFLAGS="-Wl,-rpath,$CONDA_PREFIX/lib ${LDFLAGS:-}"
             meson setup gtk-build gtk-${{ matrix.version }} --prefix="$CONDA_PREFIX" --libdir=lib \
-              --buildtype=release $args
+              --buildtype=release --wrap-mode=nofallback $args
             meson compile -C gtk-build
             meson install -C gtk-build
           '
