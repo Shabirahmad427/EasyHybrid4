@@ -4,11 +4,15 @@ Feature detection is used instead of release-string comparisons so the
 application follows the APIs exposed by the loaded GTK runtime and typelib.
 """
 
+import sys
+
 import gi
 
 gi.require_version("Gdk", "4.0")
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gdk, Gtk  # noqa: E402  (require_version first)
+
+from src.os_integration.win32_wgl import install_legacy_wgl_workaround  # noqa: E402
 
 
 # GTK's invalid list position is a guint sentinel. Some older GTK4 typelib
@@ -90,3 +94,17 @@ def set_gl_area_allowed_apis(gl_area, gdk=Gdk, api=None):
         set_use_es(False)
         return True
     return False
+
+
+def apply_legacy_win32_wgl_workaround(gl_area, gtk=Gtk, platform=None):
+    """Align a GLArea's WGL pixel format with GTK 4.8/4.10's bootstrap HDC.
+
+    This is a version range check, not feature detection: the defect is in
+    GDK's private Win32 WGL code and exposes no API to probe. Returns
+    whether the workaround was connected.
+    """
+    return install_legacy_wgl_workaround(
+        gl_area,
+        platform=sys.platform if platform is None else platform,
+        version=(gtk.get_major_version(), gtk.get_minor_version()),
+    )

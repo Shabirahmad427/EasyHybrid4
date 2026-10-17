@@ -31,7 +31,11 @@ _GTK_SMOKE = textwrap.dedent(
     gi.require_version("Gtk", "4.0")
     gi.require_version("Gdk", "4.0")
     from gi.repository import Gdk, GLib, Gtk, Gio
-    from src.gtk4_compat import set_picture_contain, supports_scroll_unit
+    from src.gtk4_compat import (
+        apply_legacy_win32_wgl_workaround,
+        set_picture_contain,
+        supports_scroll_unit,
+    )
     menu_spec = importlib.util.spec_from_file_location(
         "easyhybrid_menu_smoke", os.path.abspath("src/gui/main/gtk4_menu.py")
     )
@@ -70,6 +74,7 @@ _GTK_SMOKE = textwrap.dedent(
         gl_area = Gtk.GLArea()
         gl_area.set_size_request(160, 120)
         gl_area.set_required_version(3, 3)
+        state["legacy_wgl_workaround"] = apply_legacy_win32_wgl_workaround(gl_area, Gtk)
         state["gl_ready"] = False
 
         def realize(area):
@@ -138,10 +143,11 @@ _GTK_SMOKE = textwrap.dedent(
             % state.get("gl_error", "render signal not emitted")
         )
     print(
-        "GTK=%d.%d.%d display=%s icon-theme=%s picture=%s scroll-unit=%s action=%s GL=%s renderer=%s" % (
+        "GTK=%d.%d.%d display=%s icon-theme=%s picture=%s scroll-unit=%s action=%s GL=%s renderer=%s legacy-wgl=%s GSK_RENDERER=%s" % (
             *state["runtime"], state["display"], state["theme"],
             state["picture_api"], state["scroll_unit_api"], state["menu_action"],
-            state["gl_version"], state["gl_renderer"]
+            state["gl_version"], state["gl_renderer"],
+            state["legacy_wgl_workaround"], os.environ.get("GSK_RENDERER", "")
         )
     )
     """

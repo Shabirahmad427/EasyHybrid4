@@ -28,6 +28,7 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gdk
 from src.gtk4_compat import (
     GTK_INVALID_LIST_POSITION,
+    apply_legacy_win32_wgl_workaround,
     get_scroll_unit,
     scroll_controller_flags,
     set_gl_area_allowed_apis,
@@ -118,6 +119,7 @@ class VismolGTKWidget(_WidgetBase):
         # Linux by coincidence rather than by being explicitly correct.
         set_gl_area_allowed_apis(self, Gdk)
         self.set_required_version(3, 3)
+        apply_legacy_win32_wgl_workaround(self, Gtk)
         self.connect("realize", self.initialize)
         self.connect("render", self.render)
         self.connect("resize", self.reshape)

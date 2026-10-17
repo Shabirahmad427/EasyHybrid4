@@ -271,3 +271,26 @@ drivers fail on GTK 4.8/4.10. Native hardware Windows results remain
 **NOT TESTED**; the hosted GTK 4.8/4.10 GL smoke result is **FAIL**. The
 unsupported `GDK_DEBUG=opengl` diagnostic was removed because
 the conda GTK release binaries were built without `G_ENABLE_DEBUG`.
+
+Trace result at `1529bf5` (GTK 4.10.1, Windows Server 2022 x86_64, Mesa
+26.2.4 llvmpipe; run `39067856957`): retaining the Mesa
+DLL fixed the earlier lost-format symptom. GDK WGL init now succeeds and
+creates a 4.6 core shared context. The new failure is `wglMakeCurrent`
+returning Windows error 2000 (`ERROR_INVALID_PIXEL_FORMAT`). GTK sets the
+display-HWND bootstrap HDC through legacy `ChoosePixelFormat` (format 75)
+and the surface HDC through `wglChoosePixelFormatARB` (format 1). A surface
+context created for format 1 is then made current surfaceless on the
+bootstrap HDC (format 75), which WGL rejects. The GLArea gets no context and
+reports `render signal not emitted`. Upstream source at GTK 4.8.3 and 4.10.1
+shows the same design: `GetDC(display_win32->hwnd)` serves as the dummy HDC,
+and surfaceless `make_current` binds to it. GTK 4.12 discards the initial
+dummy and sets the ARB-chosen format on the display HDC
+(`set_wgl_pixformat_for_hdc`), which explains why 4.12+ passes. This is a
+GTK 4.8/4.10 Win32 defect that is exposed when GDI and ARB choose different
+format indices, as Mesa does. It is not an EasyHybrid defect. The GTK 4.8.2 job in
+the same run traced the identical sequence (bootstrap HDC format 75,
+surface format 1, `wglMakeCurrent` error 2000). Whether physical Windows
+drivers pick matching indices is **NOT TESTED**. No supported
+application-side workaround exists, because both pixel formats are chosen
+inside GDK. Hosted Windows GTK 4.8/4.10 GL remains **FAIL**. The decision
+on whether to declare GTK 4.12 as the Windows floor is left to the user.
