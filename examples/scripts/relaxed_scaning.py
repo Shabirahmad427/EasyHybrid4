@@ -22,7 +22,12 @@
 #  
 #  
 
+import os
 import sys
+
+_EASYHYBRID3_HOME = os.environ.get(
+    "EASYHYBRID3_HOME", os.path.expanduser("~/programs/EasyHybrid3")
+)
 
 '''
 This is a basic script to open an already prepared system in pDynamo. 
@@ -38,14 +43,14 @@ from pScientific.Arrays        import *
 from pScientific.Geometry3     import *                 
 from pSimulation               import *
 
-sys.path.insert(1, '~/programs/EasyHybrid3/pdynamo')
+sys.path.insert(1, os.path.join(_EASYHYBRID3_HOME, "pdynamo"))
 import p_methods  as pMethods
 
 
 
 
 # importing system
-system = ImportSystem ('~/programs/EasyHybrid3/MOLECULES.pkl')
+system = ImportSystem (os.path.join(_EASYHYBRID3_HOME, "MOLECULES.pkl"))
 # summary
 system.Summary()
 
@@ -67,7 +72,7 @@ parameters = {'NmaxThreads'          : 1,                  # Use 1 for one-dimen
              
              'RC2': None,
              
-             'folder'             : '~/programs/EasyHybrid3/examples/scripts',
+             'folder'             : os.path.join(_EASYHYBRID3_HOME, "examples", "scripts"),
              'initial_coordinates': None,
              
              'log_frequency'      : 50,

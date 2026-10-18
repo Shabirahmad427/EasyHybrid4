@@ -33,6 +33,7 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Pango
+from src.gtk4_compat import texture_from_pixbuf
 from gi.repository import Gdk
 from gi.repository import GdkPixbuf
 from gui.gtk4_builder import connect_builder_signals, load_builder_file, load_builder_string
@@ -191,7 +192,7 @@ class EasyHybridSetupQCModelWindow:
             
             
             pixbuf = get_colorful_square_pixel_buffer (system)
-            self.builder.get_object('system_sqr_image').set_from_pixbuf(pixbuf)
+            self.builder.get_object('system_sqr_image').set_from_paintable(texture_from_pixbuf(pixbuf))
             
             
             
@@ -251,8 +252,8 @@ class EasyHybridSetupQCModelWindow:
             self.button_orca_setup = self.builder.get_object('button_setup_dftb') 
             self.button_orca_setup.connect("clicked", self.on_button_setup_dftb)
             
-            self.builder.get_object('button_setup_orca').hide()
-            self.builder.get_object('button_setup_dftb').hide()
+            self.builder.get_object('button_setup_orca').set_visible(False)
+            self.builder.get_object('button_setup_dftb').set_visible(False)
             
             
             ''' Updating the number of atoms '''
@@ -336,51 +337,51 @@ class EasyHybridSetupQCModelWindow:
         dprint(self.qc_engine_id)
         
         if self.qc_engine_id ==0:            
-            self.builder.get_object('button_setup_orca').hide()
-            self.builder.get_object('button_setup_dftb').hide()
-            self.builder.get_object('expander_DIISSCF_converger').show()
+            self.builder.get_object('button_setup_orca').set_visible(False)
+            self.builder.get_object('button_setup_dftb').set_visible(False)
+            self.builder.get_object('expander_DIISSCF_converger').set_visible(True)
             
-            self.builder.get_object('label_method').show()
-            self.builder.get_object('QCModel_methods_combobox').show()
+            self.builder.get_object('label_method').set_visible(True)
+            self.builder.get_object('QCModel_methods_combobox').set_visible(True)
             
         elif self.qc_engine_id == 1:
-            self.builder.get_object('button_setup_orca').show()
-            self.builder.get_object('button_setup_dftb').hide()
-            self.builder.get_object('expander_DIISSCF_converger').hide()
+            self.builder.get_object('button_setup_orca').set_visible(True)
+            self.builder.get_object('button_setup_dftb').set_visible(False)
+            self.builder.get_object('expander_DIISSCF_converger').set_visible(False)
 
-            self.builder.get_object('label_method').hide()
-            self.builder.get_object('QCModel_methods_combobox').hide()
+            self.builder.get_object('label_method').set_visible(False)
+            self.builder.get_object('QCModel_methods_combobox').set_visible(False)
 
             self.setup_orca_window.open_window()
         
         elif self.qc_engine_id == 2:
             self.builder.get_object('button_setup_dftb').set_label('DFTB+ Setup')
-            self.builder.get_object('button_setup_dftb').show()
+            self.builder.get_object('button_setup_dftb').set_visible(True)
             
-            self.builder.get_object('button_setup_orca').hide()
-            self.builder.get_object('expander_DIISSCF_converger').hide()
-            self.builder.get_object('label_method').hide()
-            self.builder.get_object('QCModel_methods_combobox').hide()
+            self.builder.get_object('button_setup_orca').set_visible(False)
+            self.builder.get_object('expander_DIISSCF_converger').set_visible(False)
+            self.builder.get_object('label_method').set_visible(False)
+            self.builder.get_object('QCModel_methods_combobox').set_visible(False)
             self.setup_dftb_window.open_window()
         
         elif self.qc_engine_id == 3:
             self.builder.get_object('button_setup_dftb').set_label('xTB Setup')
-            self.builder.get_object('button_setup_dftb').show()
+            self.builder.get_object('button_setup_dftb').set_visible(True)
             
-            self.builder.get_object('button_setup_orca').hide()
-            self.builder.get_object('expander_DIISSCF_converger').hide()
-            self.builder.get_object('label_method').hide()
-            self.builder.get_object('QCModel_methods_combobox').hide()
+            self.builder.get_object('button_setup_orca').set_visible(False)
+            self.builder.get_object('expander_DIISSCF_converger').set_visible(False)
+            self.builder.get_object('label_method').set_visible(False)
+            self.builder.get_object('QCModel_methods_combobox').set_visible(False)
             self.setup_xtb_window.open_window()
 
         elif self.qc_engine_id == 4:
             self.builder.get_object('button_setup_dftb').set_label('PySCF Setup')
-            self.builder.get_object('button_setup_dftb').show()
+            self.builder.get_object('button_setup_dftb').set_visible(True)
 
-            self.builder.get_object('button_setup_orca').hide()
-            self.builder.get_object('expander_DIISSCF_converger').hide()
-            self.builder.get_object('label_method').hide()
-            self.builder.get_object('QCModel_methods_combobox').hide()
+            self.builder.get_object('button_setup_orca').set_visible(False)
+            self.builder.get_object('expander_DIISSCF_converger').set_visible(False)
+            self.builder.get_object('label_method').set_visible(False)
+            self.builder.get_object('QCModel_methods_combobox').set_visible(False)
             self.setup_pyscf_window.open_window()
         else:
             pass
@@ -392,28 +393,28 @@ class EasyHybridSetupQCModelWindow:
         self.method_id = self.methods_combo.get_selected()
         dprint(self.method_id)
         if self.method_id in [0,1,2,3,4,5]:            
-            self.builder.get_object('button_setup_orca').hide()
-            self.builder.get_object('button_setup_dftb').hide()
-            self.builder.get_object('expander_DIISSCF_converger').show()
+            self.builder.get_object('button_setup_orca').set_visible(False)
+            self.builder.get_object('button_setup_dftb').set_visible(False)
+            self.builder.get_object('expander_DIISSCF_converger').set_visible(True)
             
         elif self.method_id == 6:
-            self.builder.get_object('button_setup_orca').show()
-            self.builder.get_object('button_setup_dftb').hide()
-            self.builder.get_object('expander_DIISSCF_converger').hide()
+            self.builder.get_object('button_setup_orca').set_visible(True)
+            self.builder.get_object('button_setup_dftb').set_visible(False)
+            self.builder.get_object('expander_DIISSCF_converger').set_visible(False)
             self.setup_orca_window.open_window()
         
         elif self.method_id == 7:
             self.builder.get_object('button_setup_dftb').set_label('DFTB+ Setup')
-            self.builder.get_object('button_setup_dftb').show()
-            self.builder.get_object('button_setup_orca').hide()
-            self.builder.get_object('expander_DIISSCF_converger').hide()
+            self.builder.get_object('button_setup_dftb').set_visible(True)
+            self.builder.get_object('button_setup_orca').set_visible(False)
+            self.builder.get_object('expander_DIISSCF_converger').set_visible(False)
             self.setup_dftb_window.open_window()
         
         elif self.method_id == 8:
             self.builder.get_object('button_setup_dftb').set_label('xTB Setup')
-            self.builder.get_object('button_setup_dftb').show()
-            self.builder.get_object('button_setup_orca').hide()
-            self.builder.get_object('expander_DIISSCF_converger').hide()
+            self.builder.get_object('button_setup_dftb').set_visible(True)
+            self.builder.get_object('button_setup_orca').set_visible(False)
+            self.builder.get_object('expander_DIISSCF_converger').set_visible(False)
             self.setup_xtb_window.open_window()
         
         elif self.method_id == 9:

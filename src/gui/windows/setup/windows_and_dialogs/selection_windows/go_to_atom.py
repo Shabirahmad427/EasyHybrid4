@@ -33,6 +33,7 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Pango, Gio, GObject
+from src.gtk4_compat import texture_from_pixbuf
 from gi.repository import Gdk
 from gi.repository import GdkPixbuf
 from gui.gtk4_builder import connect_builder_signals
@@ -390,8 +391,8 @@ class EasyHybridGoToAtomWindow(Gtk.Window):
         factory = Gtk.SignalListItemFactory()
         if attribute == "color":
             factory.connect("setup", lambda _factory, item: item.set_child(Gtk.Image()))
-            factory.connect("bind", lambda _factory, item: item.get_child().set_from_pixbuf(
-                getattr(item.get_item(), attribute)
+            factory.connect("bind", lambda _factory, item: item.get_child().set_from_paintable(
+                texture_from_pixbuf(getattr(item.get_item(), attribute))
             ))
         else:
             factory.connect("setup", lambda _factory, item: item.set_child(Gtk.Label(xalign=0)))

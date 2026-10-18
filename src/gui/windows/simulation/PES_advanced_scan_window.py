@@ -152,7 +152,7 @@ class AdvancedPotentialEnergyScanWindow:
         #self.builder.get_object("mass_restraints1").hide()
         
         # Configure RC boxes
-        self.builder.get_object("checkbtn_TS-centered_mode").hide()
+        self.builder.get_object("checkbtn_TS-centered_mode").set_visible(False)
         self.RC_box1.set_rc_mode(rc_mode=0)
         self.RC_box2.set_rc_mode(rc_mode=0)
         #self.RC_box1.set_rc_type(0)

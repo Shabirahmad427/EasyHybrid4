@@ -135,10 +135,10 @@ class NormalModesWindow(Gtk.Window):
             #self._starting_coordinates_model_update()
             self.window.present()
             self.save_trajectory_box.builder.get_object('checkbox_save_traj').set_active(True)
-            self.save_trajectory_box.builder.get_object('format_dropdown').hide()
-            self.save_trajectory_box.builder.get_object('label_format').hide()
-            self.save_trajectory_box.builder.get_object('entry_trajectory_frequency').hide()
-            self.save_trajectory_box.builder.get_object('label_trajectory_frequency').hide()
+            self.save_trajectory_box.builder.get_object('format_dropdown').set_visible(False)
+            self.save_trajectory_box.builder.get_object('label_format').set_visible(False)
+            self.save_trajectory_box.builder.get_object('entry_trajectory_frequency').set_visible(False)
+            self.save_trajectory_box.builder.get_object('label_trajectory_frequency').set_visible(False)
             
             self.Visible  = True   
 

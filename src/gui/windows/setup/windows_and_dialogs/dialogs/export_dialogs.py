@@ -450,17 +450,17 @@ class ExportDataWindow:
         
             if getattr(vismol_object, 'idx_2D_xy', False):
                 # Show UI for 2D trajectory export
-                self.builder.get_object('label_y_rc').show()
-                self.builder.get_object('entry_first2').show()
-                self.builder.get_object('entry_last2').show()
-                self.builder.get_object('entry_stride2').show()
+                self.builder.get_object('label_y_rc').set_visible(True)
+                self.builder.get_object('entry_first2').set_visible(True)
+                self.builder.get_object('entry_last2').set_visible(True)
+                self.builder.get_object('entry_stride2').set_visible(True)
                 self.is_2D_trajectory = True
             else:
                 # Hide 2D-related inputs
-                self.builder.get_object('label_y_rc').hide()
-                self.builder.get_object('entry_first2').hide()
-                self.builder.get_object('entry_last2').hide()
-                self.builder.get_object('entry_stride2').hide()
+                self.builder.get_object('label_y_rc').set_visible(False)
+                self.builder.get_object('entry_first2').set_visible(False)
+                self.builder.get_object('entry_last2').set_visible(False)
+                self.builder.get_object('entry_stride2').set_visible(False)
                 self.is_2D_trajectory = False
         self._fileformat_update()
 

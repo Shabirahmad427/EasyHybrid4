@@ -245,8 +245,8 @@ class RamachandranWindow(Gtk.Window):
         cr.fill()
 
     def on_draw(self, widget, cr, width, height):
-        width = widget.get_allocated_width()
-        height = widget.get_allocated_height()
+        width = widget.get_width()
+        height = widget.get_height()
         cr.set_source_rgb(1, 1, 1)  # fundo branco
         cr.paint()
 

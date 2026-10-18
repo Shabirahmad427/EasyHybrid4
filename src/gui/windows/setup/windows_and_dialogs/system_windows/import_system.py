@@ -230,7 +230,7 @@ class ImportANewSystemWindow(Gtk.Window):
             self.box_combo.append(self.system_types_combo)
 
             # Hide unused label (legacy support)
-            self.builder.get_object('gtk_label_fftype').hide()
+            self.builder.get_object('gtk_label_fftype').set_visible(False)
 
             # Connect callback for when the system type changes
             self.system_types_combo.connect("notify::selected", self.on_name_combo_changed)
@@ -258,7 +258,7 @@ class ImportANewSystemWindow(Gtk.Window):
             connect_builder_signals(self.builder, self)
 
             # Hide OPLS folder chooser by default
-            self.builder.get_object('gtkbox_OPLS_folderchooser').hide()
+            self.builder.get_object('gtkbox_OPLS_folderchooser').set_visible(False)
 
             # Mark window as visible
             self.Visible = True
@@ -377,22 +377,22 @@ class ImportANewSystemWindow(Gtk.Window):
         self.treeview.set_model(Gtk.NoSelection.new(self.residue_liststore))
             
         if fftype == 0: #AMBER
-            self.builder.get_object('gtkbox_OPLS_folderchooser').hide()
+            self.builder.get_object('gtkbox_OPLS_folderchooser').set_visible(False)
             #self.builder.get_object('gtk_label_fftype').set_text(self.amber_txt)
             self.system_types_combo.set_tooltip_text(self.amber_txt)
             
         if fftype == 1: # "CHARMM":
-            self.builder.get_object('gtkbox_OPLS_folderchooser').hide()
+            self.builder.get_object('gtkbox_OPLS_folderchooser').set_visible(False)
             #self.builder.get_object('gtk_label_fftype').set_text(self.charmm_txt)
             self.system_types_combo.set_tooltip_text(self.charmm_txt)
             
         if fftype == 10: #"GROMACS":
-            self.builder.get_object('gtkbox_OPLS_folderchooser').hide()
+            self.builder.get_object('gtkbox_OPLS_folderchooser').set_visible(False)
             #self.builder.get_object('gtk_label_fftype').set_text(self.gmx_txt)
             self.system_types_combo.set_tooltip_text(self.OPLS_txt)
             
         if fftype == 2:#"OPLS":
-            self.builder.get_object('gtkbox_OPLS_folderchooser').show()
+            self.builder.get_object('gtkbox_OPLS_folderchooser').set_visible(True)
             #self.builder.get_object('gtk_label_fftype').set_text(self.OPLS_txt)
             
             '''Eventually, the user may have another set of parameters, but 
@@ -403,14 +403,14 @@ class ImportANewSystemWindow(Gtk.Window):
             
             
         if fftype == 3: #"pDynamo files(*.pkl,*.yaml)":
-            self.builder.get_object('gtkbox_OPLS_folderchooser').hide()
+            self.builder.get_object('gtkbox_OPLS_folderchooser').set_visible(False)
             
         if fftype == 4: #"Other(*.pdb,*.xyz,*.mol2...)":
-            self.builder.get_object('gtkbox_OPLS_folderchooser').hide()
+            self.builder.get_object('gtkbox_OPLS_folderchooser').set_visible(False)
             self.system_types_combo.set_tooltip_text(self.xyz_pdb_text)
 
         if fftype == 5:#"DYFF":
-            self.builder.get_object('gtkbox_OPLS_folderchooser').show()
+            self.builder.get_object('gtkbox_OPLS_folderchooser').set_visible(True)
             #self.builder.get_object('gtk_label_fftype').set_text(self.DYFF_txt)
             #try:
             '''Eventually, the user may have another set of parameters, but 

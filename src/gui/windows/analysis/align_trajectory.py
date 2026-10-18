@@ -122,7 +122,7 @@ class AlignTrajectoryWindow:
             self.window.present()           
             self.Visible  = True
             
-            self.builder.get_object('chkbox_reference').hide()
+            self.builder.get_object('chkbox_reference').set_visible(False)
             
       
     def on_combobox_systems_changed (self, widget, _pspec=None):

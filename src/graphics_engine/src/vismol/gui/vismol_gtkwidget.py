@@ -26,6 +26,7 @@ from vismol.utils.debug import dprint
 import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gdk
+from src.gtk4_compat import texture_from_pixbuf
 from gui import file_dialogs
 from gui.response_dialog import ResponseDialog
 from src.gtk4_compat import (
@@ -763,8 +764,8 @@ class VismolGTKWidget(_WidgetBase):
         # draw cycle.
         self.vm_glcore.render()
 
-        width = self.get_allocated_width()
-        height = self.get_allocated_height()
+        width = self.get_width()
+        height = self.get_height()
 
         # Mesma garantia de sincronizacao aplicada em vm_glcore.render_to_image
         # -- garante que o desenho terminou de verdade na GPU antes da leitura.
@@ -1224,7 +1225,7 @@ class PreviewWindow(Gtk.Window):
         # keep a reference alive for the lifetime of the pixbuf - GTK
         # doesn't copy the buffer, only holds this Python object's data
         self._preview_pixbuf_data = data
-        self.image_widget.set_from_pixbuf(pixbuf)
+        self.image_widget.set_from_paintable(texture_from_pixbuf(pixbuf))
 
     def on_change(self, widget, _pspec=None):
         self.update_preview()

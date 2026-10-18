@@ -1,4 +1,9 @@
+import os
 import sys
+
+_EASYHYBRID3_HOME = os.environ.get(
+    "EASYHYBRID3_HOME", os.path.expanduser("~/programs/EasyHybrid3")
+)
 from pBabel                    import *                                     
 from pCore                     import *                                     
 from pMolecule                 import *                  
@@ -7,7 +12,7 @@ from pScientific.Arrays        import *
 from pScientific.Geometry3     import *                 
 from pSimulation               import *
 
-sys.path.insert(1, '~/programs/EasyHybrid3/pdynamo')
+sys.path.insert(1, os.path.join(_EASYHYBRID3_HOME, "pdynamo"))
 import p_methods  as pMethods
 
 
@@ -27,7 +32,7 @@ Umbrella sampling using a simple distance reaction coordinate
 parameters = {'NmaxThreads': 2,
              
              'MD_parm': {'collisionFrequency'       : 25.0,
-                         'folder'                   : '~',
+                         'folder'                   : os.path.expanduser("~"),
                          'integrator'               : 'Verlet',
                          'logFrequency'             : 10,
                          'normalDeviateGenerator'   : None,
@@ -69,7 +74,7 @@ parameters = {'NmaxThreads': 2,
              'folder'           : '../scratch',
              'input_type'       : 1, # means = parallel
              'simulation_type'  : 'Umbrella_Sampling',
-             'source_folder'    : '~/programs/EasyHybrid3/examples/scripts/bALA_OPLS_PES_scan.ptGeo',
+             'source_folder'    : os.path.join(_EASYHYBRID3_HOME, "examples", "scripts", "bALA_OPLS_PES_scan.ptGeo"),
              'system'           : system,
              'traj_folder_name' : '1-BALA_OPLS_umb_sam',
              'vobj'             : None}

@@ -326,6 +326,24 @@ PyGObject 3.58, so `list(rgba)` raised `TypeError` in 17 setup-preference
 handlers on PyGObject 3.42–3.50 (typical with GTK 4.8–4.14); they now use
 `gtk4_compat.rgba_components`, and the guard rejects the old pattern.
 
+### Deprecation sweep
+
+Remaining APIs deprecated inside the supported range were replaced with
+ones present since GTK 4.0: `widget.show()`/`hide()` (deprecated 4.10; 361
+calls, token-based codemod skipping comments, strings and matplotlib's
+`plt.show()`) became `set_visible()`; `get_allocated_width/height()`
+(deprecated 4.12) became `get_width()/get_height()` (identical values with
+margins, padding and border on GTK 4.8, 4.12 and 4.24); pixbuf image calls
+(`Gtk.Image.set_from_pixbuf`/`new_from_pixbuf`, `Gtk.Picture.set_pixbuf`,
+deprecated 4.12, and `Gdk.Texture.new_for_pixbuf`, deprecated 4.20) use
+`gtk4_compat.texture_from_pixbuf` (a `Gdk.MemoryTexture`); the main window's
+`GtkStatusbar` (deprecated 4.10) is `gui.status_label.StatusLabel`
+(`EasyHybridStatusLabel`, same push/pop message stack). Kept on purpose:
+`Gtk.StyleContext.add_provider_for_display` (not deprecated), the
+`set_keep_aspect_ratio` fallback in `gtk4_compat.set_picture_contain` (only
+reachable below the GTK 4.8 floor), and the GTK 4.8-only dialogs inside
+`gui.file_dialogs`. The static guard rejects every replaced pattern.
+
 Native matrix run `39082144669` (commit `9373956`): **10/10 passed in all 30 cells** — every GTK4 minor 4.8–4.24 on Linux, Windows and macOS arm64, plus GTK 4.8/4.10 on macOS x86_64.
 
 ## Verification requirements

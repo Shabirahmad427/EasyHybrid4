@@ -193,3 +193,20 @@ def rgba_components(rgba):
     TypeError.
     """
     return [rgba.red, rgba.green, rgba.blue, rgba.alpha]
+
+
+def texture_from_pixbuf(pixbuf, gdk=Gdk):
+    """Return a Gdk.Texture with ``pixbuf``'s pixels, or None.
+
+    Gtk.Image.set_from_pixbuf, Gtk.Picture.set_pixbuf and their
+    constructors are deprecated since GTK 4.12, and their replacement
+    Gdk.Texture.new_for_pixbuf is itself deprecated since GTK 4.20.
+    Gdk.MemoryTexture exists since GTK 4.0, so this one path works on every
+    supported minor. GdkPixbuf stores 8-bit, non-premultiplied RGB(A).
+    """
+    if pixbuf is None:
+        return None
+    memory_format = (gdk.MemoryFormat.R8G8B8A8 if pixbuf.get_has_alpha()
+                     else gdk.MemoryFormat.R8G8B8)
+    return gdk.MemoryTexture.new(pixbuf.get_width(), pixbuf.get_height(), memory_format,
+                                 pixbuf.read_pixel_bytes(), pixbuf.get_rowstride())

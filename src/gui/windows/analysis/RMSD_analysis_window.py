@@ -130,9 +130,9 @@ class RMSDAnalysisWindow:
             #self.column_2   .set_spacing(40)
             #self.column_3   .set_spacing(40)
             #self.column_4   .set_spacing(40)
-            self.builder.get_object('scroll_treeview').hide()
+            self.builder.get_object('scroll_treeview').set_visible(False)
             #self.builder.get_object('output_box').hide()
-            self.builder.get_object('btn_distance').hide()
+            self.builder.get_object('btn_distance').set_visible(False)
             self.Visible  = True
             
             

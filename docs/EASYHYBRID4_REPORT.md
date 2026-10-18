@@ -5,6 +5,20 @@
 GTK/Python compatibility, parity, platform, testing, and known-limitation
 status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).
 
+**Security cleanup (2026-10-18):** Removed personal host/network identifiers,
+user-specific home-directory paths, and literal IP addresses from tracked
+files and rewritten branch history. A repository scan found no private key
+blocks or credential-bearing URLs. GitHub secret-scanning alerts are not
+available for this repository. History rewriting removes these strings from
+the reachable refs, but GitHub may retain unreachable cached objects.
+The first full clean-history GTK matrix log showed an access violation when
+the `Gtk.ColorChooserDialog` response handler destroyed its dialog inline on
+Windows. The fallback now hides the dialog and defers destruction; targeted
+chooser tests pass on Linux GTK 4.14.5. The follow-up full matrix run
+`39150184361` on commit `5d3a9db` passed all 30/30 jobs across GTK 4.8–4.24
+on Linux, Windows and macOS, including the macOS GTK 4.24 full regression
+suite. Main-branch validation follows the merge.
+
 ## Topics
 
 1. [Current status and repository provenance](#1-current-status)
@@ -63,7 +77,7 @@ status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).
 |---|---|
 | EasyHybrid4 baseline | Initial baseline: `main`, HEAD `bea94210ed7c23f71d2241f8abe3c849ade18561`, clean at EH4-000 verification, no tags. Current local HEAD is `b181a50`; roadmap/report updates remain uncommitted. `origin` is configured to the user-supplied private repository `https://github.com/Shabirahmad427/EasyHybrid4.git`; GitHub reports the repository currently has no commits. The URL is verified; graphics upstream revision remains unknown. |
 | Graphics engine in EasyHybrid4 | `.gitmodules` declares `src/graphics_engine` at `https://github.com/casebor/graphics_engine`, branch `vismol_easyhybrid`; however the index/tree tracks ordinary files, `git submodule status --recursive` is empty, and there is no nested Git metadata. Its upstream SHA is unknown. Do not infer the SHA or repository from the declaration. |
-| EasyHybrid3 comparison checkout | `$HOME/software/EasyHybrid3`, branch `dev`, commit `b2113b8c11ba3dff51b93fd2f52fc1a7dc9d1098`; origin is `git@github.com:Shabirahmad427/EasyHybrid3.git`, tracking `origin/dev`, 18 commits ahead at inspection. Its working tree had pre-existing user changes and was not modified. |
+| EasyHybrid3 comparison checkout | `~/software/EasyHybrid3`, branch `dev`, commit `b2113b8c11ba3dff51b93fd2f52fc1a7dc9d1098`; origin is `git@github.com:Shabirahmad427/EasyHybrid3.git`, tracking `origin/dev`, 18 commits ahead at inspection. Its working tree had pre-existing user changes and was not modified. |
 | EasyHybrid3 graphics submodule | Declared at `https://github.com/Shabirahmad427/Vismol`, branch `vismol_easyhybrid`; checked-out SHA `6a25a2eaf27c7627dba171104fc7fc8a4c9295fd`. This is comparison evidence only, not the missing EasyHybrid4 revision. |
 | Licenses | Root application `LICENSE`: GNU GPL v3. Vendored graphics `src/graphics_engine/LICENSE`: CC BY-NC 4.0. Preserve both notices; distribution implications need legal review before packaging. |
 
@@ -238,7 +252,7 @@ migration is claimed but end-to-end behavior is not demonstrated.
 | Process manager, job lifecycle, recent files, project/session management | **UNTESTED** | Source exists; process and restart lifecycle were not exercised. |
 
 EasyHybrid3's detailed implementation report was inspected read-only at
-`$HOME/software/EasyHybrid3/docs/EASYHYBRID3_IMPLEMENTATION_REPORT.md`.
+`~/software/EasyHybrid3/docs/EASYHYBRID3_IMPLEMENTATION_REPORT.md`.
 The comparison suite result is recorded below. Preserve all scientific
 workflows; this status report does not authorize dropping an incomplete
 feature.
@@ -298,7 +312,7 @@ The launcher-sourced pDynamo environment resolves `pCore`, `pMolecule`,
 Existing EasyHybrid4 tests:
 
 ```sh
-$HOME/software/envs/easyhybrid312/bin/python -m pytest -q -p no:cacheprovider tests/
+~/software/envs/easyhybrid312/bin/python -m pytest -q -p no:cacheprovider tests/
 ```
 
 Result: **PASS**, 23 passed in 0.02 seconds.
@@ -306,7 +320,7 @@ Result: **PASS**, 23 passed in 0.02 seconds.
 EasyHybrid3 reference suite:
 
 ```sh
-$HOME/software/envs/easyhybrid312/bin/python -m pytest -q -p no:cacheprovider $HOME/software/EasyHybrid3/tests/
+~/software/envs/easyhybrid312/bin/python -m pytest -q -p no:cacheprovider ~/software/EasyHybrid3/tests/
 ```
 
 Result: **PASS**, 23 passed, 4 skipped in 0.08 seconds.
@@ -317,9 +331,9 @@ Graphics extension build (isolated source copy, no repository mutation):
 tmpdir=$(mktemp -d)
 cp -a src/graphics_engine "$tmpdir/graphics_engine"
 cd "$tmpdir/graphics_engine"
-$HOME/software/envs/easyhybrid312/bin/python setup.py build_ext --inplace
+~/software/envs/easyhybrid312/bin/python setup.py build_ext --inplace
 PYTHONPATH="$tmpdir/graphics_engine/src" \
-  $HOME/software/envs/easyhybrid312/bin/python -c 'import vismol.utils.matrix_operations, vismol.utils.PDBFiles, vismol.utils.GROFiles, vismol.utils.c_distances, vismol.utils.selectors, vismol.utils.mesh_decimation, vismol.utils.mesh_smoothing; print("7 graphics extension imports: PASS")'
+  ~/software/envs/easyhybrid312/bin/python -c 'import vismol.utils.matrix_operations, vismol.utils.PDBFiles, vismol.utils.GROFiles, vismol.utils.c_distances, vismol.utils.selectors, vismol.utils.mesh_decimation, vismol.utils.mesh_smoothing; print("7 graphics extension imports: PASS")'
 ```
 
 Result: **PASS**, seven compiled modules and seven imports. GCC emitted NumPy
@@ -587,13 +601,13 @@ The sections below retain the prior topic reports in one place. Their original s
 ## Baseline record
 
 Recorded 2026-10-17 UTC while starting EH4-000. The checked-out EasyHybrid4
-directory is `$HOME/software/EasyHybrid4`.
+directory is `~/software/EasyHybrid4`.
 
 | Item | Evidence |
 |---|---|
-| EasyHybrid4 Git metadata | Reverified directly: repository root `$HOME/software/EasyHybrid4`, branch `main`, HEAD `bea94210ed7c23f71d2241f8abe3c849ade18561`, clean working tree, no tags, and **no remotes configured**. The canonical EasyHybrid4 fork URL cannot be identified from this clone. |
+| EasyHybrid4 Git metadata | Reverified directly: repository root `~/software/EasyHybrid4`, branch `main`, HEAD `bea94210ed7c23f71d2241f8abe3c849ade18561`, clean working tree, no tags, and **no remotes configured**. The canonical EasyHybrid4 fork URL cannot be identified from this clone. |
 | EasyHybrid4 declared graphics submodule | `.gitmodules` declares `src/graphics_engine`, URL `https://github.com/casebor/graphics_engine`, branch `vismol_easyhybrid`. However, `git ls-tree HEAD src/graphics_engine` reports mode `040000` (ordinary tree), the index lists files individually, `git submodule status --recursive` is empty, and there is no nested `.git` or `.gitmodules`. The entry is stale: the source is vendored, not a resolvable submodule. No upstream graphics revision is present in Git metadata. |
-| EasyHybrid3 reference checkout | `$HOME/software/EasyHybrid3`, branch `dev`, commit `b2113b8c11ba3dff51b93fd2f52fc1a7dc9d1098` (2026-10-16). Tracking `origin/dev`, 18 commits ahead. Remote `origin`: `git@github.com:Shabirahmad427/EasyHybrid3.git`. No tags were listed. Working tree is dirty: modified `docs/GPU4PySCF.md`, six source files, and untracked `bin/`. These user changes were left untouched. |
+| EasyHybrid3 reference checkout | `~/software/EasyHybrid3`, branch `dev`, commit `b2113b8c11ba3dff51b93fd2f52fc1a7dc9d1098` (2026-10-16). Tracking `origin/dev`, 18 commits ahead. Remote `origin`: `git@github.com:Shabirahmad427/EasyHybrid3.git`. No tags were listed. Working tree is dirty: modified `docs/GPU4PySCF.md`, six source files, and untracked `bin/`. These user changes were left untouched. |
 | EasyHybrid3 declared graphics submodule | `.gitmodules` names `src/graphics_engine`, URL `https://github.com/Shabirahmad427/Vismol`, branch `vismol_easyhybrid`. Resolved SHA `6a25a2eaf27c7627dba171104fc7fc8a4c9295fd`; the submodule checkout is detached. Its `origin` is the same HTTPS URL. No submodule tags were listed. |
 | Nested graphics submodules | No nested `.gitmodules` or `.git` entries were found under the vendored graphics-engine directory. |
 | Licenses | EasyHybrid4 root `LICENSE` is GNU GPL version 3. `src/graphics_engine/LICENSE` is Creative Commons Attribution-NonCommercial 4.0 International. Preserve both notices; distribution compatibility needs a deliberate legal review before packaging. |
@@ -800,7 +814,7 @@ commit the task without claiming unavailable CI or native hardware results.
 
 Date: 2026-10-17. This is a source and test inventory, not a claim that the
 complete applications have been exercised. EasyHybrid3 was inspected
-read-only at `$HOME/software/EasyHybrid3`; its implementation summary is
+read-only at `~/software/EasyHybrid3`; its implementation summary is
 `docs/EASYHYBRID3_IMPLEMENTATION_REPORT.md`. EasyHybrid4 evidence is from this
 checkout. Statuses mean:
 
@@ -835,8 +849,8 @@ checkout. Statuses mean:
 On Linux x86_64 with Python 3.12.3, PyGObject 3.48.2, GTK 4.14.5 and GLib
 2.80.0:
 
-- EasyHybrid4: `$HOME/software/envs/easyhybrid312/bin/python -m pytest -q -p no:cacheprovider tests/` — **23 passed**.
-- EasyHybrid3 reference: `$HOME/software/envs/easyhybrid312/bin/python -m pytest -q -p no:cacheprovider $HOME/software/EasyHybrid3/tests/` — **23 passed, 4 skipped**.
+- EasyHybrid4: `~/software/envs/easyhybrid312/bin/python -m pytest -q -p no:cacheprovider tests/` — **23 passed**.
+- EasyHybrid3 reference: `~/software/envs/easyhybrid312/bin/python -m pytest -q -p no:cacheprovider ~/software/EasyHybrid3/tests/` — **23 passed, 4 skipped**.
 - Both suites are primarily GTK/display-free atom/bond and chemistry logic tests. They do not test the GUI, pDynamo calculations, exports, real OpenGL, Windows, or macOS.
 - Linux Wayland/X11 live GUI, GTK 4.0, other GTK minors, Windows, and macOS are **NOT TESTED**. See Section 6 of this report.
 
@@ -1065,7 +1079,7 @@ display backend.
 | Item | Observed value |
 |---|---|
 | OS / kernel | Linux x86_64, `Linux [remote Linux host] 6.8.0-147-generic`, Ubuntu userspace with glibc 2.39 |
-| Python | 3.12.3 (`$HOME/software/envs/easyhybrid312/bin/python`) |
+| Python | 3.12.3 (`~/software/envs/easyhybrid312/bin/python`) |
 | PyGObject | 3.48.2 |
 | GTK runtime | 4.14.5 |
 | GLib runtime | 2.80.0 |
@@ -1076,7 +1090,7 @@ display backend.
 | Compiler | GCC 12.4.0 (Ubuntu) |
 | Graphics renderer/context | NOT TESTED in this baseline |
 
-The application launcher sources `$HOME/software/pdynamo3.sh`. With
+The application launcher sources `~/software/pdynamo3.sh`. With
 that environment active, `pCore`, `pMolecule`, `pSimulation`, and `pScientific`
 all resolve. A direct import probe without the launcher environment does not
 represent the application's configured runtime.
@@ -1088,7 +1102,7 @@ represent the application's configured runtime.
 Command:
 
 ```sh
-$HOME/software/envs/easyhybrid312/bin/python -m pytest -q -p no:cacheprovider tests/
+~/software/envs/easyhybrid312/bin/python -m pytest -q -p no:cacheprovider tests/
 ```
 
 Result: **PASS**, 23 passed in 0.02 seconds. Cache is disabled to avoid the
@@ -1105,9 +1119,9 @@ checkout:
 tmpdir=$(mktemp -d)
 cp -a src/graphics_engine "$tmpdir/graphics_engine"
 cd "$tmpdir/graphics_engine"
-$HOME/software/envs/easyhybrid312/bin/python setup.py build_ext --inplace
+~/software/envs/easyhybrid312/bin/python setup.py build_ext --inplace
 PYTHONPATH="$tmpdir/graphics_engine/src" \
-  $HOME/software/envs/easyhybrid312/bin/python -c 'import vismol.utils.matrix_operations, vismol.utils.PDBFiles, vismol.utils.GROFiles, vismol.utils.c_distances, vismol.utils.selectors, vismol.utils.mesh_decimation, vismol.utils.mesh_smoothing; print("7 graphics extension imports: PASS")'
+  ~/software/envs/easyhybrid312/bin/python -c 'import vismol.utils.matrix_operations, vismol.utils.PDBFiles, vismol.utils.GROFiles, vismol.utils.c_distances, vismol.utils.selectors, vismol.utils.mesh_decimation, vismol.utils.mesh_smoothing; print("7 graphics extension imports: PASS")'
 ```
 
 Result: **PASS**; all seven Cython extensions compiled with GCC and imported.
@@ -1647,8 +1661,8 @@ deferred to pDynamo's calculation worker.
 
 The GPU launcher uses:
 
-- `$HOME/.local/bin/easyhybrid`
-- Stable Conda environment `$HOME/software/envs/pdynamo3`
+- `~/.local/bin/easyhybrid`
+- Stable Conda environment `~/software/envs/pdynamo3`
 - The bundled `EasyHybrid3/src/graphics_engine` source tree
 
 The stable environment provides both CPU PySCF and GPU4PySCF. It uses Python
@@ -1723,9 +1737,9 @@ The final installation has one public activation command, one environment,
 one pDynamo source tree, one EasyHybrid source tree, and one GUI launcher:
 
 - `activate_pdynamo3`
-- `$HOME/software/envs/pdynamo3`
-- `$HOME/software/pDynamo3`
-- `$HOME/software/EasyHybrid3`
+- `~/software/envs/pdynamo3`
+- `~/software/pDynamo3`
+- `~/software/EasyHybrid3`
 - `easyhybrid`
 
 CPU/GPU selection is a model option rather than an environment choice:
@@ -1768,7 +1782,7 @@ earlier report).
 
 | Conda env | PySCF | GPU (`gpu4pyscf`) | NumPy | CuPy | Activate with |
 |---|---|---|---|---|---|
-| `$HOME/software/envs/pdynamo3` (Python 3.10.20) | 2.14.0 | `gpu4pyscf-cuda12x` 1.8.1 | 1.26.4 | 13.6.0 | `activate_pdynamo3` for scripting or `easyhybrid` for the GUI |
+| `~/software/envs/pdynamo3` (Python 3.10.20) | 2.14.0 | `gpu4pyscf-cuda12x` 1.8.1 | 1.26.4 | 13.6.0 | `activate_pdynamo3` for scripting or `easyhybrid` for the GUI |
 
 CuPy 13.6.0 satisfies GPU4PySCF's supported `cupy>=13` range while retaining
 NumPy 1.26.4 compatibility required by existing pDynamo add-ons. The stable
@@ -1922,10 +1936,10 @@ The machine now exposes only `activate_pdynamo3` for pDynamo scripting and
 `easyhybrid` for the GUI. Both CPU and GPU calculations use:
 
 ```text
-Environment: $HOME/software/envs/pdynamo3
-pDynamo:     $HOME/software/pDynamo3
-EasyHybrid:  $HOME/software/EasyHybrid3
-Graphics:    $HOME/software/EasyHybrid3/src/graphics_engine
+Environment: ~/software/envs/pdynamo3
+pDynamo:     ~/software/pDynamo3
+EasyHybrid:  ~/software/EasyHybrid3
+Graphics:    ~/software/EasyHybrid3/src/graphics_engine
 ```
 
 There are no `*_gpu`, EasyHybrid-specific activation, batched-pDynamo, or

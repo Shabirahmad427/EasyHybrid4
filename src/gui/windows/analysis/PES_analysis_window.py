@@ -422,18 +422,18 @@ class PotentialEnergyAnalysisWindow:
         self.builder.get_object('box_2d_tools_content').set_sensitive(widget.get_active())
         
         if widget.get_active():
-            self.builder.get_object('plot2d_pane').show()
+            self.builder.get_object('plot2d_pane').set_visible(True)
         else:
-            self.builder.get_object('plot2d_pane').hide()
+            self.builder.get_object('plot2d_pane').set_visible(False)
             
     def on_1d_tools_enable_toggle (self, widget):
         """ Mesma ideia de on_2d_tools_enable_toggle(), para o grupo
         "1D profile tools" (hoje so' o spinbutton de x labels). """
         self.builder.get_object('box_1d_tools_content').set_sensitive(widget.get_active())
         if widget.get_active():
-            self.builder.get_object('plot1d_pane').show()
+            self.builder.get_object('plot1d_pane').set_visible(True)
         else:
-            self.builder.get_object('plot1d_pane').hide()
+            self.builder.get_object('plot1d_pane').set_visible(False)
 
 
     def on_layout_toggle_changed (self, widget):
@@ -675,7 +675,7 @@ class PotentialEnergyAnalysisWindow:
                             #sym_color = [1,1,1], 
                             line = 'solid', 
                             line_color = self.plot2.line_color )
-            self.plot.hide()
+            self.plot.set_visible(False)
             self.scale_traj_new_definitions(set_range = len(self.data['Z']))
         
         elif self.data['type'] == 'plot2D':
@@ -690,7 +690,7 @@ class PotentialEnergyAnalysisWindow:
                 for j in range(0, len(self.data['Z'][i])):
                     self.data['Z'][i][j] = self.data['Z'][i][j]-_min 
             #print('\n\n\n', self.data,'\n\n\n')
-            self.plot.show()
+            self.plot.set_visible(True)
             self.plot.data = self.data['Z']
             self.plot.dataRC1 = self.data['RC1']
             self.plot.dataRC2 = self.data['RC2']

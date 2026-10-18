@@ -182,8 +182,8 @@ class PreferencesWindow:
         
         self.window.set_resizable(False)
         self.window.present()
-        self.button_color.hide()
-        self.builder.get_object('label_color').hide()
+        self.button_color.set_visible(False)
+        self.builder.get_object('label_color').set_visible(False)
     
     def set_names (self, name, tag):
         """ Function doc """

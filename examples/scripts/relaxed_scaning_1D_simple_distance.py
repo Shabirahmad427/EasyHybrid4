@@ -1,4 +1,9 @@
+import os
 import sys
+
+_EASYHYBRID3_HOME = os.environ.get(
+    "EASYHYBRID3_HOME", os.path.expanduser("~/programs/EasyHybrid3")
+)
 from pBabel                    import *                                     
 from pCore                     import *                                     
 from pMolecule                 import *                  
@@ -7,7 +12,7 @@ from pScientific.Arrays        import *
 from pScientific.Geometry3     import *                 
 from pSimulation               import *
 
-sys.path.insert(1, '~/programs/EasyHybrid3/pdynamo')
+sys.path.insert(1, os.path.join(_EASYHYBRID3_HOME, "pdynamo"))
 import p_methods  as pMethods
 
 

@@ -343,13 +343,13 @@ class UmbrellaSamplingWindow(Gtk.Window):
         _type =  combobox.get_selected()
         
         if _type == 0:
-            self.builder.get_object('label_input_trajectory').hide()
-            self.builder.get_object('folder_chooser_box').hide()
-            self.builder.get_object('label_number_of_cpus').hide()
-            self.builder.get_object('ncpus_spinbutton').hide()
+            self.builder.get_object('label_input_trajectory').set_visible(False)
+            self.builder.get_object('folder_chooser_box').set_visible(False)
+            self.builder.get_object('label_number_of_cpus').set_visible(False)
+            self.builder.get_object('ncpus_spinbutton').set_visible(False)
             
-            self.builder.get_object('label_starting_coordinates').show()
-            self.combobox_starting_coordinates.show()
+            self.builder.get_object('label_starting_coordinates').set_visible(True)
+            self.combobox_starting_coordinates.set_visible(True)
         
             self.RC_box1.entry_step_size .set_sensitive(True)
             self.RC_box1.entry_nsteps    .set_sensitive(True)
@@ -371,13 +371,13 @@ class UmbrellaSamplingWindow(Gtk.Window):
         
         
         if _type == 1:
-            self.builder.get_object('label_input_trajectory').show()
-            self.builder.get_object('folder_chooser_box').show()
-            self.builder.get_object('label_number_of_cpus').show()
-            self.builder.get_object('ncpus_spinbutton').show()
+            self.builder.get_object('label_input_trajectory').set_visible(True)
+            self.builder.get_object('folder_chooser_box').set_visible(True)
+            self.builder.get_object('label_number_of_cpus').set_visible(True)
+            self.builder.get_object('ncpus_spinbutton').set_visible(True)
             
-            self.builder.get_object('label_starting_coordinates').hide()
-            self.combobox_starting_coordinates.hide()
+            self.builder.get_object('label_starting_coordinates').set_visible(False)
+            self.combobox_starting_coordinates.set_visible(False)
             
             self.RC_box1.entry_step_size .set_sensitive(False)
             self.RC_box1.entry_nsteps    .set_sensitive(False)
@@ -408,54 +408,54 @@ class UmbrellaSamplingWindow(Gtk.Window):
             
             #velocity verlet molecular dynamics
             if 0 == widget.get_selected():
-                self.builder.get_object('check_pressure_control').hide()
-                self.builder.get_object('entry_pressure').hide()
-                self.builder.get_object('entry_pressure').hide()
+                self.builder.get_object('check_pressure_control').set_visible(False)
+                self.builder.get_object('entry_pressure').set_visible(False)
+                self.builder.get_object('entry_pressure').set_visible(False)
                 
                 
-                self.builder.get_object('entry_temp_coupling').hide()
-                self.builder.get_object('label_temp_coupling').hide()
+                self.builder.get_object('entry_temp_coupling').set_visible(False)
+                self.builder.get_object('label_temp_coupling').set_visible(False)
                 
-                self.builder.get_object('label_pressure_coupling').hide()
-                self.builder.get_object('entry_pressure_coupling').hide()
+                self.builder.get_object('label_pressure_coupling').set_visible(False)
+                self.builder.get_object('entry_pressure_coupling').set_visible(False)
                 
-                self.builder.get_object('label_collision_freq').hide()
-                self.builder.get_object('entry_collision_frequency').hide()
+                self.builder.get_object('label_collision_freq').set_visible(False)
+                self.builder.get_object('entry_collision_frequency').set_visible(False)
                 
                 #self.temp_scale_options_combo.set_sensitive(True)
                 
             #Leap Frog molecular dynamics
             elif 1 == widget.get_selected():
-                self.builder.get_object('check_pressure_control').show()
-                self.builder.get_object('entry_pressure').show()
+                self.builder.get_object('check_pressure_control').set_visible(True)
+                self.builder.get_object('entry_pressure').set_visible(True)
                 
-                self.builder.get_object('label_pressure_coupling').show()
-                self.builder.get_object('entry_pressure_coupling').show()
-                
-                
-                self.builder.get_object('entry_temp_coupling').show()
-                self.builder.get_object('label_temp_coupling').show()
+                self.builder.get_object('label_pressure_coupling').set_visible(True)
+                self.builder.get_object('entry_pressure_coupling').set_visible(True)
                 
                 
-                self.builder.get_object('label_collision_freq').hide()
-                self.builder.get_object('entry_collision_frequency').hide()
+                self.builder.get_object('entry_temp_coupling').set_visible(True)
+                self.builder.get_object('label_temp_coupling').set_visible(True)
+                
+                
+                self.builder.get_object('label_collision_freq').set_visible(False)
+                self.builder.get_object('entry_collision_frequency').set_visible(False)
                 
                 #self.temp_scale_options_combo.set_active(0)
                 #self.temp_scale_options_combo.set_sensitive(False)
                 
             #Langevin molecular dynamics
             elif 2 == widget.get_selected():
-                self.builder.get_object('check_pressure_control').hide()
-                self.builder.get_object('entry_pressure').hide()
+                self.builder.get_object('check_pressure_control').set_visible(False)
+                self.builder.get_object('entry_pressure').set_visible(False)
                 
-                self.builder.get_object('entry_temp_coupling').hide()
-                self.builder.get_object('label_temp_coupling').hide()
+                self.builder.get_object('entry_temp_coupling').set_visible(False)
+                self.builder.get_object('label_temp_coupling').set_visible(False)
                 
-                self.builder.get_object('label_pressure_coupling').hide()
-                self.builder.get_object('entry_pressure_coupling').hide()
+                self.builder.get_object('label_pressure_coupling').set_visible(False)
+                self.builder.get_object('entry_pressure_coupling').set_visible(False)
                 
-                self.builder.get_object('label_collision_freq').show()
-                self.builder.get_object('entry_collision_frequency').show()
+                self.builder.get_object('label_collision_freq').set_visible(True)
+                self.builder.get_object('entry_collision_frequency').set_visible(True)
             
                 #self.temp_scale_options_combo.set_active(0)
                 #self.temp_scale_options_combo.set_sensitive(False)
@@ -783,15 +783,15 @@ class UmbrellaSamplingWindow(Gtk.Window):
                 if vobj.name == vobj_name:
                     self.combobox_starting_coordinates.set_selected(vobj_id)
                     break
-            self.combobox_starting_coordinates.show()
-            self.folder_chooser_button.btn.hide()
-            self.spinbutton.hide()
+            self.combobox_starting_coordinates.set_visible(True)
+            self.folder_chooser_button.btn.set_visible(False)
+            self.spinbutton.set_visible(False)
         elif input_type == 1 and parameters.get('source_folder') is not None:
             # Set trajectory folder
             self.folder_chooser_button.set_folder(parameters['source_folder'])
-            self.folder_chooser_button.btn.show()
-            self.spinbutton.show()
-            self.combobox_starting_coordinates.hide()
+            self.folder_chooser_button.btn.set_visible(True)
+            self.spinbutton.set_visible(True)
+            self.combobox_starting_coordinates.set_visible(False)
 
         # ----------------------------
         # Reaction Coordinates
@@ -1054,13 +1054,13 @@ class UmbrellaSamplingWindow_old(Gtk.Window):
         _type =  combobox.get_selected()
         
         if _type == 0:
-            self.builder.get_object('label_input_trajectory').hide()
-            self.builder.get_object('folder_chooser_box').hide()
-            self.builder.get_object('label_number_of_cpus').hide()
-            self.builder.get_object('ncpus_spinbutton').hide()
+            self.builder.get_object('label_input_trajectory').set_visible(False)
+            self.builder.get_object('folder_chooser_box').set_visible(False)
+            self.builder.get_object('label_number_of_cpus').set_visible(False)
+            self.builder.get_object('ncpus_spinbutton').set_visible(False)
             
-            self.builder.get_object('label_starting_coordinates').show()
-            self.combobox_starting_coordinates.show()
+            self.builder.get_object('label_starting_coordinates').set_visible(True)
+            self.combobox_starting_coordinates.set_visible(True)
         
             self.RC_box1.entry_step_size .set_sensitive(True)
             self.RC_box1.entry_nsteps    .set_sensitive(True)
@@ -1082,13 +1082,13 @@ class UmbrellaSamplingWindow_old(Gtk.Window):
         
         
         if _type == 1:
-            self.builder.get_object('label_input_trajectory').show()
-            self.builder.get_object('folder_chooser_box').show()
-            self.builder.get_object('label_number_of_cpus').show()
-            self.builder.get_object('ncpus_spinbutton').show()
+            self.builder.get_object('label_input_trajectory').set_visible(True)
+            self.builder.get_object('folder_chooser_box').set_visible(True)
+            self.builder.get_object('label_number_of_cpus').set_visible(True)
+            self.builder.get_object('ncpus_spinbutton').set_visible(True)
             
-            self.builder.get_object('label_starting_coordinates').hide()
-            self.combobox_starting_coordinates.hide()
+            self.builder.get_object('label_starting_coordinates').set_visible(False)
+            self.combobox_starting_coordinates.set_visible(False)
             
             self.RC_box1.entry_step_size .set_sensitive(False)
             self.RC_box1.entry_nsteps    .set_sensitive(False)
@@ -1119,54 +1119,54 @@ class UmbrellaSamplingWindow_old(Gtk.Window):
             
             #velocity verlet molecular dynamics
             if 0 == widget.get_selected():
-                self.builder.get_object('check_pressure_control').hide()
-                self.builder.get_object('entry_pressure').hide()
-                self.builder.get_object('entry_pressure').hide()
+                self.builder.get_object('check_pressure_control').set_visible(False)
+                self.builder.get_object('entry_pressure').set_visible(False)
+                self.builder.get_object('entry_pressure').set_visible(False)
                 
                 
-                self.builder.get_object('entry_temp_coupling').hide()
-                self.builder.get_object('label_temp_coupling').hide()
+                self.builder.get_object('entry_temp_coupling').set_visible(False)
+                self.builder.get_object('label_temp_coupling').set_visible(False)
                 
-                self.builder.get_object('label_pressure_coupling').hide()
-                self.builder.get_object('entry_pressure_coupling').hide()
+                self.builder.get_object('label_pressure_coupling').set_visible(False)
+                self.builder.get_object('entry_pressure_coupling').set_visible(False)
                 
-                self.builder.get_object('label_collision_freq').hide()
-                self.builder.get_object('entry_collision_frequency').hide()
+                self.builder.get_object('label_collision_freq').set_visible(False)
+                self.builder.get_object('entry_collision_frequency').set_visible(False)
                 
                 #self.temp_scale_options_combo.set_sensitive(True)
                 
             #Leap Frog molecular dynamics
             elif 1 == widget.get_selected():
-                self.builder.get_object('check_pressure_control').show()
-                self.builder.get_object('entry_pressure').show()
+                self.builder.get_object('check_pressure_control').set_visible(True)
+                self.builder.get_object('entry_pressure').set_visible(True)
                 
-                self.builder.get_object('label_pressure_coupling').show()
-                self.builder.get_object('entry_pressure_coupling').show()
-                
-                
-                self.builder.get_object('entry_temp_coupling').show()
-                self.builder.get_object('label_temp_coupling').show()
+                self.builder.get_object('label_pressure_coupling').set_visible(True)
+                self.builder.get_object('entry_pressure_coupling').set_visible(True)
                 
                 
-                self.builder.get_object('label_collision_freq').hide()
-                self.builder.get_object('entry_collision_frequency').hide()
+                self.builder.get_object('entry_temp_coupling').set_visible(True)
+                self.builder.get_object('label_temp_coupling').set_visible(True)
+                
+                
+                self.builder.get_object('label_collision_freq').set_visible(False)
+                self.builder.get_object('entry_collision_frequency').set_visible(False)
                 
                 #self.temp_scale_options_combo.set_active(0)
                 #self.temp_scale_options_combo.set_sensitive(False)
                 
             #Langevin molecular dynamics
             elif 2 == widget.get_selected():
-                self.builder.get_object('check_pressure_control').hide()
-                self.builder.get_object('entry_pressure').hide()
+                self.builder.get_object('check_pressure_control').set_visible(False)
+                self.builder.get_object('entry_pressure').set_visible(False)
                 
-                self.builder.get_object('entry_temp_coupling').hide()
-                self.builder.get_object('label_temp_coupling').hide()
+                self.builder.get_object('entry_temp_coupling').set_visible(False)
+                self.builder.get_object('label_temp_coupling').set_visible(False)
                 
-                self.builder.get_object('label_pressure_coupling').hide()
-                self.builder.get_object('entry_pressure_coupling').hide()
+                self.builder.get_object('label_pressure_coupling').set_visible(False)
+                self.builder.get_object('entry_pressure_coupling').set_visible(False)
                 
-                self.builder.get_object('label_collision_freq').show()
-                self.builder.get_object('entry_collision_frequency').show()
+                self.builder.get_object('label_collision_freq').set_visible(True)
+                self.builder.get_object('entry_collision_frequency').set_visible(True)
             
                 #self.temp_scale_options_combo.set_active(0)
                 #self.temp_scale_options_combo.set_sensitive(False)
@@ -1495,15 +1495,15 @@ class UmbrellaSamplingWindow_old(Gtk.Window):
                 if vobj.name == vobj_name:
                     self.combobox_starting_coordinates.set_selected(vobj_id)
                     break
-            self.combobox_starting_coordinates.show()
-            self.folder_chooser_button.btn.hide()
-            self.spinbutton.hide()
+            self.combobox_starting_coordinates.set_visible(True)
+            self.folder_chooser_button.btn.set_visible(False)
+            self.spinbutton.set_visible(False)
         elif input_type == 1 and parameters.get('source_folder') is not None:
             # Set trajectory folder
             self.folder_chooser_button.set_folder(parameters['source_folder'])
-            self.folder_chooser_button.btn.show()
-            self.spinbutton.show()
-            self.combobox_starting_coordinates.hide()
+            self.folder_chooser_button.btn.set_visible(True)
+            self.spinbutton.set_visible(True)
+            self.combobox_starting_coordinates.set_visible(False)
 
         # ----------------------------
         # Reaction Coordinates

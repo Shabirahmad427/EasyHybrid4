@@ -32,6 +32,7 @@ from util.debug import dprint
 import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gdk, GLib, GObject, Gio
+from src.gtk4_compat import texture_from_pixbuf
 from src.gtk4_compat import GTK_INVALID_LIST_POSITION, property_sorter
 from gi.repository import GdkPixbuf
 from gui.widgets.custom_widgets  import get_colorful_square_pixel_buffer
@@ -335,9 +336,9 @@ class ProcessManagerWindow(Gtk.Window):
             box = list_item.get_child()
             picture = box.get_first_child()
             label = picture.get_next_sibling()
-            picture.set_pixbuf(row.icon)
+            picture.set_paintable(texture_from_pixbuf(row.icon))
             label.set_text(row.system_name)
-            update = lambda item: (picture.set_pixbuf(item.icon),
+            update = lambda item: (picture.set_paintable(texture_from_pixbuf(item.icon)),
                                    label.set_text(item.system_name))
             property_name = "system-name"
         else:
