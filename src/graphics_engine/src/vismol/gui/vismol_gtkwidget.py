@@ -26,6 +26,7 @@ from vismol.utils.debug import dprint
 import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gdk
+from gui import file_dialogs
 from gui.response_dialog import ResponseDialog
 from src.gtk4_compat import (
     GTK_INVALID_LIST_POSITION,
@@ -1291,35 +1292,18 @@ class PreviewWindow(Gtk.Window):
         self._choose_export_path(scale_factor, filename)
 
     def _choose_export_path(self, scale_factor, filename):
-        dialog = Gtk.FileChooserDialog(
-            title="Export PNG", transient_for=self,
-            action=Gtk.FileChooserAction.SAVE)
-        dialog.add_buttons(
-            "Cancel", Gtk.ResponseType.CANCEL,
-            "Save", Gtk.ResponseType.OK
+        folder = getattr(self, "last_export_dir", None) or os.getcwd()
+
+        def on_selected(path):
+            self.last_export_file = path
+            if path:
+                self._export_image(path, scale_factor)
+
+        file_dialogs.choose_file(
+            self, on_selected, title="Export PNG", mode=file_dialogs.SAVE,
+            initial_path=os.path.join(folder, filename),
+            filters=[file_dialogs.file_filter("PNG image (*.png)", "*.png")],
         )
-
-        file_filter = Gtk.FileFilter()
-        file_filter.set_name("PNG image (*.png)")
-        file_filter.add_pattern("*.png")
-        dialog.add_filter(file_filter)
-
-        if hasattr(self, "last_export_dir") and self.last_export_dir:
-            from gi.repository import Gio
-            dialog.set_current_folder(Gio.File.new_for_path(self.last_export_dir))
-        dialog.set_current_name(filename)
-
-        def on_response(chooser, response):
-            selected = chooser.get_file()
-            filename = selected.get_path() if selected is not None else None
-            chooser.destroy()
-            self.last_export_file = filename
-            if response != Gtk.ResponseType.OK or not filename:
-                return
-            self._export_image(filename, scale_factor)
-
-        dialog.connect("response", on_response)
-        dialog.present()
 
     def _export_image(self, filename, scale_factor):
         if not filename.lower().endswith(".png"):

@@ -25,6 +25,7 @@
 import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gdk
+from gui import file_dialogs
 
 
 class FileChooser:
@@ -36,28 +37,12 @@ class FileChooser:
     
     def open(self, callback, select_multiple=False, filter_type=None):
         """Open a file chooser and deliver its selection asynchronously."""
-        chooser = Gtk.FileChooserDialog(
-            title="Open File...", transient_for=self.main_window,
-            action=Gtk.FileChooserAction.OPEN)
-        chooser.add_buttons("Cancel", Gtk.ResponseType.CANCEL,
-                            "Open", Gtk.ResponseType.OK)
         if select_multiple:
-            chooser.set_select_multiple(True)
+            filters = []
         else:
-            if filter_type:
-                chooser.add_filter(filter_type)
-            else:
-                filter = Gtk.FileFilter()
-                filter.set_name("All files")
-                filter.add_pattern("*")
-                chooser.add_filter(filter)
-
-        def on_response(current_chooser, response):
-            selected = []
-            if response == Gtk.ResponseType.OK:
-                selected = [item.get_path() for item in current_chooser.get_files()]
-            current_chooser.destroy()
-            callback(selected if select_multiple else (selected[0] if selected else None))
-
-        chooser.connect("response", on_response)
-        chooser.present()
+            filters = [filter_type or file_dialogs.file_filter("All files", "*")]
+        file_dialogs.choose_file(
+            self.main_window, callback, title="Open File...",
+            mode=file_dialogs.OPEN_MULTIPLE if select_multiple else file_dialogs.OPEN,
+            filters=filters,
+        )

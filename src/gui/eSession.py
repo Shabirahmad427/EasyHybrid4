@@ -35,6 +35,7 @@ import gi, sys, os
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gdk
 from gui.message_dialogs import show_message
+from gui.file_dialogs import choose_color
 from vismol.core.vismol_session import VismolSession
 import vismol.utils.selectors as selectors
 
@@ -524,15 +525,9 @@ class GLMenu:
                 # Get the current selection
                 selection               = self.selections[self.current_selection]
                 
-                # Create the GTK color chooser dialog
-                self.colorchooserdialog = Gtk.ColorChooserDialog(transient_for=self.main.window)
-
-                def on_color_response(dialog, response):
-                    if response != Gtk.ResponseType.OK:
-                        dialog.destroy()
+                def on_color(color):
+                    if color is None:
                         return
-                    # Retrieve the RGBA color values
-                    color = dialog.get_rgba()
                     new_color = [color.red, color.green, color.blue]
                     
                     # Apply the temporary color to the visualization
@@ -570,7 +565,6 @@ class GLMenu:
                     
                     # Ask the user if the customization should be permanent
                     msg = 'You have just selected a new list of atoms with customized colors. \nWould you like to make this color customization permanent?'
-                    dialog = SimpleDialog(self.main_session)
                     def apply_permanent_color(yes_or_no):
                         if not yes_or_no:
                             return
@@ -580,12 +574,12 @@ class GLMenu:
                             system = self.main.p_session.psystem[e_id]
                             custom_colors = e_system[e_id]
                             system.e_custom_colors.append(custom_colors)
-                    dialog.destroy()
                     dialog_question = SimpleDialog(self.main_session)
                     dialog_question.question(msg, apply_permanent_color)
 
-                self.colorchooserdialog.connect("response", on_color_response)
-                self.colorchooserdialog.present()
+                # Ask for the colour (Gtk.ColorDialog on GTK 4.10+, its
+                # GTK 4.8 equivalent otherwise).
+                choose_color(self.main.window, on_color)
                 
 
             def set_as_qc_atoms (_):

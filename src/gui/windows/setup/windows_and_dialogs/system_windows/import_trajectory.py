@@ -35,7 +35,8 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Pango
 from gi.repository import Gdk
 from gi.repository import GdkPixbuf
-from gui.gtk4_builder import connect_builder_signals, load_builder_file, load_builder_string, choose_path
+from gui.gtk4_builder import connect_builder_signals, load_builder_file, load_builder_string
+from gui import file_dialogs
 from gui.windows.setup.windows_and_dialogs.dialogs.import_charges_dialog import ChargeTypeSelectionDialog
 import cairo
 
@@ -232,10 +233,10 @@ class ImportTrajectoryWindow:
                 self._set_logfile_path(fullpath)
 
     def _choose_logfile(self, _button):
-        choose_path(
+        file_dialogs.choose_file(
             self.window, self._set_logfile_path,
             title="Select log file",
-            action=Gtk.FileChooserAction.OPEN,
+            mode=file_dialogs.OPEN,
             initial_path=self.logfile_path or self.folder_chooser_button.get_folder(),
         )
 

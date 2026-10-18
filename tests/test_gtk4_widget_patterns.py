@@ -442,3 +442,284 @@ def test_builder_dialogs_are_windows_with_buttons_at_the_bottom(ui_file, object_
         assert button_rows == [len(children) - 1]
     finally:
         window.destroy()
+
+
+# --------------------------------------------------------------------------- #
+#  File, folder and colour choosers (gui.file_dialogs).                        #
+# --------------------------------------------------------------------------- #
+
+def test_deprecated_choosers_only_in_the_portable_adapter():
+    """Gtk.FileChooserDialog/ColorChooserDialog live only in gui.file_dialogs,
+    which uses them solely on GTK 4.8 (no Gtk.FileDialog/ColorDialog there)."""
+    forbidden = {
+        r"Gtk\.(FileChooser(Dialog|Native|Widget)?|ColorChooser(Dialog|Widget)?)\b":
+            "deprecated since GTK 4.10 (use gui.file_dialogs)",
+        r"\.set_do_overwrite_confirmation\(": "absent from every GTK4 release",
+        r"\bchoose_path\(": "removed (use gui.file_dialogs.choose_file)",
+    }
+    adapter = SRC / "gui" / "file_dialogs.py"
+    offenders = []
+    for path in SRC.rglob("*.py"):
+        if path == adapter:
+            continue
+        for number, code in _code_lines(path):
+            code = code.replace(" . ", ".").replace(" ( ", "(").replace(" (", "(")
+            for pattern, why in forbidden.items():
+                if re.search(pattern, code):
+                    offenders.append("%s:%d %s" % (path.relative_to(PROJECT_ROOT), number, why))
+    for path in list(SRC.rglob("*.glade")) + list(SRC.rglob("*.ui")):
+        if re.search(r'class="Gtk(FileChooser|ColorChooser)\w*"', path.read_text(encoding="utf-8")):
+            offenders.append("%s GtkFileChooser/GtkColorChooser" % path.relative_to(PROJECT_ROOT))
+    assert not offenders, "\n".join(offenders)
+
+
+def test_split_initial_path_selects_folder_and_save_name(tmp_path):
+    from gui import file_dialogs as fd
+
+    target = tmp_path / "result.png"
+    assert fd.split_initial_path(None, fd.SAVE) == (None, None)
+    assert fd.split_initial_path(str(tmp_path), fd.OPEN) == (str(tmp_path), None)
+    assert fd.split_initial_path(str(target), fd.SAVE) == (str(tmp_path), "result.png")
+    assert fd.split_initial_path(str(target), fd.OPEN) == (str(tmp_path), None)
+    missing = tmp_path / "missing" / "x.txt"
+    assert fd.split_initial_path(str(missing), fd.SAVE) == (None, "x.txt")
+    with pytest.raises(ValueError):
+        fd.choose_file(None, lambda _result: None, mode="bogus")
+
+
+def test_native_glib_log_handler_only_below_gtk_4_10():
+    from src.os_integration import gtk_startup
+
+    class FakeFunction:
+        def __init__(self, result=1):
+            self.calls = []
+            self.result = result
+
+        def __call__(self, *args):
+            self.calls.append(args)
+            return self.result
+
+    class FakeGLib:
+        def __init__(self):
+            self.g_log_set_handler = FakeFunction()
+            # Any C function pointer works for the cast; use a real one.
+            import ctypes
+            self.g_log_default_handler = ctypes.CFUNCTYPE(None)(lambda: None)
+
+    for version, expected in (((4, 8), True), ((4, 9), True), ((4, 10), False), ((4, 24), False), (None, False)):
+        assert gtk_startup.needs_native_glib_log_handler(version) is expected
+        glib = FakeGLib()
+        installed = gtk_startup.install_native_glib_log_handler(runtime_version=version or (99, 0), glib_library=glib) \
+            if version is not None else False
+        assert installed is expected
+        calls = glib.g_log_set_handler.calls
+        assert len(calls) == (1 if expected else 0)
+        if expected:
+            assert calls[0][0] == b"GLib-GObject"
+            assert calls[0][1] & 0b11011 == 0b11011  # recursion, fatal, critical, warning
+
+
+@needs_display
+def test_widget_cycles_freed_by_garbage_collection_do_not_abort(tmp_path):
+    """Regression for GTK 4.8: GtkImage finalization criticals freed from a
+    garbage-collected cycle inside PyGObject's warning handler were a
+    recursive (always fatal) GLib log message. Runs on every minor."""
+    import subprocess
+
+    script = tmp_path / "cycles.py"
+    script.write_text(
+        "import sys\n"
+        "sys.path[:0] = [%r, %r]\n"
+        "from src.os_integration.gtk_startup import configure_startup_environment\n"
+        "configure_startup_environment(%r)\n"
+        "import gc, gi\n"
+        "gi.require_version('Gtk', '4.0')\n"
+        "from gi.repository import GLib, Gtk\n"
+        "from gui import file_dialogs as fd\n"
+        "window = Gtk.Window(); window.present()\n"
+        "context = GLib.MainContext.default()\n"
+        "def spin(n):\n"
+        "    for _ in range(n):\n"
+        "        context.iteration(False)\n"
+        "class Holder: pass\n"
+        "for index in range(6):\n"
+        "    holder = Holder()\n"
+        "    holder.dialog = Gtk.FileChooserDialog(title='cycle', action=fd.Gtk.FileChooserAction.OPEN)\n"
+        "    holder.dialog.set_transient_for(window)\n"
+        "    holder.dialog.connect('response', lambda d, r, h=holder: d.destroy())\n"
+        "    holder.dialog.present(); spin(200)\n"
+        "    holder.dialog.response(Gtk.ResponseType.CANCEL); spin(200)\n"
+        "    del holder\n"
+        "    spin(50)\n"
+        "gc.collect(); spin(50)\n"
+        "print('cycles-ok')\n" % (str(PROJECT_ROOT), str(SRC), str(PROJECT_ROOT))
+    )
+    environ = dict(os.environ)
+    environ.pop("G_DEBUG", None)
+    result = subprocess.run([sys.executable, str(script)], capture_output=True, text=True,
+                            timeout=180, env=environ)
+    assert result.returncode == 0 and "cycles-ok" in result.stdout, (
+        result.returncode, result.stdout[-2000:], result.stderr[-2000:])
+
+
+def _file_modes():
+    from gui import file_dialogs as fd
+    return (fd.OPEN, fd.OPEN_MULTIPLE, fd.SAVE, fd.SELECT_FOLDER, fd.SELECT_MULTIPLE_FOLDERS)
+
+
+def _chooser_paths(use_new_api):
+    from gui import file_dialogs as fd
+    if use_new_api and not fd.has_file_dialog():
+        pytest.skip("Gtk.FileDialog needs GTK 4.10+; GTK %d.%d uses the tested fallback"
+                    % (Gtk.get_major_version(), Gtk.get_minor_version()))
+
+
+@needs_display
+@pytest.mark.parametrize("use_new_api", [False, True], ids=["gtk48-path", "file-dialog"])
+def test_file_chooser_cancel_reports_nothing_once(tmp_path, use_new_api):
+    from gui import file_dialogs as fd
+
+    _chooser_paths(use_new_api)
+    window = Gtk.Window(title="parent")
+    window.present()
+    try:
+        for mode in _file_modes():
+            results = []
+            handle = fd.choose_file(
+                window, results.append, mode=mode, title="Pick %s" % mode,
+                initial_path=str(tmp_path / "out.txt"),
+                filters=[fd.file_filter("Text (*.txt)", "*.txt")],
+                use_file_dialog=use_new_api,
+            )
+            assert handle.uses_new_api is use_new_api
+            _iterate(100)
+            handle.cancel()
+            assert _wait_for(lambda: results), mode
+            _iterate(50)
+            handle.cancel()  # a second cancel is ignored
+            expected = [] if mode in fd.MULTIPLE_MODES else None
+            assert results == [expected], (mode, results)
+            assert handle.dialog is None
+    finally:
+        window.destroy()
+
+
+@needs_display
+def test_file_dialog_is_configured_like_the_request(tmp_path):
+    from gui import file_dialogs as fd
+
+    _chooser_paths(True)
+    pngs = fd.file_filter("PNG image (*.png)", "*.png")
+    results = []
+    handle = fd.choose_file(None, results.append, mode=fd.SAVE, title="Export PNG",
+                            initial_path=str(tmp_path / "plot.png"), filters=[pngs],
+                            use_file_dialog=True)
+    dialog = handle.dialog
+    try:
+        assert dialog.get_title() == "Export PNG"
+        assert dialog.get_accept_label() == "Save"
+        assert dialog.get_modal()
+        assert dialog.get_initial_name() == "plot.png"
+        assert os.path.samefile(dialog.get_initial_folder().get_path(), str(tmp_path))
+        assert dialog.get_filters().get_n_items() == 1
+        assert dialog.get_default_filter() is pngs
+    finally:
+        handle.cancel()
+    assert _wait_for(lambda: results == [None]), results
+
+
+@needs_display
+@pytest.mark.parametrize("mode_name", ["OPEN", "OPEN_MULTIPLE", "SAVE", "SELECT_FOLDER"])
+def test_gtk48_file_chooser_path_returns_selected_paths(tmp_path, mode_name):
+    """The GTK 4.8 fallback, run on every minor, returns real local paths."""
+    from gui import file_dialogs as fd
+
+    mode = getattr(fd, mode_name)
+    (tmp_path / "data.txt").write_text("x", encoding="utf-8")
+    (tmp_path / "sub").mkdir()
+    results = []
+    handle = fd.choose_file(None, results.append, mode=mode, initial_path=str(tmp_path) + os.sep,
+                            use_file_dialog=False)
+    dialog = handle.dialog
+    assert isinstance(dialog, Gtk.FileChooserDialog)
+    assert dialog.get_select_multiple() is (mode in fd.MULTIPLE_MODES)
+
+    def same(path, target):
+        return os.path.normcase(os.path.realpath(path)) == os.path.normcase(os.path.realpath(str(target)))
+
+    try:
+        assert _wait_for(dialog.get_mapped)
+        if mode == fd.SAVE:
+            assert _wait_for(lambda: dialog.get_current_folder() is not None
+                             and same(dialog.get_current_folder().get_path(), tmp_path))
+            dialog.set_current_name("saved.txt")
+            expected = tmp_path / "saved.txt"
+        else:
+            # The folder loads asynchronously and GTK then moves the cursor to
+            # its first row; select only after that, or the cursor overrides it.
+            assert _wait_for(lambda: dialog.get_file() is not None)
+            expected = tmp_path / ("sub" if mode == fd.SELECT_FOLDER else "data.txt")
+            assert dialog.set_file(Gio.File.new_for_path(str(expected)))
+        assert _wait_for(lambda: dialog.get_file() is not None
+                         and same(dialog.get_file().get_path(), expected))
+        # Let the path bar finish its async folder lookup first, as it has
+        # long before a person clicks. GTK 4.10+ Gtk.FileChooserDialog
+        # (used by the app only on GTK 4.8) crashes in
+        # gtk_path_bar_set_file_finish when destroyed mid-lookup.
+        _iterate(500)
+        dialog.response(Gtk.ResponseType.ACCEPT)
+        assert _wait_for(lambda: results), results
+    finally:
+        if handle.dialog is not None:
+            handle.dialog.destroy()
+    selected = results[0] if mode not in fd.MULTIPLE_MODES else results[0][0]
+    assert same(selected, expected), (selected, str(expected))
+    if mode in fd.MULTIPLE_MODES:
+        assert isinstance(results[0], list) and len(results[0]) == 1
+
+
+@needs_display
+@pytest.mark.parametrize("use_new_api", [False, True], ids=["gtk48-path", "color-dialog"])
+def test_color_chooser_cancel_reports_none_once(use_new_api):
+    from gui import file_dialogs as fd
+
+    if use_new_api and not fd.has_color_dialog():
+        pytest.skip("Gtk.ColorDialog needs GTK 4.10+; GTK %d.%d uses the tested fallback"
+                    % (Gtk.get_major_version(), Gtk.get_minor_version()))
+    window = Gtk.Window(title="parent")
+    window.present()
+    try:
+        initial = Gdk.RGBA()
+        assert initial.parse("rgb(10,200,30)")
+        results = []
+        handle = fd.choose_color(window, results.append, title="Colour", initial=initial,
+                                 use_color_dialog=use_new_api)
+        assert handle.uses_new_api is use_new_api
+        if use_new_api:
+            assert handle.dialog.get_title() == "Colour" and handle.dialog.get_modal()
+        _iterate(100)
+        handle.cancel()
+        assert _wait_for(lambda: results), results
+        _iterate(50)
+        assert results == [None]
+    finally:
+        window.destroy()
+
+
+@needs_display
+def test_gtk48_color_chooser_path_returns_the_chosen_rgba():
+    from gui import file_dialogs as fd
+
+    initial = Gdk.RGBA()
+    assert initial.parse("rgb(255,0,0)")
+    results = []
+    handle = fd.choose_color(None, results.append, initial=initial, use_color_dialog=False)
+    dialog = handle.dialog
+    assert _wait_for(dialog.get_mapped)
+    assert dialog.get_rgba().equal(initial)
+    chosen = Gdk.RGBA()
+    assert chosen.parse("rgb(0,0,255)")
+    dialog.set_rgba(chosen)
+    dialog.response(Gtk.ResponseType.OK)
+    assert _wait_for(lambda: results), results
+    assert results[0] is not None and results[0].equal(chosen)

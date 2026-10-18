@@ -33,7 +33,8 @@ import gi
 import os
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Pango
-from gui.gtk4_builder import connect_builder_signals, load_builder_file, load_builder_string, choose_path
+from gui.gtk4_builder import connect_builder_signals, load_builder_file, load_builder_string
+from gui import file_dialogs
 
 from gui.widgets.custom_widgets import FolderChooserButton
 #from gui.widgets.custom_widgets import SystemComboBox
@@ -225,10 +226,10 @@ class EnergyRefinementWindow():
                 pass
 
     def _choose_input_folder(self, button):
-        choose_path(
+        file_dialogs.choose_file(
             self.window, self._set_input_folder,
             title="Select trajectory folder",
-            action=Gtk.FileChooserAction.SELECT_FOLDER,
+            mode=file_dialogs.SELECT_FOLDER,
             initial_path=self.input_folder or self.home,
         )
 

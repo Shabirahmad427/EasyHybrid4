@@ -35,7 +35,7 @@ import signal
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gdk, Pango
 from gi.repository import GdkPixbuf
-from gui.gtk4_builder import choose_color
+from gui.file_dialogs import choose_color
 
 
 from gui.widgets.custom_widgets  import VismolSelectionTypeBox

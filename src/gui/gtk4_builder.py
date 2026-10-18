@@ -9,50 +9,6 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gio
 
 
-def choose_color(parent, callback, title="Choose color"):
-    """Present a native GTK4 color chooser and return RGBA or None."""
-    dialog = Gtk.ColorChooserDialog(
-        title=title, transient_for=parent, modal=True
-    )
-
-    def on_response(current_dialog, response):
-        rgba = current_dialog.get_rgba() if response == Gtk.ResponseType.OK else None
-        current_dialog.destroy()
-        callback(rgba)
-
-    dialog.connect("response", on_response)
-    dialog.present()
-
-
-def choose_path(parent, callback, title="Choose file", action=Gtk.FileChooserAction.OPEN, initial_path=None, filters=None, overwrite_confirmation=False):
-    """Show a GTK4 file or folder chooser and return the selected path."""
-    dialog = Gtk.FileChooserDialog(title=title, transient_for=parent, action=action)
-    dialog.add_buttons("Cancel", Gtk.ResponseType.CANCEL, "Select", Gtk.ResponseType.OK)
-    if initial_path:
-        import os
-        candidate = os.path.abspath(os.path.expanduser(initial_path))
-        folder = candidate if os.path.isdir(candidate) else os.path.dirname(candidate)
-        if folder and os.path.isdir(folder):
-            dialog.set_current_folder(Gio.File.new_for_path(folder))
-        if action == Gtk.FileChooserAction.SAVE and not os.path.isdir(candidate):
-            dialog.set_current_name(os.path.basename(candidate))
-    if filters:
-        for file_filter in filters:
-            dialog.add_filter(file_filter)
-    if overwrite_confirmation:
-        dialog.set_do_overwrite_confirmation(True)
-
-    def on_response(chooser, response):
-        selected = chooser.get_file() if response == Gtk.ResponseType.OK else None
-        path = selected.get_path() if selected is not None else None
-        chooser.destroy()
-        callback(path)
-
-    dialog.connect("response", on_response)
-    dialog.present()
-    return dialog
-
-
 def load_builder_file(builder, filename):
     """Load a UI and defer its signal hookups to GTK4's GObject API.
 

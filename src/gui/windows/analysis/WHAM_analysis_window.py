@@ -33,6 +33,7 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gio, GObject
+from gui import file_dialogs
 from gui.message_dialogs import show_message
 from gui.gtk4_builder import connect_builder_signals, load_builder_file, load_builder_string
 import gc
@@ -289,25 +290,14 @@ class WHAMWindow(Gtk.Window):
     
     def button_add_trajectories(self, button):
         """Select trajectory folders with the native GTK4 response flow."""
-        dialog = Gtk.FileChooserDialog(
-            title="Select Folders", transient_for=self.window,
-            action=Gtk.FileChooserAction.SELECT_FOLDER,
-        )
-        dialog.add_buttons(
-            "Cancel", Gtk.ResponseType.CANCEL,
-            "Open", Gtk.ResponseType.OK,
-        )
-        dialog.set_select_multiple(True)
-
-        def on_response(chooser, response):
-            files = chooser.get_files() if response == Gtk.ResponseType.OK else []
-            folder_paths = [item.get_path() for item in files]
-            chooser.destroy()
+        def on_folders(folder_paths):
             for folder in folder_paths:
                 self.liststore.append(TrajectoryBlockRow(folder))
 
-        dialog.connect("response", on_response)
-        dialog.present()
+        file_dialogs.choose_file(
+            self.window, on_folders, title="Select Folders",
+            mode=file_dialogs.SELECT_MULTIPLE_FOLDERS,
+        )
 
     def on_name_combo_changed(self, widget, _pspec=None):
         """ Function doc """

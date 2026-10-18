@@ -22,6 +22,7 @@ import numpy as np
 import gi
 gi.require_version ( "Gtk", "4.0" )
 from gi.repository import Gtk, GLib
+from gui import file_dialogs
 from gui.response_dialog import ResponseDialog
 from gui.gtk4_builder import connect_builder_signals, load_builder_file
 
@@ -359,23 +360,11 @@ class SolvateWindow ( ):
             add_solvent_file()): a periodic box with a CRYSIN section is
             copied as is; for a single molecule the name, residue name and
             density are asked for. """
-        chooser = Gtk.FileChooserDialog ( title = "Add a solvent (.mol2)", transient_for = self.window,
-                                          action = Gtk.FileChooserAction.OPEN, modal = True )
-        chooser.add_buttons ( "Cancel", Gtk.ResponseType.CANCEL, "Open", Gtk.ResponseType.OK )
-        mol2_filter = Gtk.FileFilter ( )
-        mol2_filter.set_name ( "Tripos MOL2 (*.mol2)" )
-        mol2_filter.add_pattern ( "*.mol2" )
-        mol2_filter.add_pattern ( "*.MOL2" )
-        chooser.add_filter ( mol2_filter )
-        def on_file_response ( current, response ):
-            file = current.get_file ( ) if response == Gtk.ResponseType.OK else None
-            source = file.get_path ( ) if file is not None else None
-            current.destroy ( )
-            if not source:
-                return
-            self._add_solvent_from_file ( source )
-        chooser.connect ( "response", on_file_response )
-        chooser.present ( )
+        def on_file ( source ):
+            if source:
+                self._add_solvent_from_file ( source )
+        file_dialogs.choose_file ( self.window, on_file, title = "Add a solvent (.mol2)", mode = file_dialogs.OPEN,
+                                   filters = [ file_dialogs.file_filter ( "Tripos MOL2 (*.mol2)", "*.mol2", "*.MOL2" ) ] )
 
     def _add_solvent_from_file ( self, source ):
         try:

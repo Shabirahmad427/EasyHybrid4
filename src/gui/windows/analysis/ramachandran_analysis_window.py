@@ -7,7 +7,7 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
 import cairo
 
-from gui.gtk4_builder import choose_path
+from gui import file_dialogs
 from gui.widgets.custom_widgets import CoordinatesComboBox, FolderChooserButton, SystemComboBox
 from util import ramachandran
 from util.rama_plot import CATEGORY_LABELS, RamachandranPlot
@@ -317,10 +317,10 @@ class RamachandranAnalysisWindow:
             finally:
                 surface.finish()
 
-        choose_path(
+        file_dialogs.choose_file(
             self.window, save_plot, title="Export Ramachandran plot",
-            action=Gtk.FileChooserAction.SAVE,
+            mode=file_dialogs.SAVE,
             initial_path=os.path.join(self.output_folder_chooser.get_folder() or self.home,
                                       "ramachandran.png"),
-            overwrite_confirmation=True,
+            filters=[file_dialogs.file_filter("PNG image (*.png)", "*.png")],
         )

@@ -31,6 +31,7 @@
 import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gio
+from gui import file_dialogs
 from gi.repository import Gdk
 from gi.repository import GdkPixbuf
 import os
@@ -103,53 +104,22 @@ class FolderChooserButton:
         
     #====================================================================================    
     def open_filechooser (self, parent = None):
-        """ Function doc """
-        
+        """Ask for a folder (or a file, when sel_type is 'file')."""
         if self.sel_type == 'folder':
-            dialog = Gtk.FileChooserDialog(
-                
-                #title="Please choose a file", parent=window, action=Gtk.FileChooserAction.OPEN
-                title="Please choose a folder", transient_for=self.parent,
-                action=Gtk.FileChooserAction.SELECT_FOLDER
-            )
-            dialog.set_select_multiple(True)
-            dialog.add_buttons(
-                "Cancel",
-                Gtk.ResponseType.CANCEL,
-                "Open",
-                Gtk.ResponseType.OK,
-            )
-        
+            mode, title = file_dialogs.SELECT_FOLDER, "Please choose a folder"
         else:
-            dialog = Gtk.FileChooserDialog(
-                
-                #title="Please choose a file", parent=window, action=Gtk.FileChooserAction.OPEN
-                title="Please choose a file", transient_for=self.parent,
-                action=Gtk.FileChooserAction.OPEN
-            )
-            dialog.add_buttons(
-                "Cancel",
-                Gtk.ResponseType.CANCEL,
-                "Open",
-                Gtk.ResponseType.OK,
-            )
-        
-        
-        
-        initial_folder = self.folder or self.main.home
-        dialog.set_current_folder(Gio.File.new_for_path(os.path.abspath(os.path.expanduser(initial_folder))))
+            mode, title = file_dialogs.OPEN, "Please choose a file"
 
-        def on_response(chooser, response):
-            if response == Gtk.ResponseType.OK:
-                selected_files = chooser.get_files()
-                folder = selected_files[0].get_path() if selected_files else None
-                self.set_folder(folder=folder)
-            elif response == Gtk.ResponseType.CANCEL:
+        def on_selected(path):
+            if path:
+                self.set_folder(folder=path)
+            else:
                 dprint("Cancel clicked")
-            chooser.destroy()
 
-        dialog.connect("response", on_response)
-        dialog.present()
+        file_dialogs.choose_file(
+            self.parent, on_selected, mode=mode, title=title,
+            initial_path=self.folder or self.main.home,
+        )
 
     def set_tooltop (self, text = ''):
         """ Function doc """
@@ -165,38 +135,20 @@ class FileChooser:
         self.easyhybrid = easyhybrid 
 
     def open(self, callback, select_multiple=False, filters=None):
-        """Open a GTK4 file chooser and return the selection to a callback."""
+        """Ask for one or more files; the callback gets a path or a list."""
         main = self.main_window.window if self.main_window is not None else None
-        chooser = Gtk.FileChooserDialog(
-            title="Open File...", transient_for=main,
-            action=Gtk.FileChooserAction.OPEN,
+        search_folder = getattr(self.main_window, 'current_search_folder', None)
+        if not filters:
+            filters = [file_dialogs.file_filter("All files", "*")]
+
+        def on_selected(selection):
+            selected = selection if select_multiple else ([selection] if selection else [])
+            if selected and self.main_window is not None:
+                self.main_window.current_search_folder = os.path.dirname(selected[0])
+            callback(selection)
+
+        file_dialogs.choose_file(
+            main, on_selected, title="Open File...",
+            mode=file_dialogs.OPEN_MULTIPLE if select_multiple else file_dialogs.OPEN,
+            initial_path=search_folder, filters=filters,
         )
-        chooser.add_buttons(
-            "Cancel", Gtk.ResponseType.CANCEL,
-            "Open", Gtk.ResponseType.OK,
-        )
-        if self.main_window.current_search_folder:
-            chooser.set_current_folder(Gio.File.new_for_path(self.main_window.current_search_folder))
-
-        chooser.set_select_multiple(select_multiple)
-        if filters:
-            for file_filter in filters:
-                chooser.add_filter(file_filter)
-        else:
-            file_filter = Gtk.FileFilter()
-            file_filter.set_name("All files")
-            file_filter.add_pattern("*")
-            chooser.add_filter(file_filter)
-
-        def on_response(current_chooser, response):
-            selected = []
-            if response == Gtk.ResponseType.OK:
-                files = current_chooser.get_files()
-                selected = [item.get_path() for item in files]
-                if selected:
-                    self.main_window.current_search_folder = os.path.dirname(selected[0])
-            current_chooser.destroy()
-            callback(selected if select_multiple else (selected[0] if selected else None))
-
-        chooser.connect("response", on_response)
-        chooser.present()

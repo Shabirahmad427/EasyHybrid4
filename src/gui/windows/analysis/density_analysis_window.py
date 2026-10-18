@@ -37,6 +37,7 @@
 import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gio
+from gui import file_dialogs
 
 import os
 import time
@@ -199,33 +200,16 @@ class DensityAnalysisWindow:
         self.entry_log_file.set_text(os.path.join(folder, 'density_{}.log'.format(name)))
 
     def on_btn_browse_log(self, widget):
-        dialog = Gtk.FileChooserDialog(
-            title='Save density log as...', transient_for=self.window,
-            action=Gtk.FileChooserAction.SAVE,
+        current = self.entry_log_file.get_text().strip() or 'density.log'
+
+        def on_selected(path):
+            if path:
+                self.entry_log_file.set_text(path)
+
+        file_dialogs.choose_file(
+            self.window, on_selected, title='Save density log as...',
+            mode=file_dialogs.SAVE, initial_path=current,
         )
-        dialog.add_buttons('Cancel', Gtk.ResponseType.CANCEL,
-                           'Save', Gtk.ResponseType.OK)
-        dialog.set_do_overwrite_confirmation(True)
-
-        current = self.entry_log_file.get_text().strip()
-        if current:
-            folder = os.path.dirname(current)
-            if os.path.isdir(folder):
-                dialog.set_current_folder(Gio.File.new_for_path(folder))
-            dialog.set_current_name(os.path.basename(current))
-        else:
-            dialog.set_current_name('density.log')
-
-        def on_response(chooser, response):
-            selected = chooser.get_file() if response == Gtk.ResponseType.OK else None
-            if selected is not None:
-                path = selected.get_path()
-                if path:
-                    self.entry_log_file.set_text(path)
-            chooser.destroy()
-
-        dialog.connect('response', on_response)
-        dialog.present()
 
     def _get_frame_range(self, n_frames):
         """ Returns the list of frame indices chosen by the user (last

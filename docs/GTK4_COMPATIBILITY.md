@@ -254,9 +254,48 @@ Native matrix run `39084141877` (commit `cf8d16b`): **22/22 passed in all 30 cel
 GTK 4.8 upstream defect: freeing any `Gtk.DropDown` emits
 `GLib-GObject-CRITICAL ... GtkImage ... during instance finalization` (a bare
 GTK script reproduces it on 4.8.2; clean on 4.10.1). It is the same
-finalization bug recorded above for `Gtk.AboutDialog`, harmless unless
-criticals are fatal, so widget tests do not use `G_DEBUG=fatal-criticals` on
-GTK 4.8.
+finalization bug recorded above for `Gtk.AboutDialog`. Widget tests do not use
+`G_DEBUG=fatal-criticals` on GTK 4.8.
+
+Correction (2026-10-18, file-chooser step): this critical was **not**
+harmless. PyGObject turns `GLib-GObject` criticals into Python warnings, so
+Python code runs inside the GLib log handler. If Python's cyclic garbage
+collector runs there and frees another widget holding a `GtkImage`, the
+nested critical is a *recursive* log message, which GLib always aborts on.
+Reproduced deterministically on GTK 4.8.2 with PyGObject 3.42.2 and 3.46.0
+(a file chooser held in a Python reference cycle aborts within 1–4 dialogs;
+`faulthandler` shows `Garbage-collecting` inside `warnings._formatwarnmsg`).
+GTK 4.10 fixed the critical. Fix: on GTK < 4.10 only,
+`gtk_startup.install_native_glib_log_handler()` (run by
+`configure_startup_environment`) installs GLib's own C
+`g_log_default_handler` for `GLib-GObject`, so these messages print from C
+and no Python runs inside the handler. The same reproducer survives with it
+(test `test_widget_cycles_freed_by_garbage_collection_do_not_abort`, run on
+every minor). `G_DEBUG=fatal-criticals` still applies.
+
+### File, folder and colour choosers
+
+`Gtk.FileChooserDialog`/`Gtk.ColorChooserDialog` are deprecated since GTK
+4.10 and `Gtk.FileDialog`/`Gtk.ColorDialog` do not exist on GTK 4.8.
+`src/gui/file_dialogs.py` (`choose_file`, `choose_color`, `file_filter`)
+detects the new API by feature and otherwise uses the old dialogs, which are
+not deprecated on 4.8. Both paths give the same callback result (local path,
+list of paths for multi-selection, `Gdk.RGBA`, or `None`/`[]` on cancel). All
+call sites (about 20, including VisMol's open/export dialogs) use it. GTK4
+always confirms overwrites, so the GTK3-only
+`set_do_overwrite_confirmation` calls (an `AttributeError` on every GTK4,
+which broke four save dialogs) are gone. The selection-colour menu also no
+longer calls a nonexistent `SimpleDialog.destroy()`, which had stopped the
+"make permanent?" question from appearing.
+
+Tests run the GTK 4.8 path on every minor (it still exists) and the
+`Gtk.FileDialog`/`Gtk.ColorDialog` path on 4.10+: cancel reports once for
+every mode, the new dialog carries the requested title, accept label, folder,
+name and filters, and the old dialog returns the selected real paths and
+colours. Upstream note: on GTK 4.10+ (not 4.8), destroying a
+`Gtk.FileChooserDialog` while its path bar is still looking up a folder
+crashes in `gtk_path_bar_set_file_finish` (gdb backtrace, GTK 4.24.1); 0/20
+on GTK 4.8.2, where the app uses it, so the test waits as a person would.
 
 Native matrix run `39082144669` (commit `9373956`): **10/10 passed in all 30 cells** — every GTK4 minor 4.8–4.24 on Linux, Windows and macOS arm64, plus GTK 4.8/4.10 on macOS x86_64.
 

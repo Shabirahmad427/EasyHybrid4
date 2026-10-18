@@ -132,9 +132,76 @@ def configure_gl_context_environment(*, platform=None, environ=None,
         environ.setdefault("PYOPENGL_PLATFORM", "egl")
 
 
+def load_glib_library():
+    """Load the GLib shared library, or return ``None`` if unavailable.
+
+    Windows builds name the DLL ``glib-2.0-0.dll`` (conda-forge) or
+    ``libglib-2.0-0.dll`` (MSYS2); other platforms resolve ``glib-2.0``.
+    """
+    import ctypes
+    import ctypes.util
+
+    for name in ("glib-2.0", "glib-2.0-0", "libglib-2.0-0"):
+        library_path = ctypes.util.find_library(name)
+        if not library_path:
+            continue
+        try:
+            return ctypes.CDLL(library_path)
+        except OSError:
+            continue
+    return None
+
+
+# GLogLevelFlags: G_LOG_FLAG_RECURSION | G_LOG_FLAG_FATAL |
+# G_LOG_LEVEL_CRITICAL | G_LOG_LEVEL_WARNING
+_GLIB_RECURSION_SAFE_LEVELS = (1 << 0) | (1 << 1) | (1 << 3) | (1 << 4)
+
+
+def needs_native_glib_log_handler(version):
+    """GTK 4.8 emits a GLib-GObject critical whenever a GtkImage is freed.
+
+    PyGObject turns GLib-GObject criticals into Python warnings, so Python
+    code (and its cyclic garbage collector) runs inside the GLib log
+    handler. If that collection frees another GtkImage, the nested critical
+    is a *recursive* log message, which GLib always treats as fatal: the
+    app aborts. GTK 4.10 fixed the GtkImage critical.
+    """
+    return version is not None and tuple(version[:2]) < (4, 10)
+
+
+def install_native_glib_log_handler(*, runtime_version=None, glib_library=None):
+    """Print GLib-GObject warnings from C on GTK < 4.10. Returns True if set.
+
+    GLib uses the most recently installed handler for a domain, so this
+    must run after PyGObject installed its own (on ``import gi``). The
+    handler is GLib's own ``g_log_default_handler``; no Python runs inside
+    it. Fatal-critical settings such as ``G_DEBUG=fatal-criticals`` still
+    apply because GLib checks them outside the handler.
+    """
+    version = gtk_runtime_version() if runtime_version is None else runtime_version
+    if not needs_native_glib_log_handler(version):
+        return False
+    try:
+        import ctypes
+
+        import gi  # noqa: F401  (installs PyGObject's handler first)
+
+        glib = load_glib_library() if glib_library is None else glib_library
+        if glib is None:
+            return False
+        set_handler = glib.g_log_set_handler
+        set_handler.argtypes = [ctypes.c_char_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p]
+        set_handler.restype = ctypes.c_uint
+        default_handler = ctypes.cast(glib.g_log_default_handler, ctypes.c_void_p)
+        return bool(set_handler(b"GLib-GObject", _GLIB_RECURSION_SAFE_LEVELS, default_handler, None))
+    except (AttributeError, ImportError, OSError):
+        return False
+
+
 def configure_startup_environment(project_home):
     """Prepare legacy driver environment before importing GTK."""
     configure_vblank_mode(
         config_path=os.path.join(project_home, ".config.json")
     )
     configure_gl_context_environment()
+    install_native_glib_log_handler()

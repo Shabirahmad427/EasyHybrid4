@@ -443,7 +443,14 @@ Message and question dialogs then moved to the portable
 `src/gui/message_dialogs.py` (plain `Gtk.Window`; `Gtk.AlertDialog` is absent
 on GTK 4.8). Custom `Gtk.Dialog` windows then moved to the portable
 `src/gui/response_dialog.py`, and Builder `GtkDialog`s became `GtkWindow`s.
-File and colour choosers remain.
+File, folder and colour choosers then moved to `src/gui/file_dialogs.py`
+(`Gtk.FileDialog`/`Gtk.ColorDialog` on GTK 4.10+, the GTK 4.8 dialogs
+otherwise). This fixed four save dialogs that raised `AttributeError`
+(`set_do_overwrite_confirmation`, absent in GTK4) and an app-wide GTK 4.8
+abort: a GtkImage finalization critical raised during Python garbage
+collection inside PyGObject's warning handler is a recursive, always-fatal
+GLib message. On GTK < 4.10 the app now prints those messages from GLib's C
+handler. `Gtk.ColorButton` (a widget, mostly in Builder files) remains.
 
 ## 7. Contributor workflow
 
@@ -1189,8 +1196,8 @@ not be copied unless native GTK4 testing demonstrates that it is still needed.
 | GTK event signals and event masks | GTK4 event controllers and gestures |
 | legacy drag destination API | `Gtk.DropTarget` / `Gtk.DropTargetAsync` |
 | blocking dialog `run()` | asynchronous response callbacks |
-| Blocking file chooser dialogs | GTK4 `Gtk.FileChooserDialog` with response callbacks |
-| Blocking color chooser dialogs | GTK4 `Gtk.ColorChooserDialog` with response callbacks |
+| Blocking file chooser dialogs | `gui.file_dialogs.choose_file` (`Gtk.FileDialog` on 4.10+, GTK 4.8 fallback) |
+| Blocking color chooser dialogs | `gui.file_dialogs.choose_color` (`Gtk.ColorDialog` on 4.10+, GTK 4.8 fallback) |
 | `show_all()` | widget visibility plus `present()` |
 | GTK3 Glade packing nodes | GTK4 child properties and layouts |
 

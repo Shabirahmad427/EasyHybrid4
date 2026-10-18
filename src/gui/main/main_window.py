@@ -39,7 +39,9 @@ from gi.repository import Gtk, Gdk, Gio, Pango
 from gui.message_dialogs import choose
 from gi.repository import GdkPixbuf
 from gi.repository import GLib
-from gui.gtk4_builder import connect_builder_signals, load_builder_file, choose_color
+from gui.gtk4_builder import connect_builder_signals, load_builder_file
+from gui import file_dialogs
+from gui.file_dialogs import choose_color
 from gui.model_rows import CoordinateChoiceRow, SystemChoiceRow
 
 
@@ -1574,34 +1576,23 @@ class MainWindow:
 
     def gtk_save_as_file(self, button, on_saved=None):
         """Save the current EasyHybrid session using a GTK4 file chooser."""
-        from gi.repository import Gio
-        dialog = Gtk.FileChooserDialog(
-            title="Save File", transient_for=self.window,
-            action=Gtk.FileChooserAction.SAVE,
-        )
-        dialog.add_buttons(
-            "Cancel", Gtk.ResponseType.CANCEL,
-            "Save", Gtk.ResponseType.OK,
-        )
-        dialog.set_current_name("untitled.easy")
         documents = os.path.join(os.path.expanduser("~"), "Documents")
-        if os.path.isdir(documents):
-            dialog.set_current_folder(Gio.File.new_for_path(documents))
+        if not os.path.isdir(documents):
+            documents = os.getcwd()
 
-        def on_response(chooser, response):
-            selected = chooser.get_file()
-            chooser.destroy()
-            if response == Gtk.ResponseType.OK and selected is not None:
-                filename = selected.get_path()
-                dprint("File selected: " + filename)
-                self.p_session.save_easyhybrid_session(filename=filename)
-                if on_saved is not None:
-                    on_saved()
-            elif response == Gtk.ResponseType.CANCEL:
+        def on_selected(filename):
+            if not filename:
                 dprint("Save operation canceled.")
+                return
+            dprint("File selected: " + filename)
+            self.p_session.save_easyhybrid_session(filename=filename)
+            if on_saved is not None:
+                on_saved()
 
-        dialog.connect("response", on_response)
-        dialog.present()
+        file_dialogs.choose_file(
+            self.window, on_selected, title="Save File", mode=file_dialogs.SAVE,
+            initial_path=os.path.join(documents, "untitled.easy"),
+        )
 
     def open_gtk_load_files (self, button):
         '''Easyhybrid and pkl pdynamo file search '''

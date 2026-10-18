@@ -33,6 +33,7 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
+from gui import file_dialogs
 from gui.response_dialog import ResponseDialog
 from gui.message_dialogs import show_message
 from src.gtk4_compat import GTK_INVALID_LIST_POSITION
@@ -476,28 +477,8 @@ class PotentialEnergyAnalysisWindow:
         numero significa -- 4x costuma bastar para slides/relatorios; um
         valor maior (6-8) e' melhor para figuras de publicacao/impressao.
         """
-        dialog = Gtk.FileChooserDialog(
-            title="Export figure as PNG",
-            transient_for=self.window,
-            action=Gtk.FileChooserAction.SAVE,
-        )
-        dialog.add_buttons(
-            "Cancel", Gtk.ResponseType.CANCEL,
-            "Save", Gtk.ResponseType.OK,
-        )
-        dialog.set_do_overwrite_confirmation(True)
-        dialog.set_current_name(default_filename)
-
-        filter_png = Gtk.FileFilter()
-        filter_png.set_name("PNG image (*.png)")
-        filter_png.add_pattern("*.png")
-        dialog.add_filter(filter_png)
-
-        def on_response(chooser, response):
-            selected = chooser.get_file()
-            filepath = selected.get_path() if selected is not None else None
-            chooser.destroy()
-            if response != Gtk.ResponseType.OK or filepath is None:
+        def on_selected(filepath):
+            if filepath is None:
                 return
             if not filepath.lower().endswith('.png'):
                 filepath += '.png'
@@ -506,8 +487,11 @@ class PotentialEnergyAnalysisWindow:
             except Exception as error:
                 show_message(self.window, "Could not export figure", str(error), kind='error')
 
-        dialog.connect("response", on_response)
-        dialog.present()
+        file_dialogs.choose_file(
+            self.window, on_selected, title="Export figure as PNG",
+            mode=file_dialogs.SAVE, initial_path=default_filename,
+            filters=[file_dialogs.file_filter("PNG image (*.png)", "*.png")],
+        )
 
     def on_button_export_2d_png_clicked (self, widget):
         self._export_plot_dialog(self.plot, "pes_2d_energy_surface.png")

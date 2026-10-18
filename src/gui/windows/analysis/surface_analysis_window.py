@@ -1,4 +1,5 @@
-from gui.gtk4_builder import connect_builder_signals, load_builder_file, load_builder_string, choose_path
+from gui.gtk4_builder import connect_builder_signals, load_builder_file, load_builder_string
+from gui import file_dialogs
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #  
@@ -1048,12 +1049,9 @@ class SurfaceAnalysisWindow(Gtk.Window):
         self._choose_cube_file(self._set_external_potential_path, "Select potential cube")
 
     def _choose_cube_file(self, callback, title):
-        cube_filter = Gtk.FileFilter()
-        cube_filter.set_name("Cube files (*.cube)")
-        cube_filter.add_pattern("*.cube")
-        choose_path(
-            self.window, callback, title=title,
-            action=Gtk.FileChooserAction.OPEN, filters=[cube_filter],
+        file_dialogs.choose_file(
+            self.window, callback, title=title, mode=file_dialogs.OPEN,
+            filters=[file_dialogs.file_filter("Cube files (*.cube)", "*.cube")],
         )
 
     def _set_external_density_path(self, path):
@@ -2182,12 +2180,11 @@ class SurfaceAnalysisWindow(Gtk.Window):
             dprint("Orbital energies exported to:", filepath)
             show_message(self.window, "Orbital energies exported.", filepath, kind='info')
 
-        choose_path(
+        file_dialogs.choose_file(
             self.window, save_file,
             title="Export orbital energies",
-            action=Gtk.FileChooserAction.SAVE,
+            mode=file_dialogs.SAVE,
             initial_path="orbital_energies.txt",
-            overwrite_confirmation=True,
         )
 
     def on_treeview_Objects_button_release_event(self, gesture, press_count, x, y):

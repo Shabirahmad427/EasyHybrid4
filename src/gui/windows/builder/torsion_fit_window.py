@@ -38,6 +38,7 @@ import traceback
 import gi
 gi.require_version ( "Gtk", "4.0" )
 from gi.repository import Gtk, GLib, Gio
+from gui import file_dialogs
 
 from pdynamo import torsion_fit as F
 from gui.choice_dropdown import new_choice_dropdown, selected_choice_value
@@ -287,21 +288,13 @@ class TorsionFitWindow:
 
     def on_button_save_clicked ( self, widget ):
         if self.result is None: return
-        dialog = Gtk.FileChooserDialog ( title = "Save torsion fit", transient_for = self.window,
-                                         action = Gtk.FileChooserAction.SAVE )
-        dialog.add_buttons ( "Cancel", Gtk.ResponseType.CANCEL, "Save", Gtk.ResponseType.OK )
-        dialog.set_do_overwrite_confirmation ( True )
         folder = getattr ( self.target, "working_folder", None ) or os.getcwd ( )
-        if os.path.isdir ( folder ): dialog.set_current_folder ( Gio.File.new_for_path(folder) )
-        dialog.set_current_name ( "torsion_fit_{}_{}.txt".format ( self.target.force_field,
-                                  "-".join ( self.target.atom_names ).replace ( " ", "" ).replace ( "/", "_" ) ) )
-        dialog.connect("response", self._save_response)
-        dialog.present()
+        name = "torsion_fit_{}_{}.txt".format ( self.target.force_field,
+                   "-".join ( self.target.atom_names ).replace ( " ", "" ).replace ( "/", "_" ) )
+        file_dialogs.choose_file ( self.window, self._save_response, title = "Save torsion fit",
+                                   mode = file_dialogs.SAVE, initial_path = os.path.join ( folder, name ) )
 
-    def _save_response(self, dialog, response):
-        selected = dialog.get_file() if response == Gtk.ResponseType.OK else None
-        path = selected.get_path() if selected is not None else None
-        dialog.destroy()
+    def _save_response(self, path):
         if not path:
             return
         base = os.path.splitext ( path )[0]

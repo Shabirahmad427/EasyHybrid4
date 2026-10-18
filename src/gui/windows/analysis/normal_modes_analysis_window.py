@@ -33,6 +33,7 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, GObject
+from gui import file_dialogs
 from src.gtk4_compat import GTK_INVALID_LIST_POSITION
 from gui.gtk4_builder import connect_builder_signals, load_builder_file, load_builder_string
 #from GTKGUI.gtkWidgets.filechooser import FileChooser
@@ -230,20 +231,7 @@ class NormalModesAnalysisWindow(Gtk.Window):
     
     def on_button_import(self, button):
         """Import selected normal-mode trajectory folders asynchronously."""
-        dialog = Gtk.FileChooserDialog(
-            title="Select Folders", transient_for=self.window,
-            action=Gtk.FileChooserAction.SELECT_FOLDER,
-        )
-        dialog.add_buttons(
-            "Cancel", Gtk.ResponseType.CANCEL,
-            "Open", Gtk.ResponseType.OK,
-        )
-        dialog.set_select_multiple(True)
-
-        def on_response(chooser, response):
-            selected = chooser.get_files() if response == Gtk.ResponseType.OK else []
-            folder_paths = [item.get_path() for item in selected]
-            chooser.destroy()
+        def on_folders(folder_paths):
             if not folder_paths:
                 return
 
@@ -265,8 +253,10 @@ class NormalModesAnalysisWindow(Gtk.Window):
                     False, str(index), '{:.3f}'.format(float(data[0]))
                 ))
 
-        dialog.connect("response", on_response)
-        dialog.present()
+        file_dialogs.choose_file(
+            self.window, on_folders, title="Select Folders",
+            mode=file_dialogs.SELECT_MULTIPLE_FOLDERS,
+        )
 
     def _coordinates_model_update (self, e_id):
         """ Function doc """

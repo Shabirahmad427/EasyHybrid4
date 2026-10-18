@@ -36,7 +36,8 @@ from gi.repository import Gtk, Pango, GLib, Gio, GObject
 from src.gtk4_compat import GTK_INVALID_LIST_POSITION
 from gi.repository import Gdk
 from gi.repository import GdkPixbuf
-from gui.gtk4_builder import connect_builder_signals, load_builder_file, load_builder_string, choose_path
+from gui.gtk4_builder import connect_builder_signals, load_builder_file, load_builder_string
+from gui import file_dialogs
 import cairo
 
 
@@ -341,10 +342,10 @@ class ImportANewSystemWindow(Gtk.Window):
         self.on_entry_widget_change()
         
     def _choose_prm_folder(self, _button):
-        choose_path(
+        file_dialogs.choose_file(
             self.window, self._set_prm_folder,
             title="Select force-field parameter folder",
-            action=Gtk.FileChooserAction.SELECT_FOLDER,
+            mode=file_dialogs.SELECT_FOLDER,
             initial_path=self.prm_folder or os.environ.get('PDYNAMO3_PARAMETERS'),
         )
 
@@ -632,29 +633,16 @@ class ImportANewSystemWindow(Gtk.Window):
 
     def on_btn_choose_folder (self, widget):
         """ Function doc """
-        dialog = Gtk.FileChooserDialog(
-            title="Please choose a folder",
-            parent=self.window,
-            action=Gtk.FileChooserAction.SELECT_FOLDER
-        )
-        
-        dialog.add_buttons(
-            "Cancel", Gtk.ResponseType.CANCEL,
-            "Open", Gtk.ResponseType.OK
-        )
-        path = self.vm_session.vm_config.gl_parameters['startup_path']
-        from gi.repository import Gio
-        dialog.set_current_folder(Gio.File.new_for_path(path))
-
-        def on_response(chooser, response):
-            selected = chooser.get_file()
-            if response == Gtk.ResponseType.OK and selected is not None:
-                self.folder = selected.get_path()
+        def on_folder(folder):
+            if folder:
+                self.folder = folder
                 self.set_working_folder_path()
-            chooser.destroy()
 
-        dialog.connect("response", on_response)
-        dialog.present()
+        file_dialogs.choose_file(
+            self.window, on_folder, title="Please choose a folder",
+            mode=file_dialogs.SELECT_FOLDER,
+            initial_path=self.vm_session.vm_config.gl_parameters['startup_path'],
+        )
 
     def update (self):
         """ Function doc """

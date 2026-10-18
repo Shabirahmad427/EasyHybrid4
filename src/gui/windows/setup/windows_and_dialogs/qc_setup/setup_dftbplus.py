@@ -34,7 +34,8 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Pango
 from gi.repository import Gdk
 from gi.repository import GdkPixbuf
-from gui.gtk4_builder import connect_builder_signals, load_builder_file, load_builder_string, choose_path
+from gui.gtk4_builder import connect_builder_signals, load_builder_file, load_builder_string
+from gui import file_dialogs
 import cairo
 
 
@@ -296,11 +297,11 @@ class SetupDFTBplusWindow:
         self._choose_skf_folder(widget)
 
     def _choose_skf_folder(self, _button):
-        choose_path(
+        file_dialogs.choose_file(
             self.window,
             lambda path: self._set_skf_folder(path),
             title="Select Slater-Koster parameter folder",
-            action=Gtk.FileChooserAction.SELECT_FOLDER,
+            mode=file_dialogs.SELECT_FOLDER,
             initial_path=getattr(self, 'skf_folder', None) or os.path.expanduser('~'),
         )
 

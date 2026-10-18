@@ -35,6 +35,7 @@ import threading
 import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, GLib, Gio, GObject, GdkPixbuf
+from gui import file_dialogs
 from gui.message_dialogs import show_message
 from src.gtk4_compat import GTK_INVALID_LIST_POSITION
 from gui.gtk4_context_menu import ContextMenu
@@ -153,22 +154,15 @@ class XtbFragmentChargesWindow:
     # ------------------------------------------------------------------ #
     def _on_choose_tmpdir(self, _button):
         """Open a FOLDER chooser for the xTB temporary files."""
-        dialog = Gtk.FileChooserDialog(
-            title="Select temporary folder",
-            transient_for=self.window,
-            action=Gtk.FileChooserAction.SELECT_FOLDER)
-        dialog.add_buttons(
-            "Cancel", Gtk.ResponseType.CANCEL,
-            "Select", Gtk.ResponseType.OK)
-        def on_response(chooser, response):
-            if response == Gtk.ResponseType.OK:
-                selected = chooser.get_file()
-                if selected is not None:
-                    self.entry_tmpdir.set_text(selected.get_path())
-            chooser.destroy()
+        def on_folder(folder):
+            if folder:
+                self.entry_tmpdir.set_text(folder)
 
-        dialog.connect("response", on_response)
-        dialog.present()
+        file_dialogs.choose_file(
+            self.window, on_folder, title="Select temporary folder",
+            mode=file_dialogs.SELECT_FOLDER,
+            initial_path=self.entry_tmpdir.get_text().strip() or None,
+        )
 
     def _system_color_swatch(self):
         """Pixbuf of the small color square that identifies the system.
