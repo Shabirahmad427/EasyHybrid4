@@ -310,6 +310,22 @@ GTK 4.8/4.10 runners crashed the same way before that change).
 
 Native matrix run `39140683707` (commit `01ea9a5`): **30/30 cells PASS** — GTK 4.8: 36 passed, 3 skipped (Linux, Windows, macOS arm64/x86_64); GTK 4.10–4.24: 33 passed, 6 skipped. One intermittent access violation on MSYS2 Windows GTK 4.18.6 in run `39139961309` (after a native `Gtk.FileDialog` cancel) did not recur; a gdb backtrace step captures it if it does.
 
+### Colour buttons
+
+`Gtk.ColorButton` is deprecated since GTK 4.10 and `Gtk.ColorDialogButton`
+does not exist on GTK 4.8. `src/gui/color_button.py` provides `ColorButton`
+(GType `EasyHybridColorButton`, used directly by Builder files): a
+`Gtk.Button` with a colour swatch keeping the `rgba`, `use-alpha` and
+`title` properties, `get_rgba`/`set_rgba`, `new_with_rgba` and the
+`color-set` signal (emitted only for a user's choice). It opens
+`gui.file_dialogs.choose_color`, so it uses `Gtk.ColorDialog` on 4.10+.
+All 26 uses moved (21 in 8 UI definitions, 5 in Python); Builder's
+string-to-`Gdk.RGBA` conversion for the Python property was verified on
+GTK 4.8, 4.10 and 4.24. PyGObject note: `Gdk.RGBA` is iterable only from
+PyGObject 3.58, so `list(rgba)` raised `TypeError` in 17 setup-preference
+handlers on PyGObject 3.42–3.50 (typical with GTK 4.8–4.14); they now use
+`gtk4_compat.rgba_components`, and the guard rejects the old pattern.
+
 Native matrix run `39082144669` (commit `9373956`): **10/10 passed in all 30 cells** — every GTK4 minor 4.8–4.24 on Linux, Windows and macOS arm64, plus GTK 4.8/4.10 on macOS x86_64.
 
 ## Verification requirements
