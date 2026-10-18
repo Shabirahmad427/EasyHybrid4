@@ -826,6 +826,7 @@ def test_file_dialog_is_configured_like_the_request(tmp_path):
 
         class GtkApi:
             FileDialog = RecordingFileDialog
+            FileFilter = Gtk.FileFilter
 
         gtk_api = GtkApi
     handle = fd.choose_file(None, results.append, mode=fd.SAVE, title="Export PNG",
@@ -894,6 +895,7 @@ def test_windows_file_dialog_mode_mapping_avoids_native_dialog_launches(monkeypa
 
     class GtkApi:
         FileDialog = RecordingFileDialog
+        FileFilter = Gtk.FileFilter
 
     expected = {
         fd.OPEN: "open",
@@ -902,11 +904,12 @@ def test_windows_file_dialog_mode_mapping_avoids_native_dialog_launches(monkeypa
         fd.SELECT_FOLDER: "select_folder",
         fd.SELECT_MULTIPLE_FOLDERS: "select_multiple_folders",
     }
+    file_filter = fd.file_filter("Data", "*.dat")
     for mode, method in expected.items():
         results = []
         handle = fd.choose_file(None, results.append, mode=mode,
                                 initial_path=str(tmp_path / "item.dat"),
-                                use_file_dialog=True, gtk=GtkApi)
+                                filters=[file_filter], use_file_dialog=True, gtk=GtkApi)
         assert handle.uses_new_api
         assert handle.dialog is not None
         name, _window, _cancellable, callback = handle.dialog.operation

@@ -53,6 +53,14 @@ repeated native COM interactions while retaining one real user-cancel path.
 Linux GTK 4.14.5 chooser tests: **3 passed, 1 skipped**; full widget module:
 **53 passed, 7 skipped**. A green full native matrix is still required before
 calling this stable.
+
+The first mitigation matrix `39155132412` then exposed a separate omission
+in the Windows-only test double: the fake API lacked `Gtk.FileFilter`, so the
+save-dialog configuration test failed on GTK 4.10, 4.12, 4.20 and 4.22 before
+any native chooser was opened. The test double now supplies that GTK type,
+and the all-mode fake test exercises filtered requests locally. This was a
+test-only `AttributeError`, not an application failure; the corrected matrix
+is required to validate both fixes together.
 The first full clean-history GTK matrix log showed an access violation when
 the `Gtk.ColorChooserDialog` response handler destroyed its dialog inline on
 Windows. The fallback now hides the dialog and defers destruction; targeted
