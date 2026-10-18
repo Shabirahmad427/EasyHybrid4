@@ -54,7 +54,9 @@ exception on GTK 4.24 Windows, despite the job passing. The test helper is now
 being changed to focus the dialog and send a real Escape key via `SendInput`;
 this attempt is unverified. Treat the recurring failure as unresolved until
 the Windows artifact is clean, including stderr, rather than relying on pytest
-exit status.
+exit status. The Windows matrix now has a post-test log guard that fails if
+`Windows fatal exception` or the corresponding access-violation exit code is
+logged, even if pytest itself returned zero.
 
 The Windows-only test double initially lacked `Gtk.FileFilter`, so the
 mitigation matrix `39155132412` failed on GTK 4.10, 4.12, 4.20 and 4.22 before

@@ -397,6 +397,14 @@ jobs:
           set -o pipefail
           GALLIUM_DRIVER=llvmpipe python -m pytest -q -p no:cacheprovider --noconftest -rs tests/test_gtk4_widget_patterns.py 2>&1 | tee -a platform-results.txt
 
+      - name: Reject native Windows fatal exceptions in GTK logs
+        if: always()
+        run: |
+          if grep -Eq 'Windows fatal exception|unknown error ; error code 1073741819' platform-results.txt; then
+            echo 'GTK emitted a native Windows fatal exception even though pytest may have exited successfully.'
+            exit 1
+          fi
+
       - name: Native backtrace of a widget-test crash (diagnostic)
         # Python's faulthandler cannot read the C stack on Windows. Re-run
         # under gdb (up to three times; crashes may be intermittent) and
