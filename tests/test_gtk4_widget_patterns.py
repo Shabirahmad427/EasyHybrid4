@@ -523,8 +523,13 @@ def test_native_glib_log_handler_only_below_gtk_4_10():
 def test_widget_cycles_freed_by_garbage_collection_do_not_abort(tmp_path):
     """Regression for GTK 4.8: GtkImage finalization criticals freed from a
     garbage-collected cycle inside PyGObject's warning handler were a
-    recursive (always fatal) GLib log message. Runs on every minor."""
+    recursive (always fatal) GLib log message."""
     import subprocess
+    from src.os_integration.gtk_startup import needs_native_glib_log_handler
+
+    if not needs_native_glib_log_handler((Gtk.get_major_version(), Gtk.get_minor_version())):
+        pytest.skip("GTK %d.%d has no GtkImage finalization critical (fixed in 4.10)"
+                    % (Gtk.get_major_version(), Gtk.get_minor_version()))
 
     script = tmp_path / "cycles.py"
     script.write_text(
@@ -568,10 +573,21 @@ def _file_modes():
 
 
 def _chooser_paths(use_new_api):
+    """Run each real file chooser where the app uses it.
+
+    The app opens Gtk.FileDialog wherever it exists (GTK 4.10+: the native
+    dialog on Windows/macOS, a portal or GTK's own handling on Linux) and
+    the GTK 4.8 Gtk.FileChooserDialog only where it does not. GTK's
+    deprecated chooser is crash- and race-prone on 4.10+ Windows/macOS
+    runners, a configuration the app never runs.
+    """
     from gui import file_dialogs as fd
+    version = "GTK %d.%d" % (Gtk.get_major_version(), Gtk.get_minor_version())
     if use_new_api and not fd.has_file_dialog():
-        pytest.skip("Gtk.FileDialog needs GTK 4.10+; GTK %d.%d uses the tested fallback"
-                    % (Gtk.get_major_version(), Gtk.get_minor_version()))
+        pytest.skip("Gtk.FileDialog needs GTK 4.10+; %s uses the GTK 4.8 chooser (tested)" % version)
+    if not use_new_api and fd.has_file_dialog():
+        pytest.skip("%s: the app uses Gtk.FileDialog (tested); the GTK 4.8 chooser runs "
+                    "only where Gtk.FileDialog is absent" % version)
 
 
 @needs_display
@@ -631,9 +647,10 @@ def test_file_dialog_is_configured_like_the_request(tmp_path):
 @needs_display
 @pytest.mark.parametrize("mode_name", ["OPEN", "OPEN_MULTIPLE", "SAVE", "SELECT_FOLDER"])
 def test_gtk48_file_chooser_path_returns_selected_paths(tmp_path, mode_name):
-    """The GTK 4.8 fallback, run on every minor, returns real local paths."""
+    """The GTK 4.8 chooser returns the real local paths the user selected."""
     from gui import file_dialogs as fd
 
+    _chooser_paths(False)
     mode = getattr(fd, mode_name)
     (tmp_path / "data.txt").write_text("x", encoding="utf-8")
     (tmp_path / "sub").mkdir()
@@ -649,21 +666,33 @@ def test_gtk48_file_chooser_path_returns_selected_paths(tmp_path, mode_name):
 
     try:
         assert _wait_for(dialog.get_mapped)
+        assert _wait_for(lambda: dialog.get_current_folder() is not None
+                         and same(dialog.get_current_folder().get_path(), tmp_path))
         if mode == fd.SAVE:
-            assert _wait_for(lambda: dialog.get_current_folder() is not None
-                             and same(dialog.get_current_folder().get_path(), tmp_path))
             dialog.set_current_name("saved.txt")
             expected = tmp_path / "saved.txt"
         else:
-            # The folder loads asynchronously and GTK then moves the cursor to
-            # its first row; select only after that, or the cursor overrides it.
-            assert _wait_for(lambda: dialog.get_file() is not None)
             expected = tmp_path / ("sub" if mode == fd.SELECT_FOLDER else "data.txt")
-            assert dialog.set_file(Gio.File.new_for_path(str(expected)))
-        assert _wait_for(lambda: dialog.get_file() is not None
-                         and same(dialog.get_file().get_path(), expected))
-        # Accept at once: the adapter must survive GTK 4.10+'s path-bar
-        # lookup still running (it hides the dialog and destroys it later).
+
+        last_attempt = [None]
+
+        def selected():
+            # The folder loads asynchronously and GTK may then move the
+            # cursor to its first row, replacing a selection made earlier.
+            # Select again (at most once a second, so each attempt can
+            # finish) until the choice holds.
+            current = dialog.get_file()
+            if current is not None and same(current.get_path(), expected):
+                return True
+            now = GLib.get_monotonic_time()
+            if mode != fd.SAVE and (last_attempt[0] is None or now - last_attempt[0] > 1_000_000):
+                last_attempt[0] = now
+                dialog.set_file(Gio.File.new_for_path(str(expected)))
+            return False
+
+        assert _wait_for(selected)
+        # Accept at once: the adapter hides the chooser and destroys it
+        # later, so a folder lookup still running cannot crash GTK.
         dialog.response(Gtk.ResponseType.ACCEPT)
         assert _wait_for(lambda: results), results
         assert not dialog.get_visible()

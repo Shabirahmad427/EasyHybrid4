@@ -288,14 +288,25 @@ which broke four save dialogs) are gone. The selection-colour menu also no
 longer calls a nonexistent `SimpleDialog.destroy()`, which had stopped the
 "make permanent?" question from appearing.
 
-Tests run the GTK 4.8 path on every minor (it still exists) and the
-`Gtk.FileDialog`/`Gtk.ColorDialog` path on 4.10+: cancel reports once for
-every mode, the new dialog carries the requested title, accept label, folder,
-name and filters, and the old dialog returns the selected real paths and
-colours. Upstream note: on GTK 4.10+ (not 4.8), destroying a
-`Gtk.FileChooserDialog` while its path bar is still looking up a folder
-crashes in `gtk_path_bar_set_file_finish` (gdb backtrace, GTK 4.24.1); 0/20
-on GTK 4.8.2, where the app uses it, so the test waits as a person would.
+Each real file chooser is tested where the app uses it: the GTK 4.8
+`Gtk.FileChooserDialog` path on GTK 4.8 (cancel for every mode, selected
+real paths for open/save/folder), and `Gtk.FileDialog` on GTK 4.10+ (cancel
+for every mode; the dialog carries the requested title, accept label,
+folder, name and filters). On Windows/macOS 4.10+ that is the native
+dialog; on Linux runners without a portal it is GTK's own handling. The
+colour paths (both) run on every minor. Adapter logic, the schema guard and
+the cycle regression (GTK < 4.10) also have tests.
+
+Upstream defects in the deprecated `Gtk.FileChooserDialog` on GTK 4.10+,
+which the app does not use there: destroying it while its path bar is
+still looking up a folder crashes in `gtk_path_bar_set_file_finish` (gdb
+backtrace, GTK 4.24.1 Linux; also crashed macOS arm64 4.14/4.22 and MSYS2
+Windows 4.16/4.18 runners); a Windows 4.12 runner crashed in `present()`;
+and on a loaded macOS 4.24 runner it ignored a programmatic accept. Run
+`39137929806` exposed these when the GTK 4.8 path was forced on 4.10+.
+The adapter still hides the chooser on response and destroys it five
+seconds later, which also protects GTK 4.8 on slow machines (macOS x86_64
+GTK 4.8/4.10 runners crashed the same way before that change).
 
 Native matrix run `39082144669` (commit `9373956`): **10/10 passed in all 30 cells** — every GTK4 minor 4.8–4.24 on Linux, Windows and macOS arm64, plus GTK 4.8/4.10 on macOS x86_64.
 
