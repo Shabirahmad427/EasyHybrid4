@@ -32,6 +32,11 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, GLib
+from gui.playback import (
+    ping_pong_playback_tick,
+    start_playback_timer,
+    stop_playback_timer,
+)
 from gi.repository import Gdk
 from gi.repository import GdkPixbuf
 import os
@@ -158,35 +163,19 @@ class VismolTrajectoryFrame(Gtk.Frame):
         if self.running:
             return False
         self.running = True
-        fps = max(1.0, float(self.entry.get_value()))
-        interval_ms = max(1, int(round(1000.0 / fps)))
-        self._playback_source_id = GLib.timeout_add(
-            interval_ms, self._playback_tick
+        self._playback_source_id = start_playback_timer(
+            self._playback_tick, self.entry.get_value()
         )
         return False
 
     def _playback_tick(self):
-        if not self.running:
-            self._playback_source_id = None
-            return GLib.SOURCE_REMOVE
-
-        step = max(1, int(self.entry_step.get_value()))
-        if self.frame_forward:
-            value = self.forward(step=step)
-            if value >= self.upper - 1:
-                self.frame_forward = False
-        else:
-            value = self.reverse(step=step)
-            if value <= 0:
-                self.frame_forward = True
-        return GLib.SOURCE_CONTINUE
+        return ping_pong_playback_tick(self)
 
     def stop (self, button):
         """Stop playback and remove its GLib source."""
         self.running = False
         source_id, self._playback_source_id = self._playback_source_id, None
-        if source_id is not None:
-            GLib.source_remove(source_id)
+        stop_playback_timer(source_id)
         return False
 
     def forward (self, button = None, step = 1):

@@ -33,6 +33,11 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, GObject, GLib
+from gui.playback import (
+    looping_playback_tick,
+    start_playback_timer,
+    stop_playback_timer,
+)
 from gui import file_dialogs
 from src.gtk4_compat import GTK_INVALID_LIST_POSITION
 from gui.gtk4_builder import connect_builder_signals, load_builder_file, load_builder_string
@@ -334,30 +339,19 @@ class NormalModesAnalysisWindow(Gtk.Window):
 
         self.running = True
         self.value = self.lower
-        fps = max(1.0, float(self.spin_button.get_value()))
-        interval_ms = max(1, int(round(1000.0 / fps)))
-        self._playback_source_id = GLib.timeout_add(
-            interval_ms, self._playback_tick
+        self._playback_source_id = start_playback_timer(
+            self._playback_tick, self.spin_button.get_value()
         )
         return False
 
     def _playback_tick(self):
-        if not self.running:
-            self._playback_source_id = None
-            return GLib.SOURCE_REMOVE
-
-        self.vm_session.set_frame(int(self.value))
-        self.value += 1
-        if self.value >= self.upper:
-            self.value = self.lower
-        return GLib.SOURCE_CONTINUE
+        return looping_playback_tick(self)
             
     def stop (self, button):
         """Stop playback and remove its GLib source."""
         self.running = False
         source_id, self._playback_source_id = self._playback_source_id, None
-        if source_id is not None:
-            GLib.source_remove(source_id)
+        stop_playback_timer(source_id)
         return False
 
     def forward (self, button):

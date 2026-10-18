@@ -45,9 +45,10 @@ _GTK_SMOKE = textwrap.dedent(
         application_id="org.easyhybrid.tests.IconThemeSmoke",
         flags=Gio.ApplicationFlags.NON_UNIQUE,
     )
-    state = {}
+    state = {"cycles": 0}
 
     def activate(app):
+        cycle = state["cycles"] + 1
         theme = Gtk.IconTheme.get_for_display(display)
         if theme is None:
             raise RuntimeError("GTK returned no icon theme for the active display")
@@ -67,6 +68,7 @@ _GTK_SMOKE = textwrap.dedent(
         gl_area.set_required_version(*gl_area_required_version(Gtk))
         state["legacy_wgl_workaround"] = apply_legacy_win32_wgl_workaround(gl_area, Gtk)
         state["gl_ready"] = False
+        cycle_state = {"close_scheduled": False}
 
         def realize(area):
             area.make_current()
@@ -98,7 +100,22 @@ _GTK_SMOKE = textwrap.dedent(
                     )
                 state["gl_renderer"] = gl_renderer.decode("utf-8", errors="replace")
                 state["gl_ready"] = True
-                GLib.timeout_add(100, lambda: (window.close(), app.quit(), False)[2])
+                if not cycle_state["close_scheduled"]:
+                    cycle_state["close_scheduled"] = True
+
+                    def close_cycle():
+                        window.close()
+                        state["cycles"] = cycle
+                        if cycle < 3:
+                            GLib.idle_add(
+                                lambda: (app.activate(), GLib.SOURCE_REMOVE)[1]
+                            )
+                        else:
+                            app.release()
+                            app.quit()
+                        return GLib.SOURCE_REMOVE
+
+                    GLib.timeout_add(100, close_cycle)
             except Exception as error:
                 state["gl_error"] = str(error)
                 GLib.idle_add(lambda: (app.quit(), False)[1])
@@ -133,11 +150,17 @@ _GTK_SMOKE = textwrap.dedent(
         GLib.timeout_add_seconds(20, lambda: (app.quit(), False)[1])
 
     application.connect("activate", activate)
+    application.hold()
     application.run(None)
     if not state.get("gl_ready"):
         raise RuntimeError(
             "Gtk.GLArea did not produce a real OpenGL render: %s"
             % state.get("gl_error", "render signal not emitted")
+        )
+    if state.get("cycles") != 3:
+        raise RuntimeError(
+            "GTK open/close lifecycle completed %d of 3 cycles"
+            % state.get("cycles", 0)
         )
     print(
         "GTK=%d.%d.%d display=%s icon-theme=%s picture=%s scroll-unit=%s action=%s GL=%s renderer=%s legacy-wgl=%s GSK_RENDERER=%s" % (
@@ -147,6 +170,7 @@ _GTK_SMOKE = textwrap.dedent(
             state["legacy_wgl_workaround"], os.environ.get("GSK_RENDERER", "")
         )
     )
+    print("GTK_WINDOW_OPEN_CLOSE_CYCLES=%d" % state["cycles"])
     """
 )
 

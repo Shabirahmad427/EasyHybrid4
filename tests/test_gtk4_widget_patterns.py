@@ -423,17 +423,19 @@ def test_stale_xtb_completion_restores_reopened_window_controls():
     assert dialog.btn_apply.sensitive is True
 
 
-def test_trajectory_playback_uses_removable_glib_timer(monkeypatch):
+def test_trajectory_playback_uses_removable_glib_timer():
     from types import SimpleNamespace
-    from gui.widgets.custom_widgets import trajectory_frame
+    from gui.playback import ping_pong_playback_tick, start_playback_timer, stop_playback_timer
+    from gi.repository import GLib
 
     scheduled = []
     removed = []
-    monkeypatch.setattr(
-        trajectory_frame.GLib, "timeout_add",
-        lambda interval, callback: scheduled.append((interval, callback)) or 41,
+    fake_glib = SimpleNamespace(
+        timeout_add=lambda interval, callback: scheduled.append((interval, callback)) or 41,
+        source_remove=removed.append,
+        SOURCE_REMOVE=GLib.SOURCE_REMOVE,
+        SOURCE_CONTINUE=GLib.SOURCE_CONTINUE,
     )
-    monkeypatch.setattr(trajectory_frame.GLib, "source_remove", removed.append)
     calls = []
     frame = SimpleNamespace(
         running=False, _playback_source_id=None, frame_forward=True, upper=5,
@@ -442,48 +444,53 @@ def test_trajectory_playback_uses_removable_glib_timer(monkeypatch):
         forward=lambda step: calls.append(("forward", step)) or 4,
         reverse=lambda step: calls.append(("reverse", step)) or 0,
     )
-    frame._playback_tick = lambda: trajectory_frame.VismolTrajectoryFrame._playback_tick(frame)
-
-    assert trajectory_frame.VismolTrajectoryFrame.play(frame, None) is False
-    assert frame.running is True
+    frame.running = True
+    frame._playback_source_id = start_playback_timer(
+        lambda: ping_pong_playback_tick(frame, glib=fake_glib), 25, glib=fake_glib
+    )
     assert scheduled[0][0] == 40
-    assert scheduled[0][1]() == trajectory_frame.GLib.SOURCE_CONTINUE
+    assert scheduled[0][1]() == GLib.SOURCE_CONTINUE
     assert calls == [("forward", 1)]
     assert frame.frame_forward is False
 
-    trajectory_frame.VismolTrajectoryFrame.stop(frame, None)
+    frame.running = False
+    stop_playback_timer(frame._playback_source_id, glib=fake_glib)
+    frame._playback_source_id = None
     assert removed == [41]
     assert frame.running is False
     assert frame._playback_source_id is None
 
 
-def test_normal_mode_playback_wraps_on_main_loop_and_stops(monkeypatch):
+def test_normal_mode_playback_wraps_on_main_loop_and_stops():
     from types import SimpleNamespace
-    from gui.windows.analysis import normal_modes_analysis_window as nm
+    from gui.playback import looping_playback_tick, start_playback_timer, stop_playback_timer
+    from gi.repository import GLib
 
     scheduled = []
     removed = []
-    monkeypatch.setattr(
-        nm.GLib, "timeout_add",
-        lambda interval, callback: scheduled.append((interval, callback)) or 73,
+    fake_glib = SimpleNamespace(
+        timeout_add=lambda interval, callback: scheduled.append((interval, callback)) or 73,
+        source_remove=removed.append,
+        SOURCE_REMOVE=GLib.SOURCE_REMOVE,
+        SOURCE_CONTINUE=GLib.SOURCE_CONTINUE,
     )
-    monkeypatch.setattr(nm.GLib, "source_remove", removed.append)
     frames = []
     player = SimpleNamespace(
-        running=False, _playback_source_id=None, lower=2, upper=4,
-        spin_button=SimpleNamespace(get_value=lambda: 20),
+        running=True, _playback_source_id=None, lower=2, upper=4, value=2,
         vm_session=SimpleNamespace(set_frame=frames.append),
     )
-    player._playback_tick = lambda: nm.NormalModesAnalysisWindow._playback_tick(player)
-
-    assert nm.NormalModesAnalysisWindow.play(player, None) is False
+    player._playback_source_id = start_playback_timer(
+        lambda: looping_playback_tick(player, glib=fake_glib), 20, glib=fake_glib
+    )
     assert scheduled[0][0] == 50
-    assert scheduled[0][1]() == nm.GLib.SOURCE_CONTINUE
-    assert scheduled[0][1]() == nm.GLib.SOURCE_CONTINUE
+    assert scheduled[0][1]() == GLib.SOURCE_CONTINUE
+    assert scheduled[0][1]() == GLib.SOURCE_CONTINUE
     assert frames == [2, 3]
     assert player.value == 2
 
-    nm.NormalModesAnalysisWindow.stop(player, None)
+    player.running = False
+    stop_playback_timer(player._playback_source_id, glib=fake_glib)
+    player._playback_source_id = None
     assert removed == [73]
     assert player.running is False
     assert player._playback_source_id is None

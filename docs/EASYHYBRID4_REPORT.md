@@ -59,12 +59,22 @@ build/import while the worker uses the fragment list. The Close button now
 uses `Gtk.Window.close()` so cleanup follows `close-request`. The broader
 thread audit found both trajectory playback loops read GTK controls and
 updated the viewer from Python worker threads. Replaced them with removable
-GLib timer callbacks on the main loop. Focused lifecycle/playback tests: **5
-passed** on Linux x86_64, GTK 4.14.5 / Python 3.12.3 / PyGObject 3.48.2 / GLib
-2.80.0; compile and whitespace checks passed. The xTB-only commit's matrix
-passed **30/30**; full matrix for the playback correction is pending. No xTB
-or trajectory scientific calculation was run or changed; physical playback
-was **NOT TESTED**.
+GLib timer callbacks on the main loop. The first matrix playback-test run
+failed because importing the GUI packages pulled in NumPy, which is absent
+from the GTK-only test environment. Extracted the shared timer/tick logic to
+`src/gui/playback.py` and changed the focused tests to avoid those heavyweight
+imports. On Linux x86_64/Xvfb, Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 /
+GLib 2.80.0, the two focused playback tests now pass (**2 passed**). The
+xTB-only commit's matrix passed **30/30**; the matrix for the shared playback
+helper is pending. Expanded the native GTK smoke to open, render and close
+three fresh windows per run; the first attempt exposed automatic application
+deregistration between cycles, fixed by holding the application until the
+third window closes. Final Linux x86_64/Xvfb smoke: **3/3 lifecycle cycles
+passed**, GTK 4.14.5 / GLib 2.80.0 / PyGObject 3.48.2, OpenGL 4.5 Core Profile
+on Mesa llvmpipe. The earlier matrix was canceled before completion to include
+the repeated lifecycle check; a full matrix for this revision is pending. No
+xTB or trajectory scientific calculation was run or changed; real trajectory
+data playback was **NOT TESTED**.
 
 **Windows chooser cancellation harness diagnosis (2026-10-18):** The initial
 UI Automation attempt in commit `1a88c31` did not operate the Cancel button:
