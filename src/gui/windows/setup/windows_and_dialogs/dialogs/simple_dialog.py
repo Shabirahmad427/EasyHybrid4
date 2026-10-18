@@ -35,7 +35,7 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Pango
 from gi.repository import Gdk
 from gi.repository import GdkPixbuf
-import cairo
+from gui.message_dialogs import ask_yes_no, show_message
 
 
 #---------------------------------------
@@ -91,21 +91,18 @@ PDYNAMO3_SCRATCH = os.environ.get('PDYNAMO3_SCRATCH')
 
 
 def call_message_dialog (text1 = '', text2 = '', transient_for = None):
-    """ Function doc """
-    dialog = Gtk.MessageDialog(
-                transient_for = transient_for,
-                message_type=Gtk.MessageType.INFO,
-                buttons = Gtk.ButtonsType.OK,
-                text = text1, #"MMModelError",
-                )
-    dialog.format_secondary_text(text2)#"""Total active MM charge is neither integral nor zero.""")
-    dialog.connect("response", lambda current_dialog, _response: current_dialog.destroy())
-    dialog.present()
+    """ Show an information message (portable across all GTK4 minors). """
+    return show_message(transient_for, text1, text2 or None)
 
 
 class SimpleDialog:
-    """ A helper class to create simple dialog windows using GTK. """
-    
+    """ Simple message and question dialogs parented to the main window.
+
+    Delegates to gui.message_dialogs, which works on every GTK4 minor
+    (Gtk.MessageDialog is deprecated since GTK 4.10 and Gtk.AlertDialog is
+    absent on GTK 4.8).
+    """
+
     def __init__(self, main = None, is_on_top = True):
         """ 
         Class initializer. 
@@ -114,154 +111,20 @@ class SimpleDialog:
         """
         self.main = main
         self.is_on_top = is_on_top
-    def create_finished_dialog(self, parent=None, 
-            msg1 = '',
-            msg2 = '', 
-            modal = False):
-                
-        # Criar a janela de diálogo
-        dialog = Gtk.Dialog(
-            title="Process finished",
-            transient_for=parent,
-            modal=modal,
-        )
-        dialog.add_button("OK", Gtk.ResponseType.OK)
-        dialog.set_default_size(350, 150)
-        dialog.set_margin_top(5)
-        dialog.set_margin_bottom(5)
-        dialog.set_margin_start(5)
-        dialog.set_margin_end(5)
-        # Área de conteúdo
-        content_area = dialog.get_content_area()
 
-        # Caixa vertical principal
-        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        vbox.set_halign(Gtk.Align.CENTER)
-        vbox.set_valign(Gtk.Align.CENTER)
-        content_area.append(vbox)
+    def _parent(self, parent = None):
+        if parent is not None:
+            return parent
+        return getattr(self.main, "window", None)
 
-        # Texto acima (centralizado)
-        top_label = Gtk.Label(label=msg1)
-        top_label.set_justify(Gtk.Justification.CENTER)
-        vbox.append(top_label)
-        top_label.set_halign(Gtk.Align.CENTER)
-        top_label.set_valign(Gtk.Align.CENTER)
-
-        # Caixa horizontal para quadrado + mensagem
-        hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        vbox.append(hbox)
-        hbox.set_halign(Gtk.Align.CENTER)
-        hbox.set_valign(Gtk.Align.CENTER)
-
-        # Quadrado verde 15x15
-        pixbuf = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, 15, 15)
-        pixbuf.fill(0x00FF00FF)  # RGBA → verde
-        image = Gtk.Image.new_from_pixbuf(pixbuf)
-        hbox.append(image)
-        image.set_halign(Gtk.Align.CENTER)
-        image.set_valign(Gtk.Align.CENTER)
-
-        # Texto ao lado do quadrado
-        msg_label = Gtk.Label(label=msg2)
-        msg_label.set_xalign(0)
-        hbox.append(msg_label)
-        msg_label.set_halign(Gtk.Align.CENTER)
-        msg_label.set_valign(Gtk.Align.CENTER)
-
-        
-        return dialog
-
-    def finished(self, msg=None, modal=True):
-        """ 
-        Show an information dialog with an OK button and a green square.
-        """
-
-        dialog = Gtk.MessageDialog(
-            transient_for=self.main.window,
-            modal=modal,
-            message_type=Gtk.MessageType.INFO,
-            buttons=Gtk.ButtonsType.OK,
-        )
-
-        # Criar a área de conteúdo
-        content_area = dialog.get_content_area()
-
-        # Caixa horizontal para alinhar ícone + texto
-        hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        content_area.append(hbox)
-
-        # Criar um quadrado verde (pixbuf 15x15)
-        surface = Gdk.cairo_surface_create_from_pixbuf(
-            GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, 15, 15),
-            1, None
-        )
-        # Pintar o surface de verde
-        cr = cairo.Context(surface)
-        cr.set_source_rgb(0, 1, 0)  # verde
-        cr.rectangle(0, 0, 15, 15)
-        cr.fill()
-
-        pixbuf = Gdk.pixbuf_get_from_surface(surface, 0, 0, 15, 15)
-        image = Gtk.Image.new_from_pixbuf(pixbuf)
-        hbox.append(image)
-        image.set_halign(Gtk.Align.CENTER)
-        image.set_valign(Gtk.Align.CENTER)
-
-        # Adicionar texto
-        label = Gtk.Label(label=msg)
-        label.set_xalign(0)  # alinhado à esquerda
-        hbox.append(label)
-        label.set_hexpand(True)
-        label.set_vexpand(True)
-
-        
-        dialog.set_margin_top(15)
-
-        
-        dialog.set_margin_bottom(15)
-
-        
-        dialog.set_margin_start(15)
-
-        
-        dialog.set_margin_end(15)
-        dialog.present()
-
-    def info(self, msg = None, modal = True, title = 'Title' ):
-        """ 
-        Show an information dialog with an OK button. 
-        The dialog is modal, meaning the user must dismiss it before interacting with the main window. 
-        """
-        
-        dialog = Gtk.MessageDialog(
-                title=title,
-                transient_for=self.main.window,
-                modal=modal,
-                message_type=Gtk.MessageType.INFO,
-                buttons=Gtk.ButtonsType.OK,
-                text=msg,
-            )
- 
- 
-        dialog.connect("response", lambda current_dialog, _response: current_dialog.destroy())
-        dialog.present()
-        
+    def info(self, msg = None, modal = True, title = None):
+        """ Show an information dialog with an OK button. """
+        show_message(self._parent(), msg, kind="info", title=title, modal=modal)
         return None
-    
+
     def error(self, msg):
-        """ 
-        Show an error dialog with an OK button. 
-        Used to notify the user of an error condition. 
-        """
-        dialog = Gtk.MessageDialog(
-                    transient_for=self.main.window,
-                    modal=True,
-                    message_type=Gtk.MessageType.ERROR,
-                    buttons=Gtk.ButtonsType.OK,
-                    text=msg,
-                )
-        dialog.connect("response", lambda current_dialog, _response: current_dialog.destroy())
-        dialog.present()
+        """ Show an error dialog with an OK button. """
+        show_message(self._parent(), msg, kind="error")
         return None
 
     def error_details (self, parent = None, msg = '', details = None, title = 'Error!'):
@@ -269,86 +132,15 @@ class SimpleDialog:
         Shows an error dialog with a short message plus an expandable
         "Show details" section containing the full technical details (e.g.
         a traceback), so the user isn't stuck with only a one-line summary
-        when something goes wrong -- while still keeping the dialog itself
-        short and readable by default.
+        when something goes wrong.
         """
-        dialog = Gtk.MessageDialog(
-            title               = title,
-            transient_for       = parent if parent is not None else self.main.window,
-            modal               = True,
-            destroy_with_parent = True,
-            message_type        = Gtk.MessageType.ERROR,
-        )
-        dialog.add_button ( "OK", Gtk.ResponseType.CLOSE )
-
-        # Main message shown to the user (short description of the error).
-        dialog.format_secondary_text ( msg )
-
-        # Revealer used to show/hide the details (stacktrace/log). Stored on
-        # the dialog itself (not on "self") so multiple error dialogs don't
-        # clash with each other's widgets.
-        dialog.revealer = Gtk.Revealer ( )
-        dialog.revealer.set_reveal_child ( False )
-
-        # Scrolled window to contain the log output (scrollable for long text).
-        scrolled = Gtk.ScrolledWindow ( )
-        scrolled.set_policy ( Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC )
-        scrolled.set_min_content_height ( 250 )
-        scrolled.set_hexpand ( True )
-        scrolled.set_vexpand ( True )
-
-        # TextView to display the traceback/log (non-editable, monospace).
-        dialog.textview = Gtk.TextView ( )
-        dialog.textview.set_editable ( False )
-        dialog.textview.set_monospace ( True )
-        dialog.textview.set_wrap_mode ( Gtk.WrapMode.WORD_CHAR )
-
-        buffer = dialog.textview.get_buffer ( )
-        buffer.set_text ( details if details else 'No further details available.' )
-
-        scrolled.set_child ( dialog.textview )
-        dialog.revealer.set_child ( scrolled )
-
-        def _on_toggle_details ( button ):
-            showing = dialog.revealer.get_reveal_child ( )
-            dialog.revealer.set_reveal_child ( not showing )
-            button.set_label ( 'Hide details' if not showing else 'Show details' )
-
-        dialog.btn_details = Gtk.Button ( label = 'Show details' )
-        dialog.btn_details.connect ( "clicked", _on_toggle_details )
-
-        # Add the button/revealer to the dialog's message area.
-        box = dialog.get_message_area ( )
-        box.append(dialog.btn_details)
-        box.append(dialog.revealer)
-        dialog.revealer.set_hexpand(True)
-        dialog.revealer.set_vexpand(True)
-
-        dialog.set_default_size ( 520, 150 )
-        dialog.connect("response", lambda current_dialog, _response: current_dialog.destroy())
-        dialog.present()
+        show_message(self._parent(parent), msg, kind="error", title=title,
+                     details=details if details is not None else "")
         return None
 
-
-
-            
     def question(self, msg, callback=None):
         """ 
         Show a question dialog with YES and NO buttons. 
         Calls callback(True/False) after the user responds.
         """
-        dialog = Gtk.MessageDialog(
-            transient_for=self.main.window,
-            modal=True,
-            message_type=Gtk.MessageType.QUESTION,
-            buttons=Gtk.ButtonsType.YES_NO,
-            text=msg,
-        )
-        def on_response(current_dialog, response):
-            current_dialog.destroy()
-            if callback is not None:
-                callback(response == Gtk.ResponseType.YES)
-
-        dialog.connect("response", on_response)
-        dialog.present()
-        return dialog
+        return ask_yes_no(self._parent(), msg, callback)

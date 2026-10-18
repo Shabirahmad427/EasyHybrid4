@@ -33,6 +33,7 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
+from gui.message_dialogs import show_message
 import gc
 import os
 
@@ -220,17 +221,7 @@ class RMSDAnalysisWindow:
         if vismol_object == None:
             text = 'RMSD calculation failed: invalid atom selection! Please select the desired group of atoms from a single VObject only.'
 
-            dialog = Gtk.MessageDialog(
-                        transient_for=self.main.window,
-                        message_type=Gtk.MessageType.ERROR,
-                        buttons=Gtk.ButtonsType.OK,
-                        text="Failed!",
-                        )
-            dialog.format_secondary_text(
-                text #"The folder you have selected does not appear to be valid. Please select a different folder or create a new one."
-            )
-            dialog.connect("response", lambda current_dialog, _response: current_dialog.destroy())
-            dialog.present()
+            show_message(self.main.window, "Failed!", text, kind='error')
             
             dprint('RMSD calculation failed: invalid atom selection! Please select the desired group of atoms from a single VObject only.')
             return False

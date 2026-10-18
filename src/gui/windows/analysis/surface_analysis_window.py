@@ -434,6 +434,7 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gdk, GObject, Gio
+from gui.message_dialogs import show_message
 from src.gtk4_compat import GTK_INVALID_LIST_POSITION
 
 #from GTKGUI.gtkWidgets.filechooser import FileChooser
@@ -2179,15 +2180,7 @@ class SurfaceAnalysisWindow(Gtk.Window):
             with open(filepath, "w") as output:
                 output.write(text_content)
             dprint("Orbital energies exported to:", filepath)
-            confirm = Gtk.MessageDialog(
-                transient_for=self.window,
-                message_type=Gtk.MessageType.INFO,
-                buttons=Gtk.ButtonsType.OK,
-                text="Orbital energies exported.",
-            )
-            confirm.format_secondary_text(filepath)
-            confirm.connect("response", lambda current_dialog, _response: current_dialog.destroy())
-            confirm.present()
+            show_message(self.window, "Orbital energies exported.", filepath, kind='info')
 
         choose_path(
             self.window, save_file,

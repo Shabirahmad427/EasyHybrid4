@@ -230,6 +230,16 @@ Probed locally on every conda-forge GTK minor with a real display (GTK
 `tests/test_gtk4_widget_patterns.py` checks these with real widgets and a
 static guard against reintroducing the patterns; CI runs it in every matrix
 cell with `EASYHYBRID_REQUIRE_GTK_DISPLAY=1` so it cannot silently skip.
+Message dialogs (2026-10-18): `Gtk.MessageDialog` is deprecated since GTK
+4.10 and `Gtk.AlertDialog`/`Gtk.FileDialog` are absent on GTK 4.8 (probed on
+every conda minor). `src/gui/message_dialogs.py` builds message, question and
+multi-button dialogs from a plain `Gtk.Window` using only GTK 4.0 widgets,
+so one code path serves GTK 4.8–4.24. All 20 live `Gtk.MessageDialog` uses
+and `SimpleDialog` (81 call sites) now use it. The removed
+`SimpleDialog.finished()` called `Gdk.cairo_surface_create_from_pixbuf`,
+which no GTK4 release provides. Dialog tests passed 10 consecutive runs on
+each local minor after replacing fixed sleeps with condition waits.
+
 Native matrix run `39082144669` (commit `9373956`): **10/10 passed in all 30 cells** — every GTK4 minor 4.8–4.24 on Linux, Windows and macOS arm64, plus GTK 4.8/4.10 on macOS x86_64.
 
 ## Verification requirements

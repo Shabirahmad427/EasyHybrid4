@@ -33,6 +33,7 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
+from gui.message_dialogs import show_message
 from src.gtk4_compat import GTK_INVALID_LIST_POSITION
 import gc
 import os
@@ -502,15 +503,7 @@ class PotentialEnergyAnalysisWindow:
             try:
                 export_plot_to_png(plot_widget, filepath, scale=scale)
             except Exception as error:
-                error_dialog = Gtk.MessageDialog(
-                    transient_for=self.window,
-                    message_type=Gtk.MessageType.ERROR,
-                    buttons=Gtk.ButtonsType.OK,
-                    text="Could not export figure",
-                )
-                error_dialog.format_secondary_text(str(error))
-                error_dialog.connect("response", lambda current_dialog, _response: current_dialog.destroy())
-                error_dialog.present()
+                show_message(self.window, "Could not export figure", str(error), kind='error')
 
         dialog.connect("response", on_response)
         dialog.present()

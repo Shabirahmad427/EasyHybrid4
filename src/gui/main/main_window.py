@@ -36,6 +36,7 @@ import gi
 import signal
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gdk, Gio, Pango
+from gui.message_dialogs import choose
 from gi.repository import GdkPixbuf
 from gi.repository import GLib
 from gui.gtk4_builder import connect_builder_signals, load_builder_file, choose_color
@@ -2084,21 +2085,7 @@ class MainWindow:
                 filename = filename[-1]
             
             
-            dialog = Gtk.MessageDialog(
-                transient_for=self.window,
-                modal=True,
-                message_type=Gtk.MessageType.QUESTION,
-                text='''Save changes to the EasyHybrid session "{}" before closing?\n Your changes will be lost if you don't save them'''.format(filename)
-            )
-            
-            # .Save changes to the project "Untitled" before closing?
-            # .Your changes will be lost if you don' tsave them
-            
-            dialog.add_button("Don't Save", Gtk.ResponseType.NO)
-            dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
-            dialog.add_button("Save", Gtk.ResponseType.YES)
-            def on_response(current_dialog, response):
-                current_dialog.destroy()
+            def on_response(response):
                 if response == Gtk.ResponseType.NO:
                     self._persist_window_and_config()
                     Gtk.Application.get_default().quit()
@@ -2111,8 +2098,18 @@ class MainWindow:
                     self._persist_window_and_config()
                     Gtk.Application.get_default().quit()
 
-            dialog.connect("response", on_response)
-            dialog.present()
+            # Closing the prompt (window button or Escape) cancels quitting.
+            choose(
+                self.window,
+                'Save changes to the EasyHybrid session "{}" before closing?'.format(filename),
+                (("Don't Save", Gtk.ResponseType.NO),
+                 ("Cancel", Gtk.ResponseType.CANCEL),
+                 ("Save", Gtk.ResponseType.YES)),
+                on_response,
+                secondary="Your changes will be lost if you don't save them.",
+                cancel_response=Gtk.ResponseType.CANCEL,
+                default_response=Gtk.ResponseType.YES,
+            )
             return True
         else:
             self._persist_window_and_config()

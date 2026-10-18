@@ -34,6 +34,7 @@ import logging
 import gi, sys, os
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gdk
+from gui.message_dialogs import show_message
 from vismol.core.vismol_session import VismolSession
 import vismol.utils.selectors as selectors
 
@@ -1813,22 +1814,12 @@ class EasyHybridSession(VismolSession, GLMenu):
             
             name = self.main.p_session.psystem[self.main.p_session.active_id].label
             
-            dialog = Gtk.MessageDialog(
-                        transient_for = self.main.window,
-                                                message_type=Gtk.MessageType.INFO,
-                        buttons=Gtk.ButtonsType.OK,
-                        text="Invalid Atom Selection",
-                        )
-            dialog.format_secondary_text(
-"""Your atom selection does not belong to the active pDynamo system:
+            show_message(self.main.window, "Invalid Atom Selection", """Your atom selection does not belong to the active pDynamo system:
  
 {} ({}) 
 
 You can choose the active pDynamo system by changing the radio 
-button position in the main treeview (active column).""".format(name,self.main.p_session.active_id)
-            )
-            dialog.connect("response", lambda current_dialog, _response: current_dialog.destroy())
-            dialog.present()
+button position in the main treeview (active column).""".format(name,self.main.p_session.active_id), kind='info')
             return False
         else:
             return True

@@ -439,7 +439,9 @@ crash was fixed. GTK 4.20+ also auto-selects empty dropdowns, so no code
 relies on an empty selection. Details and the per-minor probe are in
 `GTK4_COMPATIBILITY.md`. Native matrix run `39082144669` passed the new
 widget tests in all 30 cells (Linux, Windows, macOS; GTK 4.8–4.24).
-Deprecated dialog APIs remain to be migrated.
+Message and question dialogs then moved to the portable
+`src/gui/message_dialogs.py` (plain `Gtk.Window`; `Gtk.AlertDialog` is absent
+on GTK 4.8). Custom `Gtk.Dialog` windows and file choosers remain.
 
 ## 7. Contributor workflow
 

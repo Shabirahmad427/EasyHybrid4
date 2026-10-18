@@ -33,6 +33,7 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gio, GObject
+from gui.message_dialogs import show_message
 from gui.gtk4_builder import connect_builder_signals, load_builder_file, load_builder_string
 import gc
 import os
@@ -314,17 +315,7 @@ class WHAMWindow(Gtk.Window):
 
     def run_dialog (self):
         """ Function doc """
-        dialog = Gtk.MessageDialog(
-                    transient_for=self.main.window,
-                    message_type=Gtk.MessageType.ERROR,
-                    buttons=Gtk.ButtonsType.OK,
-                    text="Folder not found",
-                    )
-        dialog.format_secondary_text(
-            "The folder you have selected does not appear to be valid. Please select a different folder or create a new one."
-        )
-        dialog.connect("response", lambda current_dialog, _response: current_dialog.destroy())
-        dialog.present()
+        show_message(self.main.window, "Folder not found", "The folder you have selected does not appear to be valid. Please select a different folder or create a new one.", kind='error')
 
 
     def update (self, parameters = None):

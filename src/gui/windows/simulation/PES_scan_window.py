@@ -34,6 +34,7 @@ import pprint
 import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
+from gui.message_dialogs import show_message
 from gui.gtk4_builder import connect_builder_signals, load_builder_file, load_builder_string
 #from GTKGUI.gtkWidgets.filechooser import FileChooser
 #from easyhybrid.pDynamoMethods.pDynamo2Vismol import *
@@ -177,15 +178,7 @@ class PotentialEnergyScanWindow:
             "The folder you have selected does not appear to be valid. "
             "Please select a different folder or create a new one."
         )
-        dialog = Gtk.MessageDialog(
-            transient_for=self.main.window,
-            message_type=Gtk.MessageType.ERROR,
-            buttons=Gtk.ButtonsType.OK,
-            text=text,
-        )
-        dialog.format_secondary_text(secondary_text)
-        dialog.connect("response", lambda current_dialog, _response: current_dialog.destroy())
-        dialog.present()
+        show_message(self.main.window, text, secondary_text, kind='error')
 
     def run_scan(self, button: Gtk.Button) -> None:
         """Collect parameters and launch PES scan."""
@@ -502,15 +495,7 @@ class PotentialEnergyScanWindow_old():
         if secondary_text == None:
             secondary_text = "The folder you have selected does not appear to be valid. Please select a different folder or create a new one."
         
-        dialog = Gtk.MessageDialog(
-                    transient_for=self.main.window,
-                    message_type=Gtk.MessageType.ERROR,
-                    buttons=Gtk.ButtonsType.OK,
-                    text=text,
-                    )
-        dialog.format_secondary_text(secondary_text)
-        dialog.connect("response", lambda current_dialog, _response: current_dialog.destroy())
-        dialog.present()
+        show_message(self.main.window, text, secondary_text, kind='error')
 
     #======================================================================================
     def run_scan(self,button):

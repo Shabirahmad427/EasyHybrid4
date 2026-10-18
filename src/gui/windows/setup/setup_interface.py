@@ -33,6 +33,7 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, GdkPixbuf, Gdk, Gio
+from gui.message_dialogs import show_message
 from gui.gtk4_builder import connect_builder_signals, load_builder_file, load_builder_string
 #from GTKGUI.gtkWidgets.filechooser import FileChooser
 #from easyhybrid.pDynamoMethods.pDynamo2Vismol import *
@@ -1214,17 +1215,8 @@ class EasyHybridPreferencesWindow():
             dprint('Defining New Startup Path:', path)
 
         else:
-            dialog = Gtk.MessageDialog(
-                                                                message_type=Gtk.MessageType.ERROR,
-                                buttons=Gtk.ButtonsType.OK,
-                                text="ERROR: Startup folder not found.",
-                            )
 
-            dialog.format_secondary_text(
-                                    "If the desired path is correct, create the folder using your file manager."
-                                        )
-            dialog.connect("response", lambda current_dialog, _response: current_dialog.destroy())
-            dialog.present()
+            show_message(None, "ERROR: Startup folder not found.", "If the desired path is correct, create the folder using your file manager.", kind='error')
         #---------------------------------------------------------------
         
         
@@ -1236,16 +1228,7 @@ class EasyHybridPreferencesWindow():
             self.vm_session.vm_config.gl_parameters['workspace_path'] = workspace_path
             dprint('Defining workspace path:', workspace_path)
         else:
-            dialog = Gtk.MessageDialog(
-                                                                message_type=Gtk.MessageType.ERROR,
-                                buttons=Gtk.ButtonsType.OK,
-                                text="ERROR: Workspace folder not found.",
-                            )
-            dialog.format_secondary_text(
-                                    "If the desired path is correct, create the folder using your file manager."
-                                        )
-            dialog.connect("response", lambda current_dialog, _response: current_dialog.destroy())
-            dialog.present()
+            show_message(None, "ERROR: Workspace folder not found.", "If the desired path is correct, create the folder using your file manager.", kind='error')
         #---------------------------------------------------------------
 
         #---------------------------------------------------------------
@@ -1256,16 +1239,7 @@ class EasyHybridPreferencesWindow():
             self.vm_session.vm_config.gl_parameters['tmp_path'] = tmp_path
             dprint('Defining temporary path:', tmp_path)
         else:
-            dialog = Gtk.MessageDialog(
-                                                                message_type=Gtk.MessageType.ERROR,
-                                buttons=Gtk.ButtonsType.OK,
-                                text="ERROR: Temporary folder not found.",
-                            )
-            dialog.format_secondary_text(
-                                    "If the desired path is correct, create the folder using your file manager."
-                                        )
-            dialog.connect("response", lambda current_dialog, _response: current_dialog.destroy())
-            dialog.present()
+            show_message(None, "ERROR: Temporary folder not found.", "If the desired path is correct, create the folder using your file manager.", kind='error')
         #---------------------------------------------------------------
         
         
@@ -1297,16 +1271,7 @@ class EasyHybridPreferencesWindow():
             previous_vblank_mode = self.vm_session.vm_config.gl_parameters.get('vblank_mode', 'auto')
             self.vm_session.vm_config.gl_parameters['vblank_mode'] = vblank_mode
             if vblank_mode != previous_vblank_mode:
-                dialog = Gtk.MessageDialog(
-                                                                        message_type=Gtk.MessageType.INFO,
-                                    buttons=Gtk.ButtonsType.OK,
-                                    text="V-Sync setting changed.",
-                                )
-                dialog.format_secondary_text(
-                                    "This only takes effect after restarting EasyHybrid."
-                                        )
-                dialog.connect("response", lambda current_dialog, _response: current_dialog.destroy())
-                dialog.present()
+                show_message(None, "V-Sync setting changed.", "This only takes effect after restarting EasyHybrid.", kind='info')
         #---------------------------------------------------------------
         
         # Criterio de autosave (timer em minutos + contador de eventos).

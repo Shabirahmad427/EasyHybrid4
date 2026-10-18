@@ -35,6 +35,7 @@ import threading
 import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, GLib, Gio, GObject, GdkPixbuf
+from gui.message_dialogs import show_message
 from src.gtk4_compat import GTK_INVALID_LIST_POSITION
 from gui.gtk4_context_menu import ContextMenu
 
@@ -791,9 +792,4 @@ class XtbFragmentChargesWindow:
         self.window = None
 
     def _error(self, message):
-        dialog = Gtk.MessageDialog(
-            transient_for=self.window, modal=True,
-            message_type=Gtk.MessageType.ERROR, buttons=Gtk.ButtonsType.OK,
-            text=message)
-        dialog.connect("response", lambda chooser, _response: chooser.destroy())
-        dialog.present()
+        show_message(self.window, message, kind='error', modal=True)
