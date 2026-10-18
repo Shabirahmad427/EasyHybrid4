@@ -54,9 +54,13 @@ exception on GTK 4.24 Windows, despite the job passing. A real Escape key via
 `SendInput` made GTK 4.24 pass cleanly, but foreground activation failed on
 GTK 4.10/4.12/4.22. Posting Escape keydown/up messages did not activate the
 dialog on those runners, leaving its callback empty. `WM_CLOSE` made GTK 4.10
-report cancellation but reproduced `0x80010108`, so that route is unsafe. The
-current helper attaches the test thread to both the foreground-window and
-dialog threads before sending real Escape input; this attempt is unverified.
+report cancellation but reproduced `0x80010108`, so that route is unsafe.
+Attaching to foreground and dialog threads also did not overcome the runner's
+activation restriction: failed-job-only retry of run `39157728494` reproduced
+the same focus assertion on GTK 4.12 and 4.22. The helper now invokes the
+native Cancel button with Windows UI Automation `InvokePattern`, avoiding
+foreground activation. This change is unverified until Windows artifacts are
+clean.
 The Windows matrix has a post-test log guard that fails if
 `Windows fatal exception` or the corresponding access-violation exit code is
 logged, even if pytest itself returned zero. Matrix `39156544333` tested the
@@ -71,8 +75,9 @@ guard. GTK 4.10, 4.12 and 4.22 still fail only because Windows refuses to
 activate the native dialog, even while the input threads are attached; their
 fatal-log guards pass. Thus the recurring 4.24 COM exception is resolved by
 real Escape input on that tested cell, but the complete Windows GTK matrix is
-not green. All Linux and macOS cells have passed; Windows GTK 4.16/4.18 source
-builds are still running. Run `39157332484` confirmed that posting Escape key
+not green. Run `39157728494` completed with **28/30 pass**; its only failures,
+Windows GTK 4.12 and 4.22, recurred on failed-job-only retry. All Linux and
+macOS cells passed. Run `39157332484` confirmed that posting Escape key
 messages left GTK 4.10/4.12/4.22 native dialogs open and raised an empty-result
 assertion; it did not log a fatal exception. Run `39157594361` confirmed
 `WM_CLOSE` reports cancellation but logs `0x80010108` on GTK 4.10; the guard
