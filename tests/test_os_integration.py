@@ -215,6 +215,7 @@ def test_config_path_candidates_keep_legacy_settings_readable(tmp_path):
 def test_legacy_preferences_migrate_without_modifying_source_tree(tmp_path, monkeypatch):
     import json
     from gui.config import VismolConfig
+    from src.os_integration.app_paths import user_cache_dir, user_config_dir
 
     legacy_home = tmp_path / "readonly-install"
     legacy_home.mkdir()
@@ -223,14 +224,19 @@ def test_legacy_preferences_migrate_without_modifying_source_tree(tmp_path, monk
         json.dumps({"startup_path": "Moléculas", "vblank_mode": "off"}),
         encoding="utf-8",
     )
+    profile = tmp_path / "user profile"
+    monkeypatch.setenv("HOME", str(profile))
+    monkeypatch.setenv("USERPROFILE", str(profile))
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "user config"))
     monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "user cache"))
+    monkeypatch.setenv("APPDATA", str(tmp_path / "roaming config"))
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "local cache"))
 
     config = VismolConfig(home=str(legacy_home))
 
-    migrated = tmp_path / "user config" / "EasyHybrid4" / "config.json"
+    migrated = user_config_dir() / "config.json"
     saved = json.loads(migrated.read_text(encoding="utf-8"))
     assert saved["startup_path"] == "Moléculas"
     assert saved["vblank_mode"] == "off"
-    assert config.easyhybrid_tmp == str(tmp_path / "user cache" / "EasyHybrid4")
+    assert config.easyhybrid_tmp == str(user_cache_dir())
     assert legacy_file.exists()

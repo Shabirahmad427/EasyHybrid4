@@ -29,7 +29,16 @@ regressions: **14 passed**. The required full native GTK/OS matrix for this
 change is pending; no cross-platform pass is claimed yet.
 
 The focused path suite passed twice. The remaining non-widget local suite
-passed (**82 passed, 5 skipped**). A combined local suite run terminated in
+passed (**82 passed, 5 skipped**). The first full native matrix run
+[`39176069763`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39176069763)
+passed 28/30 cells. Windows GTK 4.24 and macOS GTK 4.24 each failed only in
+the new migration-test assertion: it hard-coded Linux XDG locations instead
+of deriving the expected native path. The GTK widget and GL smoke steps passed
+in both cells. The assertion now uses the path adapter with each native
+platform's temporary user directories; focused and non-widget suites pass
+after that correction. A full native matrix rerun is pending.
+
+A combined local suite run terminated in
 a native segmentation fault inside the existing
 `test_color_button_keeps_the_gtk_color_button_api` at
 `Gtk.Builder.add_from_string`; GTK widget tests are run as a separate,
