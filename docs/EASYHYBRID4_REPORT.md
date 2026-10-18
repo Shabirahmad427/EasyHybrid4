@@ -55,9 +55,12 @@ also exposed one stale helper call in a Linux chooser-configuration test
 (`TypeError: _dismiss() takes 1 positional argument but 2 were given`). Added
 a Windows-only five-second strong-reference hold for the completed
 `Gtk.FileDialog`, so GTK can finish unwinding its native COM cancellation
-before the wrapper is released; corrected the stale call. The incomplete
-matrix was canceled after saving artifacts. This application-side fix has
-not yet been validated on Windows; no compatibility claim is made.
+before the wrapper is released; corrected the stale call. Matrix
+`39160887195` showed the file chooser test passing, but still logged
+`0x80010108` during GTK 4.10+ colour chooser cancellation. The same deferred
+reference hold is now being applied to async `Gtk.ColorDialog` completion.
+That matrix was canceled after saving failed Windows artifacts; neither
+lifetime change is yet validated on Windows.
 
 **Recurring Windows chooser crash (2026-10-18):** Matrix `39154336539`
 reproduced `0x80010108` in `test_file_chooser_cancel_reports_nothing_once` on

@@ -197,17 +197,8 @@ def _report(handle, callback, mode, paths):
     if handle.done:
         return
     handle.done = True
-    # Keep Gtk.FileDialog alive briefly after its async completion on Windows.
-    # Its native COM dialog can still be unwinding the completion/cancel
-    # callback when GTK returns to GLib; releasing the wrapper in that window
-    # can disconnect the COM apartment (RPC_E_DISCONNECTED / 0x80010108).
-    # Retain a separate reference while preserving the public closed-handle
-    # state, then release it from the GTK main context.
-    completed_dialog = handle.dialog
+    _defer_windows_dialog_release(handle)
     handle.dialog = None
-    if sys.platform == "win32" and handle.cancellable is not None:
-        handle._completed_dialog = completed_dialog
-        GLib.timeout_add_seconds(5, _release_completed_dialog, handle)
     if mode in MULTIPLE_MODES:
         callback(paths)
     else:
@@ -217,6 +208,13 @@ def _report(handle, callback, mode, paths):
 def _release_completed_dialog(handle):
     handle._completed_dialog = None
     return GLib.SOURCE_REMOVE
+
+
+def _defer_windows_dialog_release(handle):
+    """Keep async native chooser wrappers alive while Windows COM unwinds."""
+    if sys.platform == "win32" and handle.cancellable is not None:
+        handle._completed_dialog = handle.dialog
+        GLib.timeout_add_seconds(5, _release_completed_dialog, handle)
 
 
 def _choose_with_file_dialog(gtk, window, callback, mode, title, accept_label,
@@ -356,6 +354,7 @@ def choose_color(parent, callback, *, title="Choose color", initial=None,
                 rgba = None
             if not handle.done:
                 handle.done = True
+                _defer_windows_dialog_release(handle)
                 handle.dialog = None
                 callback(rgba)
 
