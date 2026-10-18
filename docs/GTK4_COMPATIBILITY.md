@@ -230,6 +230,7 @@ Probed locally on every conda-forge GTK minor with a real display (GTK
 `tests/test_gtk4_widget_patterns.py` checks these with real widgets and a
 static guard against reintroducing the patterns; CI runs it in every matrix
 cell with `EASYHYBRID_REQUIRE_GTK_DISPLAY=1` so it cannot silently skip.
+Native matrix run `39082144669` (commit `9373956`): **10/10 passed in all 30 cells** — every GTK4 minor 4.8–4.24 on Linux, Windows and macOS arm64, plus GTK 4.8/4.10 on macOS x86_64.
 
 ## Verification requirements
 
