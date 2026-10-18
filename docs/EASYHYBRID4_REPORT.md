@@ -56,7 +56,14 @@ this attempt is unverified. Treat the recurring failure as unresolved until
 the Windows artifact is clean, including stderr, rather than relying on pytest
 exit status. The Windows matrix now has a post-test log guard that fails if
 `Windows fatal exception` or the corresponding access-violation exit code is
-logged, even if pytest itself returned zero.
+logged, even if pytest itself returned zero. Matrix `39156544333` tested the
+Escape approach: Windows GTK 4.24 widget tests passed, but GTK 4.20 and 4.22
+failed before sending input because `SetForegroundWindow` was denied. The
+helper now temporarily attaches the test and dialog input threads while
+focusing the dialog. The 4.24 artifact has not yet been retrieved, so the
+underlying COM failure remains unresolved. The post-test guard was also added
+to the conda Windows job after review showed it initially covered only the
+MSYS2 source job.
 
 The Windows-only test double initially lacked `Gtk.FileFilter`, so the
 mitigation matrix `39155132412` failed on GTK 4.10, 4.12, 4.20 and 4.22 before

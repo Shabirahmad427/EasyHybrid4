@@ -720,11 +720,17 @@ def _press_native_cancel(title, timeout=20.0):
     from ctypes import wintypes
 
     user32 = ctypes.WinDLL("user32", use_last_error=True)
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.GetCurrentThreadId.restype = wintypes.DWORD
     user32.FindWindowW.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR]
     user32.FindWindowW.restype = wintypes.HWND
     user32.SetForegroundWindow.argtypes = [wintypes.HWND]
     user32.SetForegroundWindow.restype = wintypes.BOOL
     user32.GetForegroundWindow.restype = wintypes.HWND
+    user32.GetWindowThreadProcessId.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
+    user32.GetWindowThreadProcessId.restype = wintypes.DWORD
+    user32.AttachThreadInput.argtypes = [wintypes.DWORD, wintypes.DWORD, wintypes.BOOL]
+    user32.AttachThreadInput.restype = wintypes.BOOL
     found = []
 
     def dialog_open():
@@ -737,8 +743,15 @@ def _press_native_cancel(title, timeout=20.0):
     # Use real keyboard input rather than posting WM_COMMAND or sending BM_CLICK
     # across the native dialog's COM boundary. Both message-based shortcuts
     # reproduced RPC_E_DISCONNECTED (0x80010108) in GTK's callback thread.
-    user32.SetForegroundWindow(found[-1])
-    assert user32.GetForegroundWindow() == found[-1], "could not focus native dialog %r" % title
+    current_thread = kernel32.GetCurrentThreadId()
+    dialog_thread = user32.GetWindowThreadProcessId(found[-1], None)
+    attached = user32.AttachThreadInput(current_thread, dialog_thread, True)
+    try:
+        user32.SetForegroundWindow(found[-1])
+        assert user32.GetForegroundWindow() == found[-1], "could not focus native dialog %r" % title
+    finally:
+        if attached:
+            user32.AttachThreadInput(current_thread, dialog_thread, False)
 
     WORD = ctypes.c_uint16
     DWORD = ctypes.c_uint32
