@@ -751,7 +751,8 @@ def _press_native_cancel(title, timeout=20.0):
                     ("time", wintypes.DWORD), ("dwExtraInfo", ctypes.c_size_t)]
 
     class INPUTUNION(ctypes.Union):
-        _fields_ = [("ki", KEYBDINPUT), ("mi", MOUSEINPUT)]
+        _fields_ = [("ki", KEYBDINPUT), ("mi", MOUSEINPUT),
+                    ("_alignment", ctypes.c_void_p)]
 
     class INPUT(ctypes.Structure):
         _anonymous_ = ("u",)
@@ -764,7 +765,8 @@ def _press_native_cancel(title, timeout=20.0):
         INPUT(type=KEYBDINPUT_TYPE, ki=KEYBDINPUT(VK_ESCAPE, 0, 0, 0, 0)),
         INPUT(type=KEYBDINPUT_TYPE, ki=KEYBDINPUT(VK_ESCAPE, 0, KEYUP, 0, 0)),
     )
-    assert user32.SendInput(2, events, ctypes.sizeof(INPUT)) == 2, ctypes.get_last_error()
+    sent = user32.SendInput(2, events, ctypes.sizeof(INPUT))
+    assert sent == 2, "SendInput sent %d/2 events (WinError %d)" % (sent, ctypes.get_last_error())
 
 
 def _dismiss(handle, title):
