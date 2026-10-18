@@ -715,7 +715,7 @@ def _chooser_paths(use_new_api):
 
 
 def _press_native_cancel(title, timeout=20.0):
-    """Send Escape key messages to the native Windows dialog titled ``title``."""
+    """Close the native Windows dialog titled ``title`` through its window manager."""
     import ctypes
     from ctypes import wintypes
 
@@ -733,12 +733,10 @@ def _press_native_cancel(title, timeout=20.0):
         return bool(found)
 
     assert _wait_for(dialog_open, timeout), "native Windows dialog %r never appeared" % title
-    # Deliver Escape through the dialog's normal key handling. This does not
-    # invoke the native dialog's COM callback directly and avoids taking
-    # foreground focus from the hosted test runner.
-    WM_KEYDOWN, WM_KEYUP, VK_ESCAPE, KEYUP_LPARAM = 0x0100, 0x0101, 0x1B, 0xC0000001
-    assert user32.PostMessageW(found[-1], WM_KEYDOWN, VK_ESCAPE, 1)
-    assert user32.PostMessageW(found[-1], WM_KEYUP, VK_ESCAPE, KEYUP_LPARAM)
+    # WM_CLOSE is the standard window-manager request produced by the title
+    # bar's close button. Let the native dialog process it and report cancel.
+    WM_CLOSE = 0x0010
+    assert user32.PostMessageW(found[-1], WM_CLOSE, 0, 0)
 
 
 def _dismiss(handle, title):

@@ -52,9 +52,10 @@ cancel while returning exit code 0. Replacing the posted `WM_COMMAND` with
 `BM_CLICK` did not resolve it: matrix `39156076019` also logged the same
 exception on GTK 4.24 Windows, despite the job passing. A real Escape key via
 `SendInput` made GTK 4.24 pass cleanly, but foreground activation failed on
-GTK 4.10/4.12/4.22. The latest test helper sends Escape keydown/up messages
-to the native dialog to avoid that foreground restriction; this approach is
-unverified. The Windows matrix has a post-test log guard that fails if
+GTK 4.10/4.12/4.22. Posting Escape keydown/up messages did not activate the
+dialog on those runners, leaving its callback empty. The current helper posts
+the standard `WM_CLOSE` window-manager request so the dialog can process its
+normal close/cancel path; this attempt is unverified. The Windows matrix has a post-test log guard that fails if
 `Windows fatal exception` or the corresponding access-violation exit code is
 logged, even if pytest itself returned zero. Matrix `39156544333` tested the
 Escape approach: Windows GTK 4.24 widget tests passed, but GTK 4.20 and 4.22
@@ -69,7 +70,9 @@ activate the native dialog, even while the input threads are attached; their
 fatal-log guards pass. Thus the recurring 4.24 COM exception is resolved by
 real Escape input on that tested cell, but the complete Windows GTK matrix is
 not green. All Linux and macOS cells have passed; Windows GTK 4.16/4.18 source
-builds are still running.
+builds are still running. The later run `39157332484` confirmed that posting
+Escape key messages left GTK 4.10/4.12/4.22 native dialogs open and raised an
+empty-result assertion; it did not log a fatal exception.
 
 The Windows-only test double initially lacked `Gtk.FileFilter`, so the
 mitigation matrix `39155132412` failed on GTK 4.10, 4.12, 4.20 and 4.22 before
