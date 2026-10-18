@@ -50,20 +50,26 @@ native cancel and testing the other modes with a fake removed the hard process
 failure, but matrix `39155304114` still logged the COM exception on that one
 cancel while returning exit code 0. Replacing the posted `WM_COMMAND` with
 `BM_CLICK` did not resolve it: matrix `39156076019` also logged the same
-exception on GTK 4.24 Windows, despite the job passing. The test helper is now
-being changed to focus the dialog and send a real Escape key via `SendInput`;
-this attempt is unverified. Treat the recurring failure as unresolved until
-the Windows artifact is clean, including stderr, rather than relying on pytest
-exit status. The Windows matrix now has a post-test log guard that fails if
+exception on GTK 4.24 Windows, despite the job passing. A real Escape key via
+`SendInput` made GTK 4.24 pass cleanly, but foreground activation failed on
+GTK 4.10/4.12/4.22. The latest test helper sends Escape keydown/up messages
+to the native dialog to avoid that foreground restriction; this approach is
+unverified. The Windows matrix has a post-test log guard that fails if
 `Windows fatal exception` or the corresponding access-violation exit code is
 logged, even if pytest itself returned zero. Matrix `39156544333` tested the
 Escape approach: Windows GTK 4.24 widget tests passed, but GTK 4.20 and 4.22
 failed before sending input because `SetForegroundWindow` was denied. The
-helper now temporarily attaches the test and dialog input threads while
-focusing the dialog. The 4.24 artifact has not yet been retrieved, so the
-underlying COM failure remains unresolved. The post-test guard was also added
-to the conda Windows job after review showed it initially covered only the
-MSYS2 source job.
+helper temporarily attached the test and dialog input threads while focusing
+the dialog. The post-test guard covers both conda and MSYS2 Windows jobs. In
+matrix `39156735470`, GTK 4.24 Windows completed with
+`54 passed, 6 skipped` plus `80 passed, 4 skipped`; its uploaded log has no
+`Windows fatal exception`, and the guard passed. GTK 4.20 also passed with the
+guard. GTK 4.10, 4.12 and 4.22 still fail only because Windows refuses to
+activate the native dialog, even while the input threads are attached; their
+fatal-log guards pass. Thus the recurring 4.24 COM exception is resolved by
+real Escape input on that tested cell, but the complete Windows GTK matrix is
+not green. All Linux and macOS cells have passed; Windows GTK 4.16/4.18 source
+builds are still running.
 
 The Windows-only test double initially lacked `Gtk.FileFilter`, so the
 mitigation matrix `39155132412` failed on GTK 4.10, 4.12, 4.20 and 4.22 before

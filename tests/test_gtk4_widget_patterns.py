@@ -715,22 +715,15 @@ def _chooser_paths(use_new_api):
 
 
 def _press_native_cancel(title, timeout=20.0):
-    """Dismiss the native Windows file dialog titled ``title`` with Escape."""
+    """Send Escape key messages to the native Windows dialog titled ``title``."""
     import ctypes
     from ctypes import wintypes
 
     user32 = ctypes.WinDLL("user32", use_last_error=True)
-    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-    kernel32.GetCurrentThreadId.restype = wintypes.DWORD
     user32.FindWindowW.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR]
     user32.FindWindowW.restype = wintypes.HWND
-    user32.SetForegroundWindow.argtypes = [wintypes.HWND]
-    user32.SetForegroundWindow.restype = wintypes.BOOL
-    user32.GetForegroundWindow.restype = wintypes.HWND
-    user32.GetWindowThreadProcessId.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
-    user32.GetWindowThreadProcessId.restype = wintypes.DWORD
-    user32.AttachThreadInput.argtypes = [wintypes.DWORD, wintypes.DWORD, wintypes.BOOL]
-    user32.AttachThreadInput.restype = wintypes.BOOL
+    user32.PostMessageW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
+    user32.PostMessageW.restype = wintypes.BOOL
     found = []
 
     def dialog_open():
@@ -740,51 +733,12 @@ def _press_native_cancel(title, timeout=20.0):
         return bool(found)
 
     assert _wait_for(dialog_open, timeout), "native Windows dialog %r never appeared" % title
-    # Use real keyboard input rather than posting WM_COMMAND or sending BM_CLICK
-    # across the native dialog's COM boundary. Both message-based shortcuts
-    # reproduced RPC_E_DISCONNECTED (0x80010108) in GTK's callback thread.
-    current_thread = kernel32.GetCurrentThreadId()
-    dialog_thread = user32.GetWindowThreadProcessId(found[-1], None)
-    attached = user32.AttachThreadInput(current_thread, dialog_thread, True)
-    try:
-        user32.SetForegroundWindow(found[-1])
-        assert user32.GetForegroundWindow() == found[-1], "could not focus native dialog %r" % title
-    finally:
-        if attached:
-            user32.AttachThreadInput(current_thread, dialog_thread, False)
-
-    WORD = ctypes.c_uint16
-    DWORD = ctypes.c_uint32
-    LONG = ctypes.c_int32
-    ULONG_PTR = ctypes.c_size_t
-
-    class KEYBDINPUT(ctypes.Structure):
-        _fields_ = [("wVk", WORD), ("wScan", WORD),
-                    ("dwFlags", DWORD), ("time", DWORD),
-                    ("dwExtraInfo", ULONG_PTR)]
-
-    class MOUSEINPUT(ctypes.Structure):
-        _fields_ = [("dx", LONG), ("dy", LONG),
-                    ("mouseData", DWORD), ("dwFlags", DWORD),
-                    ("time", DWORD), ("dwExtraInfo", ULONG_PTR)]
-
-    class INPUTUNION(ctypes.Union):
-        _fields_ = [("ki", KEYBDINPUT), ("mi", MOUSEINPUT),
-                    ("_alignment", ctypes.c_void_p)]
-
-    class INPUT(ctypes.Structure):
-        _anonymous_ = ("u",)
-        _fields_ = [("type", DWORD), ("u", INPUTUNION)]
-
-    user32.SendInput.argtypes = [wintypes.UINT, ctypes.POINTER(INPUT), ctypes.c_int]
-    user32.SendInput.restype = wintypes.UINT
-    KEYBDINPUT_TYPE, VK_ESCAPE, KEYUP = 1, 0x1B, 0x0002
-    events = (INPUT * 2)(
-        INPUT(type=KEYBDINPUT_TYPE, ki=KEYBDINPUT(VK_ESCAPE, 0, 0, 0, 0)),
-        INPUT(type=KEYBDINPUT_TYPE, ki=KEYBDINPUT(VK_ESCAPE, 0, KEYUP, 0, 0)),
-    )
-    sent = user32.SendInput(2, events, ctypes.sizeof(INPUT))
-    assert sent == 2, "SendInput sent %d/2 events (WinError %d)" % (sent, ctypes.get_last_error())
+    # Deliver Escape through the dialog's normal key handling. This does not
+    # invoke the native dialog's COM callback directly and avoids taking
+    # foreground focus from the hosted test runner.
+    WM_KEYDOWN, WM_KEYUP, VK_ESCAPE, KEYUP_LPARAM = 0x0100, 0x0101, 0x1B, 0xC0000001
+    assert user32.PostMessageW(found[-1], WM_KEYDOWN, VK_ESCAPE, 1)
+    assert user32.PostMessageW(found[-1], WM_KEYUP, VK_ESCAPE, KEYUP_LPARAM)
 
 
 def _dismiss(handle, title):
