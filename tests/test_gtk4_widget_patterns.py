@@ -456,6 +456,8 @@ def test_deprecated_choosers_only_in_the_portable_adapter():
             "deprecated since GTK 4.10 (use gui.file_dialogs)",
         r"\.set_do_overwrite_confirmation\(": "absent from every GTK4 release",
         r"\bchoose_path\(": "removed (use gui.file_dialogs.choose_file)",
+        r"Gtk\.ColorButton\b": "deprecated since GTK 4.10 (use gui.color_button.ColorButton)",
+        r"(list|tuple)\([^()]*get_rgba\(\)\)|\blist\(color\)": "Gdk.RGBA is iterable only from PyGObject 3.58 (use gtk4_compat.rgba_components)",
     }
     adapter = SRC / "gui" / "file_dialogs.py"
     offenders = []
@@ -468,8 +470,11 @@ def test_deprecated_choosers_only_in_the_portable_adapter():
                 if re.search(pattern, code):
                     offenders.append("%s:%d %s" % (path.relative_to(PROJECT_ROOT), number, why))
     for path in list(SRC.rglob("*.glade")) + list(SRC.rglob("*.ui")):
-        if re.search(r'class="Gtk(FileChooser|ColorChooser)\w*"', path.read_text(encoding="utf-8")):
-            offenders.append("%s GtkFileChooser/GtkColorChooser" % path.relative_to(PROJECT_ROOT))
+        if re.search(r'class="Gtk(FileChooser|ColorChooser|ColorButton)\w*"', path.read_text(encoding="utf-8")):
+            offenders.append("%s GtkFileChooser/GtkColorChooser/GtkColorButton" % path.relative_to(PROJECT_ROOT))
+    for path in SRC.rglob("*.py"):
+        if 'class="GtkColorButton"' in path.read_text(encoding="utf-8"):
+            offenders.append("%s inline GtkColorButton UI" % path.relative_to(PROJECT_ROOT))
     assert not offenders, "\n".join(offenders)
 
 
@@ -791,3 +796,157 @@ def test_missing_schema_shows_an_error_instead_of_aborting(monkeypatch, use_new_
     finally:
         for message in _message_windows():
             message.destroy()
+
+
+# --------------------------------------------------------------------------- #
+#  Colour buttons (gui.color_button).                                          #
+# --------------------------------------------------------------------------- #
+
+COLOR_BUTTON_UI_FILES = [
+    ("gui/windows/setup/merge_system.glade", ["button_color"]),
+    ("gui/windows/setup/import_system_window_new.glade", ["button_color"]),
+    ("gui/windows/setup/import_system_window.glade", ["button_color"]),
+    ("gui/windows/setup/windows_and_dialogs.glade", ["button_color"]),
+    ("gui/windows/setup/add_position_restraint_dialog.glade", ["colorbutton_position"]),
+    ("gui/windows/analysis/surface_analysis_window.glade", ["btn_color_plus", "btn_color_minus"]),
+    ("gui/windows/setup/setup_interface.glade", [
+        "btn_background_color", "btn_seqviewer_bg_color", "btn_seqviewer_label_color",
+        "color_btn_view_sel_dots", "color_btn_pk_label", "color_btn_pk_sphr_1",
+        "color_btn_pk_sphr_2", "color_btn_pk_sphr_3", "color_btn_pk_sphr_4",
+        "color_btn_pk_dist_label", "color_btn_pk_dist_lines", "btn_stick_unique_color",
+        "btn_dbond_unique_color", "btn_light_color", "btn_light_spec_color"]),
+]
+
+
+@needs_display
+@pytest.mark.parametrize("ui_file,object_ids", COLOR_BUTTON_UI_FILES,
+                         ids=[Path(ui).stem for ui, _ids in COLOR_BUTTON_UI_FILES])
+def test_builder_color_buttons_are_portable_with_their_colours(ui_file, object_ids):
+    from gui.color_button import ColorButton
+    from gui.gtk4_builder import load_builder_file
+
+    builder = Gtk.Builder()
+    load_builder_file(builder, str(SRC / ui_file))
+    text = (SRC / ui_file).read_text(encoding="utf-8")
+    for object_id in object_ids:
+        button = builder.get_object(object_id)
+        assert isinstance(button, ColorButton), object_id
+        declared = re.search(r'id="%s">(.*?)</object>' % object_id, text, re.S).group(1)
+        match = re.search(r'<property name="rgba">([^<]+)<', declared)
+        if match:
+            expected = Gdk.RGBA()
+            assert expected.parse(match.group(1))
+            assert button.get_rgba().equal(expected), (object_id, button.get_rgba().to_string())
+    for toplevel in [builder.get_object(name) for name in ("dialog", "window", "dialog_prune")]:
+        if isinstance(toplevel, Gtk.Window):
+            toplevel.destroy()
+
+
+@needs_display
+def test_preferences_inline_ui_uses_the_portable_color_button():
+    from gui.color_button import ColorButton
+
+    ui = re.search(r'<object class="EasyHybridColorButton" id="button_color">.*?</object>',
+                   (SRC / "gui" / "main" / "preferences_window.py").read_text(encoding="utf-8"),
+                   re.S).group(0)
+    builder = Gtk.Builder()
+    builder.add_from_string("<interface>%s</interface>" % ui)
+    button = builder.get_object("button_color")
+    assert isinstance(button, ColorButton)
+    assert button.get_rgba().to_string() == "rgb(138,226,52)"
+
+
+def test_color_button_keeps_the_gtk_color_button_api():
+    from gui.color_button import ColorButton
+
+    builder = Gtk.Builder()
+    builder.add_from_string(
+        '<interface><object class="EasyHybridColorButton" id="b">'
+        '<property name="use-alpha">False</property>'
+        '<property name="title">Pick the dots color</property>'
+        '<property name="rgba">#000000000000</property></object></interface>')
+    button = builder.get_object("b")
+    assert button.get_property("use-alpha") is False
+    assert button.get_property("title") == "Pick the dots color"
+    from src.gtk4_compat import rgba_components
+    assert rgba_components(button.get_rgba()) == [0.0, 0.0, 0.0, 1.0]
+
+    colour = Gdk.RGBA()
+    assert colour.parse("rgba(10,20,30,0.5)")
+    default = ColorButton()
+    assert default.get_rgba().to_string() == "rgb(191,64,64)"  # Gtk.ColorButton's default
+    changes = []
+    default.connect("notify::rgba", lambda *_args: changes.append("notify"))
+    default.connect("color-set", lambda *_args: changes.append("color-set"))
+    default.set_rgba(colour)
+    assert default.get_rgba().equal(colour)
+    returned = default.get_rgba()
+    returned.red = 1.0  # a copy; the button keeps its colour
+    assert default.get_rgba().equal(colour)
+    assert changes == ["notify"]  # set_rgba never emits color-set
+    assert ColorButton.new_with_rgba(colour).get_rgba().equal(colour)
+
+
+@needs_display
+@pytest.mark.parametrize("use_new_api", [False, True], ids=["gtk48-path", "color-dialog"])
+def test_color_button_click_cancel_keeps_colour_and_emits_nothing(monkeypatch, use_new_api):
+    from gui import color_button, file_dialogs as fd
+
+    if use_new_api and not fd.has_color_dialog():
+        pytest.skip("Gtk.ColorDialog needs GTK 4.10+; GTK %d.%d uses the tested fallback"
+                    % (Gtk.get_major_version(), Gtk.get_minor_version()))
+    real_choose = fd.choose_color
+    monkeypatch.setattr(color_button.file_dialogs, "choose_color",
+                        lambda *args, **kw: real_choose(*args, use_color_dialog=use_new_api, **kw))
+    window = Gtk.Window(title="colours")
+    button = color_button.ColorButton()
+    window.set_child(button)
+    window.present()
+    try:
+        before = button.get_rgba()
+        emitted = []
+        button.connect("color-set", lambda *_args: emitted.append(True))
+        button.emit("clicked")
+        handle = button.chooser
+        assert handle is not None and handle.uses_new_api is use_new_api
+        if use_new_api:
+            assert handle.dialog.get_with_alpha() is False
+        _iterate(100)
+        handle.cancel()
+        assert _wait_for(lambda: button.chooser is None)
+        _iterate(50)
+        assert emitted == [] and button.get_rgba().equal(before)
+    finally:
+        window.destroy()
+
+
+@needs_display
+def test_color_button_pick_sets_opaque_colour_and_emits_color_set(monkeypatch):
+    """The GTK 4.8 chooser path, on every minor: a picked colour becomes the
+    button's colour (alpha dropped as use-alpha is off) and color-set fires once."""
+    from gui import color_button, file_dialogs as fd
+
+    real_choose = fd.choose_color
+    monkeypatch.setattr(color_button.file_dialogs, "choose_color",
+                        lambda *args, **kw: real_choose(*args, use_color_dialog=False, **kw))
+    button = color_button.ColorButton(title="Pick")
+    window = Gtk.Window()
+    window.set_child(button)
+    window.present()
+    try:
+        emitted = []
+        button.connect("color-set", lambda widget: emitted.append(widget.get_rgba().to_string()))
+        button.emit("clicked")
+        dialog = button.chooser.dialog
+        assert dialog.get_title() == "Pick"
+        assert _wait_for(dialog.get_mapped)
+        picked = Gdk.RGBA()
+        assert picked.parse("rgba(0,0,255,0.25)")
+        dialog.set_rgba(picked)
+        dialog.response(Gtk.ResponseType.OK)
+        assert _wait_for(lambda: emitted), emitted
+        _iterate(50)
+        assert emitted == ["rgb(0,0,255)"]
+        assert button.get_rgba().to_string() == "rgb(0,0,255)"
+    finally:
+        window.destroy()

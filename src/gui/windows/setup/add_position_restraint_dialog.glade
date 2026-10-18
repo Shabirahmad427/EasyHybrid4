@@ -95,7 +95,7 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkColorButton" id="colorbutton_position">
+                      <object class="EasyHybridColorButton" id="colorbutton_position">
                         <property name="visible">True</property>
                         <property name="focusable">True</property>
                         <property name="halign">start</property>

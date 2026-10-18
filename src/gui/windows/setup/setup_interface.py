@@ -33,6 +33,7 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, GdkPixbuf, Gdk, Gio
+from src.gtk4_compat import rgba_components
 from gui.message_dialogs import show_message
 from gui.gtk4_builder import connect_builder_signals, load_builder_file, load_builder_string
 #from GTKGUI.gtkWidgets.filechooser import FileChooser
@@ -295,14 +296,14 @@ class EasyHybridPreferencesWindow():
         not used anymore       
         """
         color = widget.get_rgba()
-        dprint("Selected color: ", list(color))
-        color = list(color)
+        dprint("Selected color: ", rgba_components(color))
+        color = rgba_components(color)
         
         #-----------------------------------------------------------------------
         #                            viewing  dots
         #-----------------------------------------------------------------------
         if widget == self.colorbutton_viewing_selections:
-            #color = list(color)
+            #color = rgba_components(color)
             color = color[:-1]
             self.vm_session.vm_config.gl_parameters["picking_dots_color"] = color
             for vm_object in self.vm_session.vm_objects_dic.values():
@@ -362,7 +363,7 @@ class EasyHybridPreferencesWindow():
 
         Le as preferencias atuais e reflete nos widgets do Glade:
           - checkbox_dynamic_bonds_single_color (GtkCheckButton)
-          - colorbutton_dynamic_bonds          (GtkColorButton)
+          - colorbutton_dynamic_bonds          (EasyHybridColorButton)
         Se os widgets nao existirem no glade (ainda nao adicionados), sai sem erro.
         """
         try:
@@ -405,11 +406,11 @@ class EasyHybridPreferencesWindow():
     def on_dynamic_bonds_color_set(self, widget):
         """Define a cor unica das ligacoes dinamicas.
 
-        Conectar no Glade ao 'color-set' de um GtkColorButton chamado
+        Conectar no Glade ao 'color-set' de um EasyHybridColorButton chamado
         'colorbutton_dynamic_bonds'. Guarda a cor (RGBA em [0,1]) e, se a opcao
         de cor unica estiver ligada, atualiza a representacao imediatamente.
         """
-        color = list(widget.get_rgba())  # [r, g, b, a] em [0,1]
+        color = rgba_components(widget.get_rgba())  # [r, g, b, a] em [0,1]
         self.vm_session.vm_config.gl_parameters["dynamic_bonds_color"] = color
         if self.vm_session.vm_config.gl_parameters.get("dynamic_bonds_single_color", False):
             self._refresh_dynamic_bonds_representation()
@@ -921,7 +922,7 @@ class EasyHybridPreferencesWindow():
         
         #---------------------------------------------------------------
         color = self.btn_light_color.get_rgba()
-        color = list(color)
+        color = rgba_components(color)
         color = color[:-1]
         self.gl_parameters["light_color"] = color
         #---------------------------------------------------------------
@@ -952,7 +953,7 @@ class EasyHybridPreferencesWindow():
         
         #---------------------------------------------------------------
         color = self.btn_light_spec_color.get_rgba()
-        color = list(color)
+        color = rgba_components(color)
         color = color[:-1]
         self.gl_parameters["light_specular_color"] = color
         #---------------------------------------------------------------
@@ -1013,7 +1014,7 @@ class EasyHybridPreferencesWindow():
         #-----------------------------------------------------------------------        
         widget = self.builder.get_object('color_btn_view_sel_dots')
         color = widget.get_rgba()
-        color = list(color)
+        color = rgba_components(color)
         color = color[:-1]
         self.vm_session.vm_config.gl_parameters["picking_dots_color"] = color
         for vm_object in self.vm_session.vm_objects_dic.values():
@@ -1028,7 +1029,7 @@ class EasyHybridPreferencesWindow():
         #-----------------------------------------------------------------------
         btn_pk_label = self.builder.get_object('color_btn_pk_label')
         color = btn_pk_label.get_rgba()
-        color = list(color)
+        color = rgba_components(color)
         #color = color[:-1]
         self.vm_session.vm_config.gl_parameters["pk_label_color"] = color
         self.vm_session.vm_glcore.vm_font.vao = None
@@ -1037,7 +1038,7 @@ class EasyHybridPreferencesWindow():
         #-----------------------------------------------------------------------
         widget = self.builder.get_object('color_btn_pk_dist_label')
         color = widget.get_rgba()
-        color = list(color)
+        color = rgba_components(color)
         #color = color[:-1]
         self.vm_session.vm_config.gl_parameters["pk_dist_label_color"] = color
         self.vm_session.vm_glcore.vm_font_dist.vao = None
@@ -1046,7 +1047,7 @@ class EasyHybridPreferencesWindow():
         #-----------------------------------------------------------------------
         widget = self.builder.get_object('color_btn_pk_dist_lines')
         color = widget.get_rgba()
-        color = list(color)
+        color = rgba_components(color)
         color = color[:-1]
         self.vm_session.vm_config.gl_parameters["dashed_dist_lines_color"] = color
         #self.vm_session.vm_glcore.vm_font_dist.vao = None
@@ -1145,25 +1146,25 @@ class EasyHybridPreferencesWindow():
         #-------------------------------------------------------------------------
         widget = self.builder.get_object('color_btn_pk_sphr_1')
         color = widget.get_rgba()
-        color = list(color)
+        color = rgba_components(color)
         color = color[:-1]
         self.vm_session.set_pk_sphr_selection_color(color, 1)
 
         widget = self.builder.get_object('color_btn_pk_sphr_2')
         color = widget.get_rgba()
-        color = list(color)
+        color = rgba_components(color)
         color = color[:-1]
         self.vm_session.set_pk_sphr_selection_color(color, 2)
         
         widget = self.builder.get_object('color_btn_pk_sphr_3')
         color = widget.get_rgba()
-        color = list(color)
+        color = rgba_components(color)
         color = color[:-1]
         self.vm_session.set_pk_sphr_selection_color(color, 3)
         
         widget = self.builder.get_object('color_btn_pk_sphr_4')
         color = widget.get_rgba()
-        color = list(color)
+        color = rgba_components(color)
         color = color[:-1]
         self.vm_session.set_pk_sphr_selection_color(color, 4)
         #-------------------------------------------------------------------------
@@ -1171,7 +1172,7 @@ class EasyHybridPreferencesWindow():
         #---------------------------------------------------------------
         self.btn_background_color = self.builder.get_object('btn_background_color')
         color = self.btn_background_color.get_rgba()
-        color = list(color)
+        color = rgba_components(color)
         #color = color[:-1]
         self.gl_parameters["background_color"] = color
         self.vm_session.vm_glcore.bckgrnd_color = color
@@ -1181,12 +1182,12 @@ class EasyHybridPreferencesWindow():
         #---------------------------------------------------------------
         self.btn_seqviewer_bg_color = self.builder.get_object('btn_seqviewer_bg_color')
         color = self.btn_seqviewer_bg_color.get_rgba()
-        color = list(color)
+        color = rgba_components(color)
         self.vm_session.main.bottom_notebook.seqview.text_drawing_area.bg_color = color
 
         self.btn_seqviewer_label_color = self.builder.get_object('btn_seqviewer_label_color')
         color = self.btn_seqviewer_label_color.get_rgba()
-        color = list(color)
+        color = rgba_components(color)
         self.vm_session.main.bottom_notebook.seqview.text_drawing_area.marker_color = color
         #---------------------------------------------------------------
         

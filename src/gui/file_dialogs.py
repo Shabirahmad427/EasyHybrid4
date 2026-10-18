@@ -313,8 +313,11 @@ def file_filter(name, *patterns, gtk=Gtk):
 
 
 def choose_color(parent, callback, *, title="Choose color", initial=None,
-                 gtk=Gtk, use_color_dialog=None):
-    """Ask for a colour and call ``callback`` with a Gdk.RGBA or None."""
+                 with_alpha=True, gtk=Gtk, use_color_dialog=None):
+    """Ask for a colour and call ``callback`` with a Gdk.RGBA or None.
+
+    ``with_alpha`` offers an opacity control (on by default, as in GTK).
+    """
     if use_color_dialog is None:
         use_color_dialog = has_color_dialog(gtk)
     window = _parent_window(parent) if parent is not None else None
@@ -327,7 +330,7 @@ def choose_color(parent, callback, *, title="Choose color", initial=None,
         return handle
 
     if use_color_dialog:
-        dialog = gtk.ColorDialog(title=title, modal=True)
+        dialog = gtk.ColorDialog(title=title, modal=True, with_alpha=with_alpha)
         cancellable = Gio.Cancellable()
         handle = ChooserHandle(dialog, True, cancellable)
 
@@ -347,7 +350,7 @@ def choose_color(parent, callback, *, title="Choose color", initial=None,
         return handle
 
     # GTK 4.8 path: Gtk.ColorDialog does not exist there.
-    dialog = gtk.ColorChooserDialog(title=title, modal=True)
+    dialog = gtk.ColorChooserDialog(title=title, modal=True, use_alpha=with_alpha)
     if window is not None:
         dialog.set_transient_for(window)
     if initial is not None:

@@ -33,6 +33,7 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
+from gui.color_button import ColorButton
 from gui import file_dialogs
 from gui.response_dialog import ResponseDialog
 from gui.message_dialogs import show_message
@@ -502,7 +503,7 @@ class PotentialEnergyAnalysisWindow:
     def on_button_plot1d_colors_clicked (self, widget):
         """ Abre um dialogo pequeno com 3 seletores de cor (fundo, linhas
         de grade, linha do grafico) para o perfil de energia 1D
-        (self.plot2). Usa Gtk.ColorButton -- ele mesmo ja abre o seletor
+        (self.plot2). Usa gui.color_button.ColorButton -- ele mesmo ja abre o seletor
         de cor nativo do sistema ao ser clicado, entao nao precisa de um
         .glade proprio so' para isso. """
         dialog = ResponseDialog(title="1D Plot Colors", transient_for=self.window, modal=True)
@@ -522,7 +523,7 @@ class PotentialEnergyAnalysisWindow:
         def make_color_button(rgb):
             rgba = Gdk.RGBA()
             rgba.red, rgba.green, rgba.blue, rgba.alpha = rgb[0], rgb[1], rgb[2], 1.0
-            return Gtk.ColorButton.new_with_rgba(rgba)
+            return ColorButton.new_with_rgba(rgba)
 
         # [displayed name, current color, attribute in self.plot2 it controls]
         rows = [
@@ -581,7 +582,7 @@ class PotentialEnergyAnalysisWindow:
         def make_color_button(rgb):
             rgba = Gdk.RGBA()
             rgba.red, rgba.green, rgba.blue, rgba.alpha = rgb[0], rgb[1], rgb[2], 1.0
-            return Gtk.ColorButton.new_with_rgba(rgba)
+            return ColorButton.new_with_rgba(rgba)
 
         rows = [
             ("Background",      self.plot.bg_color,   "bg_color"),

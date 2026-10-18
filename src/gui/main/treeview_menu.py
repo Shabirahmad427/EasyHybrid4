@@ -34,6 +34,7 @@ import gi
 import signal
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gdk, Pango
+from gui.color_button import ColorButton
 from gi.repository import GdkPixbuf
 from gui.file_dialogs import choose_color
 
@@ -966,7 +967,7 @@ class TreeViewMenu:
             hbox_colors = Gtk.Box ( orientation = Gtk.Orientation.HORIZONTAL, spacing = 10 )
 
             label_plus = Gtk.Label ( label = "Color (+):" )
-            btn_color_plus = Gtk.ColorButton ( )
+            btn_color_plus = ColorButton ( )
             r, g, b = _current_lobe_rgba ( "obital_plus", (1.0, 0.0, 0.0) )
             btn_color_plus.set_rgba ( Gdk.RGBA ( r, g, b, 1.0 ) )
             def on_color_plus_set ( w ):
@@ -976,7 +977,7 @@ class TreeViewMenu:
             btn_color_plus.connect ( "color-set", on_color_plus_set )
 
             label_minus = Gtk.Label ( label = "Color (-):" )
-            btn_color_minus = Gtk.ColorButton ( )
+            btn_color_minus = ColorButton ( )
             r, g, b = _current_lobe_rgba ( "obital_minus", (0.0, 0.0, 1.0) )
             btn_color_minus.set_rgba ( Gdk.RGBA ( r, g, b, 1.0 ) )
             def on_color_minus_set ( w ):

@@ -192,7 +192,7 @@
                             <property name="focusable">False</property>
                             <property name="orientation">vertical</property>
                             <child>
-                              <object class="GtkColorButton" id="btn_color_plus">
+                              <object class="EasyHybridColorButton" id="btn_color_plus">
                                 <property name="visible">True</property>
                                 <property name="focusable">True</property>
                                 <property name="rgba">rgb(165,29,45)</property>
@@ -266,7 +266,7 @@
                           </object>
                         </child>
                         <child>
-                          <object class="GtkColorButton" id="btn_color_minus">
+                          <object class="EasyHybridColorButton" id="btn_color_minus">
                             <property name="visible">True</property>
                             <property name="focusable">True</property>
                             <property name="rgba">rgb(26,95,180)</property>

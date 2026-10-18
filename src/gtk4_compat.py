@@ -183,3 +183,13 @@ def property_sorter(property_name, numeric=False, gtk=Gtk):
         return (first_key > second_key) - (first_key < second_key)
 
     return gtk.CustomSorter.new(compare, None)
+
+
+def rgba_components(rgba):
+    """Return ``[red, green, blue, alpha]`` of a Gdk.RGBA.
+
+    ``list(rgba)`` only works from PyGObject 3.58 (Gdk.RGBA gained
+    ``__iter__``); PyGObject 3.42-3.50, common with GTK 4.8-4.14, raises
+    TypeError.
+    """
+    return [rgba.red, rgba.green, rgba.blue, rgba.alpha]

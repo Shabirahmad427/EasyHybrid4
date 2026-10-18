@@ -680,7 +680,7 @@
                               </object>
                             </child>
                             <child>
-                              <object class="GtkColorButton" id="btn_background_color">
+                              <object class="EasyHybridColorButton" id="btn_background_color">
                                 <property name="name">btn_background_color</property>
                                 <property name="visible">True</property>
                                 <property name="focusable">True</property>
@@ -737,7 +737,7 @@
                               </object>
                             </child>
                             <child>
-                              <object class="GtkColorButton" id="btn_seqviewer_bg_color">
+                              <object class="EasyHybridColorButton" id="btn_seqviewer_bg_color">
                                 <property name="name">btn_background_color</property>
                                 <property name="visible">True</property>
                                 <property name="focusable">True</property>
@@ -761,7 +761,7 @@
                               </object>
                             </child>
                             <child>
-                              <object class="GtkColorButton" id="btn_seqviewer_label_color">
+                              <object class="EasyHybridColorButton" id="btn_seqviewer_label_color">
                                 <property name="visible">True</property>
                                 <property name="focusable">True</property>
                                 <property name="rgba">#ffffffffffff</property>
@@ -818,7 +818,7 @@
                             <property name="row-spacing">5</property>
                             <property name="column-spacing">10</property>
                             <child>
-                              <object class="GtkColorButton" id="color_btn_view_sel_dots">
+                              <object class="EasyHybridColorButton" id="color_btn_view_sel_dots">
                                 <property name="visible">True</property>
                                 <property name="focusable">True</property>
                                 <property name="hexpand">True</property>
@@ -911,7 +911,7 @@
                             <property name="row-spacing">5</property>
                             <property name="column-spacing">10</property>
                             <child>
-                              <object class="GtkColorButton" id="color_btn_pk_label">
+                              <object class="EasyHybridColorButton" id="color_btn_pk_label">
                                 <property name="visible">True</property>
                                 <property name="focusable">True</property>
                                 <property name="margin-end">10</property>
@@ -948,7 +948,7 @@
                               </object>
                             </child>
                             <child>
-                              <object class="GtkColorButton" id="color_btn_pk_sphr_1">
+                              <object class="EasyHybridColorButton" id="color_btn_pk_sphr_1">
                                 <property name="visible">True</property>
                                 <property name="focusable">True</property>
                                 <property name="margin-end">10</property>
@@ -984,7 +984,7 @@
                               </object>
                             </child>
                             <child>
-                              <object class="GtkColorButton" id="color_btn_pk_sphr_2">
+                              <object class="EasyHybridColorButton" id="color_btn_pk_sphr_2">
                                 <property name="visible">True</property>
                                 <property name="focusable">True</property>
                                 <property name="margin-end">10</property>
@@ -1020,7 +1020,7 @@
                               </object>
                             </child>
                             <child>
-                              <object class="GtkColorButton" id="color_btn_pk_sphr_3">
+                              <object class="EasyHybridColorButton" id="color_btn_pk_sphr_3">
                                 <property name="visible">True</property>
                                 <property name="focusable">True</property>
                                 <property name="margin-end">10</property>
@@ -1032,7 +1032,7 @@
                               </object>
                             </child>
                             <child>
-                              <object class="GtkColorButton" id="color_btn_pk_sphr_4">
+                              <object class="EasyHybridColorButton" id="color_btn_pk_sphr_4">
                                 <property name="visible">True</property>
                                 <property name="focusable">True</property>
                                 <property name="margin-end">10</property>
@@ -1070,7 +1070,7 @@
                               </object>
                             </child>
                             <child>
-                              <object class="GtkColorButton" id="color_btn_pk_dist_label">
+                              <object class="EasyHybridColorButton" id="color_btn_pk_dist_label">
                                 <property name="visible">True</property>
                                 <property name="focusable">True</property>
                                 <property name="margin-end">10</property>
@@ -1114,7 +1114,7 @@
                               </object>
                             </child>
                             <child>
-                              <object class="GtkColorButton" id="color_btn_pk_dist_lines">
+                              <object class="EasyHybridColorButton" id="color_btn_pk_dist_lines">
                                 <property name="visible">True</property>
                                 <property name="focusable">True</property>
                                 <property name="margin-end">10</property>
@@ -1731,7 +1731,7 @@
                                   </object>
                                 </child>
                                 <child>
-                                  <object class="GtkColorButton" id="btn_stick_unique_color">
+                                  <object class="EasyHybridColorButton" id="btn_stick_unique_color">
                                     <property name="visible">True</property>
                                     <property name="sensitive">False</property>
                                     <property name="focusable">True</property>
@@ -1844,7 +1844,7 @@
                                   </object>
                                 </child>
                                 <child>
-                                  <object class="GtkColorButton" id="btn_dbond_unique_color">
+                                  <object class="EasyHybridColorButton" id="btn_dbond_unique_color">
                                     <property name="visible">True</property>
                                     <property name="focusable">True</property>
                                     <layout>
@@ -2163,7 +2163,7 @@
                               </object>
                             </child>
                             <child>
-                              <object class="GtkColorButton" id="btn_light_color">
+                              <object class="EasyHybridColorButton" id="btn_light_color">
                                 <property name="visible">True</property>
                                 <property name="focusable">True</property>
                                 <layout>
@@ -2222,7 +2222,7 @@
                               </object>
                             </child>
                             <child>
-                              <object class="GtkColorButton" id="btn_light_spec_color">
+                              <object class="EasyHybridColorButton" id="btn_light_spec_color">
                                 <property name="visible">True</property>
                                 <property name="focusable">True</property>
                                 <layout>
