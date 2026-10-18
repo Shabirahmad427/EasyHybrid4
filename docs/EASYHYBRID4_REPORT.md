@@ -27,8 +27,9 @@ Windows GTK 4.24 reported **50 passed, 6 skipped** in the GTK module and
 `Gtk.MultiSelection` selection, clearing, and selected row identity. On Linux
 x86_64 under Xvfb with GTK 4.14.5, Python 3.12.3, PyGObject 3.48.2, and GLib
 2.80.0, the focused test passed and the complete widget-pattern module passed
-(50 passed, 7 skipped). The full 30-cell matrix is pending for this change;
-EH4-103 remains open until it passes.
+(50 passed, 7 skipped). Native matrix run `39153435108` passed **30/30** cells
+on Linux, Windows, and macOS across GTK 4.8–4.24, including this widget test in
+every cell. EH4-103 acceptance is complete; the next roadmap item is EH4-104.
 The first full clean-history GTK matrix log showed an access violation when
 the `Gtk.ColorChooserDialog` response handler destroyed its dialog inline on
 Windows. The fallback now hides the dialog and defers destruction; targeted
@@ -74,7 +75,8 @@ after rerunning its initially aborted Windows GTK 4.24 full-suite job.
   pDynamo extensions target Python 3.12. GTK 4.8 `Gtk.AboutDialog` teardown
   separately reproduces an upstream GtkImage finalization critical; see the
   compatibility report and [Debian bug #1041599](https://bugs.debian.org/1041599).
-  The native GitHub Actions matrix passes for every GTK minor 4.8–4.24 on
+  EH4-103 is complete: dialog, window, chooser, data-view, and selection tests
+  pass in native matrix run `39153435108` (30/30). The native GitHub Actions matrix passes for every GTK minor 4.8–4.24 on
   Linux x86_64, Windows x86_64 and macOS arm64, plus GTK 4.8/4.10 on macOS
   x86_64 (run `39071376507`, 30/30). Three GTK defects needed app-side
   handling (Windows 4.8/4.10 WGL pixel format, macOS 4.8/4.10 GL profile,

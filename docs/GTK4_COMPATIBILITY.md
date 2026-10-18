@@ -234,6 +234,10 @@ The acceptance review also covers data-view selection: a real `Gtk.ColumnView`
 is attached to `Gtk.SingleSelection` and `Gtk.MultiSelection`, and tests
 select, clear, and inspect rows by their model objects/positions. This
 complements the existing sorter, dialog, chooser, and Builder-window tests.
+Native workflow `39153435108` passed **30/30** OS/GTK cells; the widget-pattern
+module, including the selection regression, passed in each cell. This closes
+EH4-103 acceptance. Exact GTK patch versions and platform provisioning are in
+the full matrix table above.
 Message dialogs (2026-10-18): `Gtk.MessageDialog` is deprecated since GTK
 4.10 and `Gtk.AlertDialog`/`Gtk.FileDialog` are absent on GTK 4.8 (probed on
 every conda minor). `src/gui/message_dialogs.py` builds message, question and
