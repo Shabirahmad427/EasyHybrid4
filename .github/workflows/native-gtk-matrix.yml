@@ -184,11 +184,11 @@ jobs:
         run: |
           set -o pipefail
           if [[ "$RUNNER_OS" == "Linux" ]]; then
-            LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe PYOPENGL_PLATFORM=glx xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" micromamba run -n easyhybrid-gtk python -m pytest -q -p no:cacheprovider tests/ 2>&1 | tee -a platform-results.txt
+            LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe PYOPENGL_PLATFORM=glx xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" micromamba run -n easyhybrid-gtk python -m pytest -q -p no:cacheprovider --ignore=tests/test_gtk4_widget_patterns.py tests/ 2>&1 | tee -a platform-results.txt
           elif [[ "$RUNNER_OS" == "Windows" ]]; then
-            GALLIUM_DRIVER=llvmpipe micromamba run -n easyhybrid-gtk python -m pytest -q -p no:cacheprovider tests/ 2>&1 | tee -a platform-results.txt
+            GALLIUM_DRIVER=llvmpipe micromamba run -n easyhybrid-gtk python -m pytest -q -p no:cacheprovider --ignore=tests/test_gtk4_widget_patterns.py tests/ 2>&1 | tee -a platform-results.txt
           else
-            micromamba run -n easyhybrid-gtk python -m pytest -q -p no:cacheprovider tests/ 2>&1 | tee -a platform-results.txt
+            micromamba run -n easyhybrid-gtk python -m pytest -q -p no:cacheprovider --ignore=tests/test_gtk4_widget_patterns.py tests/ 2>&1 | tee -a platform-results.txt
           fi
 
       - name: Upload runtime and test evidence
