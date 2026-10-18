@@ -18,33 +18,45 @@ source ancestry and license/ownership clarification. The GTK 4.24 matrix
 successfully built the graphics extensions on Linux, Windows and macOS arm64,
 but its GLArea smoke does not exercise a VisMol molecular scene.
 
-EH4-300 now has an implementation in progress: per-user config/cache paths
-use XDG locations on Linux, roaming/local application data on Windows, and
-Application Support/Caches on macOS. Existing source-tree `.config.json`
-preferences are read as a fallback and copied to the new UTF-8 user config;
-the original file is left untouched. Transient autosave files use the user
-cache, while calculation logs remain with project outputs. Linux x86_64,
-Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib 2.80.0 focused
-regressions: **14 passed**. The required full native GTK/OS matrix for this
-change is pending; no cross-platform pass is claimed yet.
+EH4-300 moved preferences and transient autosaves out of the installed source
+tree into platform-standard per-user config/cache directories. Existing
+`.config.json` settings migrate to the user config while the source file stays
+intact; calculation logs remain beside project outputs. Focused Linux tests:
+**14 passed**; full non-widget suite: **82 passed, 5 skipped**. Native matrix
+run [`39176735398`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39176735398)
+passed **30/30** on Linux, Windows, macOS arm64 and provisioned Intel macOS
+across GTK 4.8–4.24. The path/migration regressions passed in the Linux,
+Windows and macOS GTK 4.24 full-suite jobs.
 
-The focused path suite passed twice. The remaining non-widget local suite
-passed (**82 passed, 5 skipped**). The first full native matrix run
+The first full native matrix run
 [`39176069763`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39176069763)
 passed 28/30 cells. Windows GTK 4.24 and macOS GTK 4.24 each failed only in
 the new migration-test assertion: it hard-coded Linux XDG locations instead
 of deriving the expected native path. The GTK widget and GL smoke steps passed
 in both cells. The assertion now uses the path adapter with each native
-platform's temporary user directories; focused and non-widget suites pass
-after that correction. A full native matrix rerun is pending.
+platform's temporary user directories; focused and non-widget suites passed
+after that correction. The full rerun and Windows GTK 4.16 failed-cell retry
+then passed.
 
 A combined local suite run terminated in
 a native segmentation fault inside the existing
 `test_color_button_keeps_the_gtk_color_button_api` at
 `Gtk.Builder.add_from_string`; GTK widget tests are run as a separate,
 display-backed workflow step. That crash is not counted as a passing GTK
-result or as a path-test failure. The exact all-platform matrix for EH4-300
-remains pending.
+result or as a path-test failure. After correcting the platform-specific
+assertion, native matrix run
+[`39176735398`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39176735398)
+passed **30/30 jobs** across Linux, Windows, macOS arm64 and provisioned Intel
+macOS for GTK 4.8–4.24. The application’s native GTK widget and GL smoke
+steps passed throughout; full regression jobs, including path migration,
+passed on Linux, Windows and macOS GTK 4.24. Windows GTK 4.16 source-build
+provisioning failed once due a GObject Introspection cache permission error
+and GCC 16 header parsing; rerunning only that failed cell passed the build,
+GTK widget tests and GL smoke. EH4-300 is complete. This does not prove a
+VisMol molecular scene render; the next graphics task will exercise the
+bundled viewer directly. EH4-200’s upstream ancestry and license mismatch
+still block submodule conversion or publishing graphics changes, not local
+use of the bundled engine.
 
 **Security cleanup (2026-10-18):** Removed personal host/network identifiers,
 user-specific home-directory paths, and literal IP addresses from tracked
