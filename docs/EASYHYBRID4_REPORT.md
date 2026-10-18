@@ -6,6 +6,37 @@
 GTK/Python compatibility, parity, platform, testing, and known-limitation
 status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).
 
+**Current roadmap work (2026-10-18):** EH4-200's graphics provenance audit
+found the declared `casebor/graphics_engine` URL redirects to public
+`casebor/Vismol`; the `vismol_easyhybrid` branch exists at
+`2df3cd96f0b4970d62bd2c4e652faded411549a2`. It is not established as the
+vendored tree's base: 28 of 88 common tracked files differ, with three
+local-only and eight upstream-only files. The local `LICENSE` says CC BY-NC
+4.0, while package/repository metadata says MIT. No graphics source or
+submodule pointer was changed; EH4-200 remains blocked pending authoritative
+source ancestry and license/ownership clarification. The GTK 4.24 matrix
+successfully built the graphics extensions on Linux, Windows and macOS arm64,
+but its GLArea smoke does not exercise a VisMol molecular scene.
+
+EH4-300 now has an implementation in progress: per-user config/cache paths
+use XDG locations on Linux, roaming/local application data on Windows, and
+Application Support/Caches on macOS. Existing source-tree `.config.json`
+preferences are read as a fallback and copied to the new UTF-8 user config;
+the original file is left untouched. Transient autosave files use the user
+cache, while calculation logs remain with project outputs. Linux x86_64,
+Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib 2.80.0 focused
+regressions: **14 passed**. The required full native GTK/OS matrix for this
+change is pending; no cross-platform pass is claimed yet.
+
+The focused path suite passed twice. The remaining non-widget local suite
+passed (**82 passed, 5 skipped**). A combined local suite run terminated in
+a native segmentation fault inside the existing
+`test_color_button_keeps_the_gtk_color_button_api` at
+`Gtk.Builder.add_from_string`; GTK widget tests are run as a separate,
+display-backed workflow step. That crash is not counted as a passing GTK
+result or as a path-test failure. The exact all-platform matrix for EH4-300
+remains pending.
+
 **Security cleanup (2026-10-18):** Removed personal host/network identifiers,
 user-specific home-directory paths, and literal IP addresses from tracked
 files and rewritten branch history. A repository scan found no private key

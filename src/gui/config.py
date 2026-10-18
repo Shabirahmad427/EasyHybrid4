@@ -32,6 +32,7 @@
 from util.debug import dprint
 import os
 import json
+from src.os_integration.app_paths import config_file_candidates, ensure_user_directories
 
 class VismolConfig                       :
     """ Class doc """
@@ -40,6 +41,7 @@ class VismolConfig                       :
         """ Class initialiser """
         self.easyhybrid_home = home
         self.easyhybrid_tmp  = None
+        self.config_path = None
         
 
         
@@ -237,41 +239,28 @@ class VismolConfig                       :
         If not, a new config/json  is created. 
         """
         if self.easyhybrid_home is not None:
-
-            config = os.path.join ( self.easyhybrid_home,'.config.json')
-            
-            if os.path.exists(config):
-                
+            config_dir, cache_dir = ensure_user_directories()
+            self.config_path = config_dir / "config.json"
+            self.easyhybrid_tmp = str(cache_dir)
+            candidates = config_file_candidates(self.easyhybrid_home)
+            source = next((path for path in candidates if path.is_file()), None)
+            self.gl_parameters = dict(self.gl_parameters_default)
+            if source is not None:
                 try:
                     dprint("Loading EasyHybrid config file.")
-                    with open(config, 'r', encoding='utf-8') as f:
-                        self.gl_parameters = json.load(f)
-                
-                        for key in self.gl_parameters_default.keys():
-                            if key in self.gl_parameters.keys():
-                                pass
-                            else:
-                                # [BUG FIX] Era 'self.gl_parameters_default[keys]'
-                                # -- 'keys' does not exist (typo of 'key', the variable
-                                # do loop). Isso disparava NameError toda vez que
-                                # uma chave nova em gl_parameters_default (ex.:
-                                # as que acabamos de adicionar: autosave_interval_
-                                # minutes, main_window_width, etc.) did not exist
-                                # ainda no .config.json salvo -- capturado pelo
-                                # 'except' abaixo, que resetava TODAS as
-                                # saved preferences (not just the missing key)
-                                # de volta pro default, silenciosamente.
-                                self.gl_parameters[key] = self.gl_parameters_default[key]
-                                
-                except:
+                    with source.open("r", encoding="utf-8") as config_file:
+                        saved = json.load(config_file)
+                    if isinstance(saved, dict):
+                        self.gl_parameters.update(saved)
+                        if source != self.config_path:
+                            # Keep the legacy file intact and migrate a copy
+                            # into the user config location on first launch.
+                            self.save_easyhybrid_config()
+                except (OSError, ValueError, TypeError):
                     dprint("Failed to open EasyHybrid configuration file. Loading default settings.")
-                    self.gl_parameters = self.gl_parameters_default
-                
             else:
                 dprint("Configuration file not found. Creating a new file from default settings.")
-                with open(config, 'w', encoding='utf-8') as f:
-                    json.dump(self.gl_parameters_default, f, ensure_ascii=False, indent=4)
-                    self.gl_parameters = self.gl_parameters_default
+                self.save_easyhybrid_config()
     
     def _check_tmp_folder (self):
         """ 
@@ -279,14 +268,8 @@ class VismolConfig                       :
         If not, a new directory is created. 
         """ 
         if self.easyhybrid_home is not None:
-
-            if os.path.isdir( os.path.join ( self.easyhybrid_home,'.tmp')):
-                self.easyhybrid_tmp = os.path.join ( self.easyhybrid_home,'.tmp')
-            
-            else:
-                #print('')
-                os.mkdir(os.path.join ( self.easyhybrid_home,'.tmp'))
-                self.easyhybrid_tmp = os.path.join ( self.easyhybrid_home,'.tmp')
+            _, cache_dir = ensure_user_directories()
+            self.easyhybrid_tmp = str(cache_dir)
         #self.tmp_folder = self.easyhybrid_home,'.tmp'
     def reset_parameters (self):
         """ Function doc """
@@ -302,10 +285,14 @@ class VismolConfig                       :
         """ Function doc """
         
         if self.easyhybrid_home is not None:
-            config = os.path.join ( self.easyhybrid_home,'.config.json')
+            config = self.config_path
+            if config is None:
+                config_dir, _ = ensure_user_directories()
+                config = config_dir / "config.json"
             
             dprint("Saving configuration file.")
             
+            config.parent.mkdir(parents=True, exist_ok=True)
             with open(config, 'w', encoding='utf-8') as f:
                 json.dump(self.gl_parameters, f, ensure_ascii=False, indent=4)        
 

@@ -6,6 +6,12 @@ from src.os_integration.gtk_startup import (
     configure_vblank_mode,
     configure_gl_context_environment,
 )
+from src.os_integration.app_paths import (
+    config_file_candidates,
+    ensure_user_directories,
+    user_cache_dir,
+    user_config_dir,
+)
 
 
 def test_saved_vblank_preference_overrides_platform_default(tmp_path):
@@ -159,3 +165,72 @@ def test_user_selected_opengl_platform_is_preserved():
     )
 
     assert environment["PYOPENGL_PLATFORM"] == "glx"
+
+
+def test_user_paths_follow_platform_conventions_and_unicode(tmp_path):
+    home = tmp_path / "Usuário Ω"
+    linux_env = {"XDG_CONFIG_HOME": str(tmp_path / "configé"),
+                 "XDG_CACHE_HOME": str(tmp_path / "cacheé")}
+    assert user_config_dir(platform="linux", environ=linux_env, home=home) == (
+        tmp_path / "configé" / "EasyHybrid4"
+    )
+    assert user_cache_dir(platform="linux", environ=linux_env, home=home) == (
+        tmp_path / "cacheé" / "EasyHybrid4"
+    )
+    assert user_config_dir(
+        platform="win32", environ={"APPDATA": str(tmp_path / "Roaming")}, home=home
+    ) == tmp_path / "Roaming" / "EasyHybrid4"
+    assert user_cache_dir(
+        platform="win32", environ={"LOCALAPPDATA": str(tmp_path / "Local")}, home=home
+    ) == tmp_path / "Local" / "EasyHybrid4"
+    assert user_config_dir(platform="darwin", environ={}, home=home) == (
+        home / "Library" / "Application Support" / "EasyHybrid4"
+    )
+
+    config_dir, cache_dir = ensure_user_directories(
+        platform="linux", environ=linux_env, home=home
+    )
+    (config_dir / "config.json").write_text('{"startup_path": "Moléculas"}', encoding="utf-8")
+    assert (config_dir / "config.json").read_text(encoding="utf-8") == (
+        '{"startup_path": "Moléculas"}'
+    )
+    assert config_dir.is_dir() and cache_dir.is_dir()
+
+
+def test_config_path_candidates_keep_legacy_settings_readable(tmp_path):
+    legacy_home = tmp_path / "installed app"
+    candidates = config_file_candidates(
+        legacy_home,
+        platform="linux",
+        environ={"XDG_CONFIG_HOME": str(tmp_path / "user config")},
+        home=tmp_path / "home",
+    )
+
+    assert candidates == (
+        tmp_path / "user config" / "EasyHybrid4" / "config.json",
+        legacy_home / ".config.json",
+    )
+
+
+def test_legacy_preferences_migrate_without_modifying_source_tree(tmp_path, monkeypatch):
+    import json
+    from gui.config import VismolConfig
+
+    legacy_home = tmp_path / "readonly-install"
+    legacy_home.mkdir()
+    legacy_file = legacy_home / ".config.json"
+    legacy_file.write_text(
+        json.dumps({"startup_path": "Moléculas", "vblank_mode": "off"}),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "user config"))
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "user cache"))
+
+    config = VismolConfig(home=str(legacy_home))
+
+    migrated = tmp_path / "user config" / "EasyHybrid4" / "config.json"
+    saved = json.loads(migrated.read_text(encoding="utf-8"))
+    assert saved["startup_path"] == "Moléculas"
+    assert saved["vblank_mode"] == "off"
+    assert config.easyhybrid_tmp == str(tmp_path / "user cache" / "EasyHybrid4")
+    assert legacy_file.exists()
