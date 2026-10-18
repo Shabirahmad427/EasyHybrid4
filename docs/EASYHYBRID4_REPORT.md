@@ -29,7 +29,8 @@ x86_64 under Xvfb with GTK 4.14.5, Python 3.12.3, PyGObject 3.48.2, and GLib
 2.80.0, the focused test passed and the complete widget-pattern module passed
 (50 passed, 7 skipped). Native matrix run `39153435108` passed **30/30** cells
 on Linux, Windows, and macOS across GTK 4.8–4.24, including this widget test in
-every cell. EH4-103 acceptance is complete; the next roadmap item is EH4-104.
+every cell. EH4-103 acceptance is complete; EH4-104 is now complete for
+automated/native-matrix acceptance. The next roadmap item is EH4-105.
 
 **EH4-104 input-event regression (2026-10-18):** Centralized GTK scroll-delta
 conversion in `src/gtk4_compat.py` and wired the VisMol GL widget to it. The
@@ -42,8 +43,12 @@ real-widget synthetic `Gtk.GestureClick` and `Gtk.EventControllerKey` signal
 coverage and tests for smooth surface and partial wheel deltas. Linux
 x86_64/Xvfb, GTK 4.14.5, Python 3.12.3, PyGObject 3.48.2, GLib 2.80.0:
 focused scroll tests **2 passed**; prior widget-pattern module **52 passed, 7
-skipped**. The full 30-cell matrix for this correction is pending; physical
-macOS trackpad behavior remains **NOT TESTED**. EH4-104 remains in progress.
+skipped**. Native matrix run
+[`39170488393`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39170488393)
+passed **30/30** across Linux x86_64, Windows x86_64, macOS arm64, and
+provisioned Intel macOS for GTK 4.8–4.24. EH4-104 automated/native-matrix
+acceptance is complete. Physical macOS trackpad behavior remains **NOT
+TESTED** and is recorded separately.
 
 **Windows chooser cancellation harness diagnosis (2026-10-18):** The initial
 UI Automation attempt in commit `1a88c31` did not operate the Cancel button:
