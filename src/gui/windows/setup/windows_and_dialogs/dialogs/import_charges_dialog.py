@@ -31,6 +31,7 @@
 import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gio, GObject
+from gui.response_dialog import ResponseDialog
 
 
 class ChargeTypeRow(GObject.Object):
@@ -41,7 +42,7 @@ class ChargeTypeRow(GObject.Object):
         self.label = str(label)
 
 
-class ChargeTypeSelectionDialog(Gtk.Dialog):
+class ChargeTypeSelectionDialog(ResponseDialog):
     def __init__(self, parent, items):
         super().__init__(
             #title="Escolha um item",

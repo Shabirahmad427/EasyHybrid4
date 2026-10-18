@@ -33,6 +33,7 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
+from gui.response_dialog import ResponseDialog
 from gui.message_dialogs import show_message
 from src.gtk4_compat import GTK_INVALID_LIST_POSITION
 import gc
@@ -520,7 +521,7 @@ class PotentialEnergyAnalysisWindow:
         (self.plot2). Usa Gtk.ColorButton -- ele mesmo ja abre o seletor
         de cor nativo do sistema ao ser clicado, entao nao precisa de um
         .glade proprio so' para isso. """
-        dialog = Gtk.Dialog(title="1D Plot Colors", transient_for=self.window, modal=True)
+        dialog = ResponseDialog(title="1D Plot Colors", transient_for=self.window, modal=True)
         dialog.add_buttons("Cancel", Gtk.ResponseType.CANCEL,
                             "OK", Gtk.ResponseType.OK)
 
@@ -579,7 +580,7 @@ class PotentialEnergyAnalysisWindow:
         unica de eixos/marcas/rotulos/moldura (self.plot.axis_color,
         ver image_plot.py -- antes tinha [0,0,0] fixo espalhado em 3
         lugares diferentes, sem nenhuma forma de mudar tudo junto). """
-        dialog = Gtk.Dialog(title="2D Plot Colors", transient_for=self.window, modal=True)
+        dialog = ResponseDialog(title="2D Plot Colors", transient_for=self.window, modal=True)
         dialog.add_buttons("Cancel", Gtk.ResponseType.CANCEL,
                             "OK", Gtk.ResponseType.OK)
 

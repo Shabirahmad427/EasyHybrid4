@@ -441,7 +441,9 @@ relies on an empty selection. Details and the per-minor probe are in
 widget tests in all 30 cells (Linux, Windows, macOS; GTK 4.8–4.24).
 Message and question dialogs then moved to the portable
 `src/gui/message_dialogs.py` (plain `Gtk.Window`; `Gtk.AlertDialog` is absent
-on GTK 4.8). Custom `Gtk.Dialog` windows and file choosers remain.
+on GTK 4.8). Custom `Gtk.Dialog` windows then moved to the portable
+`src/gui/response_dialog.py`, and Builder `GtkDialog`s became `GtkWindow`s.
+File and colour choosers remain.
 
 ## 7. Contributor workflow
 

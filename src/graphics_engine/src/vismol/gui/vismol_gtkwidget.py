@@ -26,6 +26,7 @@ from vismol.utils.debug import dprint
 import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gdk
+from gui.response_dialog import ResponseDialog
 from src.gtk4_compat import (
     GTK_INVALID_LIST_POSITION,
     apply_legacy_win32_wgl_workaround,
@@ -1239,7 +1240,7 @@ class PreviewWindow(Gtk.Window):
         self.update_preview()
         
     def on_save_preset(self, widget):
-        dialog = Gtk.Dialog(title="Save Preset", transient_for=self, modal=True)
+        dialog = ResponseDialog(title="Save Preset", transient_for=self, modal=True)
         dialog.add_buttons("Cancel", Gtk.ResponseType.CANCEL,
                             "Save", Gtk.ResponseType.OK)
         entry = Gtk.Entry()

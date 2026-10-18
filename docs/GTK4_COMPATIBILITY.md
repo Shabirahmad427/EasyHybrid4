@@ -241,6 +241,22 @@ which no GTK4 release provides. Dialog tests passed 10 consecutive runs on
 each local minor after replacing fixed sleeps with condition waits.
 Native matrix run `39083365433` (commit `07585a1`): **14/14 passed in all 30 cells**.
 
+Custom dialogs (2026-10-18): `Gtk.Dialog` is deprecated since GTK 4.10.
+`src/gui/response_dialog.py` provides `ResponseDialog`, a `Gtk.Window` with
+the `Gtk.Dialog` API EasyHybrid uses (content area, response buttons,
+default response, `response` signal; closing emits `DELETE_EVENT`). All 10
+Python `Gtk.Dialog` uses (incl. two subclasses and the VisMol preset dialog)
+now use it. Five Builder `GtkDialog`s, used only as windows, became
+`GtkWindow`; their action row, which `GtkDialog` placed at the bottom, was
+moved to the end of the content box so the layout is unchanged.
+
+GTK 4.8 upstream defect: freeing any `Gtk.DropDown` emits
+`GLib-GObject-CRITICAL ... GtkImage ... during instance finalization` (a bare
+GTK script reproduces it on 4.8.2; clean on 4.10.1). It is the same
+finalization bug recorded above for `Gtk.AboutDialog`, harmless unless
+criticals are fatal, so widget tests do not use `G_DEBUG=fatal-criticals` on
+GTK 4.8.
+
 Native matrix run `39082144669` (commit `9373956`): **10/10 passed in all 30 cells** — every GTK4 minor 4.8–4.24 on Linux, Windows and macOS arm64, plus GTK 4.8/4.10 on macOS x86_64.
 
 ## Verification requirements

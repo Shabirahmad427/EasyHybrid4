@@ -3,6 +3,7 @@
 import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gio, Gtk
+from gui.response_dialog import ResponseDialog
 
 from gui.model_rows import AtomTypeRow
 from gui.windows.builder.atom_types import (
@@ -276,7 +277,7 @@ class AtomTypesWindow:
         if not residues:
             self.status_label.set_text("No residue found for the listed atoms.")
             return
-        dialog = Gtk.Dialog(title="Rename Residue", transient_for=self.window, modal=True)
+        dialog = ResponseDialog(title="Rename Residue", transient_for=self.window, modal=True)
         dialog.add_buttons("Cancel", Gtk.ResponseType.CANCEL,
                            "Rename", Gtk.ResponseType.OK)
         dialog.set_default_response(Gtk.ResponseType.OK)

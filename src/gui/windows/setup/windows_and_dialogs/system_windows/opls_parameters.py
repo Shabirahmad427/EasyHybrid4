@@ -5,6 +5,7 @@ import traceback
 import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gio, GLib, Gtk
+from gui.response_dialog import ResponseDialog
 
 from gui.choice_dropdown import new_choice_dropdown, select_choice_value, selected_choice_value
 from gui.model_rows import OPLSParameterRow
@@ -364,7 +365,7 @@ class OPLSParametersWindow:
     def on_row_activated(self, listing, row):
         term = row._opls_term
         columns = self.columns[term]
-        dialog = Gtk.Dialog(title="Edit OPLS parameter", transient_for=self.window, modal=True)
+        dialog = ResponseDialog(title="Edit OPLS parameter", transient_for=self.window, modal=True)
         dialog.add_button("Cancel", Gtk.ResponseType.CANCEL); dialog.add_button("Set", Gtk.ResponseType.OK)
         box = dialog.get_content_area(); box.set_spacing(8)
         entry = Gtk.Entry(hexpand=True)

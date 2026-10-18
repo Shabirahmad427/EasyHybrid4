@@ -32,6 +32,7 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Pango
+from gui.response_dialog import ResponseDialog
 from gi.repository import Gdk
 from gi.repository import GdkPixbuf
 import cairo
@@ -89,7 +90,7 @@ HOME             = os.environ.get('HOME')
 PDYNAMO3_SCRATCH = os.environ.get('PDYNAMO3_SCRATCH')
 
 
-class EasyHybridDialogSetQCAtoms(Gtk.Dialog):
+class EasyHybridDialogSetQCAtoms(ResponseDialog):
     def __init__(self, parent):
         super().__init__(title="New QC list", transient_for=parent)
         self.add_buttons(

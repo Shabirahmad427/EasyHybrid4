@@ -3,6 +3,7 @@
 import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gdk, Gtk
+from gui.response_dialog import ResponseDialog
 
 
 _MAIN_ROWS = [
@@ -51,7 +52,7 @@ def choose_element(main, parent_window=None, on_selected=None):
     """Present a searchable periodic table and call back with symbol or None."""
     vm_session = main.vm_session
     elements = _elements_css(vm_session)
-    dialog = Gtk.Dialog(
+    dialog = ResponseDialog(
         title="Periodic Table", transient_for=parent_window or main.window, modal=True
     )
     dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)

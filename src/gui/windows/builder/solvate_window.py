@@ -22,6 +22,7 @@ import numpy as np
 import gi
 gi.require_version ( "Gtk", "4.0" )
 from gi.repository import Gtk, GLib
+from gui.response_dialog import ResponseDialog
 from gui.gtk4_builder import connect_builder_signals, load_builder_file
 
 from gui.windows.builder import solvation
@@ -407,7 +408,7 @@ class SolvateWindow ( ):
     def _ask_solvent_properties ( self, info, callback ):
         """ Small dialog: name, residue name, density (g/cm3). Returns
             (name, residue, density or None) or None if cancelled. """
-        dialog = Gtk.Dialog ( title = "New solvent", transient_for = self.window, modal = True )
+        dialog = ResponseDialog ( title = "New solvent", transient_for = self.window, modal = True )
         dialog.add_buttons ( "Cancel", Gtk.ResponseType.CANCEL, "OK", Gtk.ResponseType.OK )
         grid = Gtk.Grid ( row_spacing = 6, column_spacing = 8, margin_top=10, margin_bottom=10, margin_start=10, margin_end=10 )
         kind = "pre-equilibrated periodic box" if info["kind"] == "box" else "single molecule (a box will be built at this density)"

@@ -145,6 +145,7 @@ def test_no_gtk3_or_gtk48_incompatible_patterns_remain():
         r"\.get_active_id\(|\.set_active_id\(": "ComboBox API (use gui.choice_dropdown)",
         r"Gtk\.MessageDialog\b": "deprecated since GTK 4.10 (use gui.message_dialogs)",
         r"Gdk\.cairo_surface_create_from_pixbuf": "absent from every GTK4 release",
+        r"Gtk\.Dialog\b": "deprecated since GTK 4.10 (use gui.response_dialog)",
     }
     offenders = []
     for path in SRC.rglob("*.py"):
@@ -156,8 +157,11 @@ def test_no_gtk3_or_gtk48_incompatible_patterns_remain():
                 if re.search(pattern, code):
                     offenders.append("%s:%d %s" % (path.relative_to(PROJECT_ROOT), number, why))
     for path in SRC.rglob("*.glade"):
-        if re.search(r'class="GtkComboBox(Text)?"', path.read_text(encoding="utf-8")):
+        ui_text = path.read_text(encoding="utf-8")
+        if re.search(r'class="GtkComboBox(Text)?"', ui_text):
             offenders.append("%s GtkComboBox" % path.relative_to(PROJECT_ROOT))
+        if re.search(r'class="Gtk(Message)?Dialog"', ui_text):
+            offenders.append("%s GtkDialog (use GtkWindow)" % path.relative_to(PROJECT_ROOT))
     assert not offenders, "\n".join(offenders)
 
 
@@ -328,3 +332,113 @@ def test_error_details_are_shown_in_an_expander():
     text = buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), False)
     assert text == "Traceback: boom"
     dialog.respond(True)
+
+
+# --------------------------------------------------------------------------- #
+#  ResponseDialog (drop-in replacement for deprecated Gtk.Dialog).             #
+# --------------------------------------------------------------------------- #
+
+@needs_display
+def test_response_dialog_buttons_emit_their_response():
+    from gui.response_dialog import ResponseDialog
+
+    responses = []
+    dialog = ResponseDialog(title="Rename Residue", modal=True)
+    dialog.add_buttons("Cancel", Gtk.ResponseType.CANCEL, "OK", Gtk.ResponseType.OK)
+    dialog.set_default_response(Gtk.ResponseType.OK)
+    entry = Gtk.Entry()
+    dialog.get_content_area().append(entry)
+    dialog.connect("response", lambda _dialog, response: responses.append(response))
+    dialog.present()
+    try:
+        assert _wait_for(dialog.get_mapped)
+        assert dialog.get_default_widget() is dialog.get_widget_for_response(Gtk.ResponseType.OK)
+        assert entry.get_parent() is dialog.get_content_area()
+        dialog.get_widget_for_response(Gtk.ResponseType.OK).emit("clicked")
+        dialog.response(Gtk.ResponseType.CANCEL)
+        assert responses == [Gtk.ResponseType.OK, Gtk.ResponseType.CANCEL]
+        assert responses[0] == Gtk.ResponseType.OK  # int compares with the enum
+    finally:
+        dialog.destroy()
+
+
+@needs_display
+def test_response_dialog_close_and_escape_emit_delete_event():
+    from gui.response_dialog import ResponseDialog
+
+    responses = []
+    for trigger in ("close", "escape"):
+        dialog = ResponseDialog(title="Save Preset")
+        dialog.add_button("OK", Gtk.ResponseType.OK)
+        dialog.connect("response", lambda _dialog, response: responses.append(response))
+        dialog.present()
+        assert _wait_for(dialog.get_mapped)
+        if trigger == "close":
+            dialog.close()
+        else:
+            assert _press_escape(dialog) is True
+        assert _wait_for(lambda: not dialog.get_visible())
+    assert responses == [Gtk.ResponseType.DELETE_EVENT] * 2
+
+
+@needs_display
+def test_response_dialog_subclass_like_gtk_dialog():
+    from gui.response_dialog import ResponseDialog
+
+    class Picker(ResponseDialog):
+        def __init__(self, parent):
+            super().__init__(transient_for=parent)
+            self.add_button("Cancel", Gtk.ResponseType.CANCEL)
+            self.add_button("OK", Gtk.ResponseType.OK)
+            self.set_response_sensitive(Gtk.ResponseType.OK, False)
+
+    parent = Gtk.Window()
+    parent.present()
+    try:
+        picker = Picker(parent)
+        assert picker.get_transient_for() is parent
+        assert not picker.get_widget_for_response(Gtk.ResponseType.OK).get_sensitive()
+        picker.destroy()
+    finally:
+        parent.destroy()
+
+
+@needs_display
+@pytest.mark.parametrize("ui_file, object_id", [
+    ("gui/windows/setup/edit_frames_dialog.glade", "dialog"),
+    ("gui/windows/setup/add_harmonic_restraint_dialog.glade", "dialog"),
+    ("gui/windows/setup/add_position_restraint_dialog.glade", "dialog"),
+    ("gui/windows/setup/export_script_window2.glade", "dialog"),
+    ("gui/windows/setup/windows_and_dialogs.glade", "dialog_prune"),
+])
+def test_builder_dialogs_are_windows_with_buttons_at_the_bottom(ui_file, object_id):
+    """Former GtkDialog UI files: plain GtkWindow, action buttons still last."""
+    from gui.gtk4_builder import load_builder_file
+
+    builder = Gtk.Builder()
+    load_builder_file(builder, str(SRC / ui_file))
+    window = builder.get_object(object_id)
+    try:
+        assert type(window) is Gtk.Window
+        content = window.get_child()
+        children = []
+        child = content.get_first_child()
+        while child is not None:
+            children.append(child)
+            child = child.get_next_sibling()
+
+        def has_button(widget):
+            if isinstance(widget, Gtk.Button):
+                return True
+            inner = widget.get_first_child()
+            while inner is not None:
+                if has_button(inner):
+                    return True
+                inner = inner.get_next_sibling()
+            return False
+
+        button_rows = [index for index, row in enumerate(children)
+                       if isinstance(row, Gtk.Box) and row.get_halign() == Gtk.Align.END and has_button(row)]
+        assert button_rows == [len(children) - 1]
+    finally:
+        window.destroy()

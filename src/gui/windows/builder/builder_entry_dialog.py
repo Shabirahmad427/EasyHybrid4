@@ -3,6 +3,7 @@
 import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
+from gui.response_dialog import ResponseDialog
 from src.gtk4_compat import GTK_INVALID_LIST_POSITION
 
 
@@ -26,7 +27,7 @@ def choose_and_open_builder(main):
 
     from gui.widgets.custom_widgets.comboboxes import SystemComboBox
 
-    dialog = Gtk.Dialog(title="Open Builder", transient_for=main.window, modal=True)
+    dialog = ResponseDialog(title="Open Builder", transient_for=main.window, modal=True)
     dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
     dialog.add_button("Continue", Gtk.ResponseType.OK)
     dialog.set_default_response(Gtk.ResponseType.OK)
