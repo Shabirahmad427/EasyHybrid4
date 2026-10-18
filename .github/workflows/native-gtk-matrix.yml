@@ -397,6 +397,30 @@ jobs:
           set -o pipefail
           GALLIUM_DRIVER=llvmpipe python -m pytest -q -p no:cacheprovider --noconftest -rs tests/test_gtk4_widget_patterns.py 2>&1 | tee -a platform-results.txt
 
+      - name: Native backtrace of a widget-test crash (diagnostic)
+        # Python's faulthandler cannot read the C stack on Windows. Re-run
+        # under gdb (up to three times; crashes may be intermittent) and
+        # print every thread's native frames. Diagnostic only: the failed
+        # test step above already decides the job result.
+        if: failure()
+        env:
+          EASYHYBRID_REQUIRE_GTK_DISPLAY: "1"
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+        run: |
+          pacman -S --noconfirm --needed mingw-w64-ucrt-x86_64-gdb > /dev/null
+          for attempt in 1 2 3; do
+            echo "=== gdb attempt $attempt"
+            GALLIUM_DRIVER=llvmpipe gdb -q -batch -ex "set pagination off" -ex run \
+              -ex "thread apply all bt 30" \
+              --args python -X faulthandler -m pytest -q -p no:cacheprovider --noconftest -x tests/test_gtk4_widget_patterns.py \
+              > gdb-attempt.txt 2>&1 || true
+            if grep -q "received signal" gdb-attempt.txt; then
+              grep -A400 "received signal" gdb-attempt.txt | grep -E "received signal|^#|^Thread" | head -150
+              break
+            fi
+            tail -3 gdb-attempt.txt
+          done
+
       - name: Upload runtime and test evidence
         if: always()
         uses: actions/upload-artifact@v6
