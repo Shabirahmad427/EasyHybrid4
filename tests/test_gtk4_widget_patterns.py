@@ -714,52 +714,9 @@ def _chooser_paths(use_new_api):
                     "only where Gtk.FileDialog is absent" % version)
 
 
-def _press_native_cancel(title, timeout=20.0):
-    """Invoke Cancel through Windows UI Automation without stealing focus."""
-    import subprocess
-
-    script = r"""
-$ErrorActionPreference = 'Stop'
-Add-Type -AssemblyName UIAutomationClient
-$root = [System.Windows.Automation.AutomationElement]::RootElement
-$title = $env:EH4_NATIVE_DIALOG_TITLE
-$nameCondition = [System.Windows.Automation.PropertyCondition]::new(
-    [System.Windows.Automation.AutomationElement]::NameProperty, $title)
-$window = $root.FindFirst([System.Windows.Automation.TreeScope]::Children, $nameCondition)
-if ($null -eq $window) { throw "Native dialog not found: $title" }
-$buttonCondition = [System.Windows.Automation.PropertyCondition]::new(
-    [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
-    [System.Windows.Automation.ControlType]::Button)
-$cancelCondition = [System.Windows.Automation.PropertyCondition]::new(
-    [System.Windows.Automation.AutomationElement]::NameProperty, 'Cancel')
-$condition = [System.Windows.Automation.AndCondition]::new(
-    [System.Windows.Automation.Condition[]]@($buttonCondition, $cancelCondition))
-$button = $null
-$deadline = (Get-Date).AddSeconds(10)
-while ($null -eq $button -and (Get-Date) -lt $deadline) {
-    $button = $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $condition)
-    if ($null -eq $button) { Start-Sleep -Milliseconds 100 }
-}
-if ($null -eq $button) { throw "Cancel button not found in: $title" }
-$pattern = $button.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)
-$pattern.Invoke()
-"uia-cancel-invoked"
-"""
-    result = subprocess.run(
-        ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script],
-        capture_output=True, text=True, timeout=15,
-        env={**os.environ, "EH4_NATIVE_DIALOG_TITLE": title},
-    )
-    assert result.returncode == 0 and "uia-cancel-invoked" in result.stdout, (
-        result.returncode, result.stdout[-1000:], result.stderr[-1000:])
-
-
-def _dismiss(handle, title):
-    """Close a chooser the way its platform's user would, else cancel it."""
-    if sys.platform == "win32" and handle.uses_new_api:
-        _press_native_cancel(title)
-    else:
-        handle.cancel()
+def _dismiss(handle):
+    """Cancel through the chooser handle used by the application."""
+    handle.cancel()
 
 
 @needs_display
@@ -787,7 +744,7 @@ def test_file_chooser_cancel_reports_nothing_once(tmp_path, use_new_api):
             )
             assert handle.uses_new_api is use_new_api
             _iterate(100)
-            _dismiss(handle, "Pick %s" % mode)
+            _dismiss(handle)
             assert _wait_for(lambda: results), mode
             _iterate(50)
             handle.cancel()  # a second cancel is ignored

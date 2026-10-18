@@ -40,6 +40,20 @@ coverage. Linux x86_64/Xvfb, GTK 4.14.5: focused tests **2 passed**; widget
 module **52 passed, 7 skipped**. The required 30-cell matrix is pending;
 physical macOS trackpad behavior remains **NOT TESTED**.
 
+**Windows chooser cancellation harness diagnosis (2026-10-18):** The initial
+UI Automation attempt in commit `1a88c31` did not operate the Cancel button:
+the PowerShell `AutomationElement.FindFirst` query hung and Python raised
+`subprocess.TimeoutExpired` after 15 seconds. Available Windows artifacts
+from matrix `39158650884` show this same helper timeout on multiple GTK 4.10+
+cells; they do not demonstrate an application-side failure. Removed the UIA
+helper. The regression now cancels the real `Gtk.FileDialog` through the
+application's `ChooserHandle.cancel()` / `Gio.Cancellable` path. This must
+still be validated on native Windows, including checking for the previously
+observed `0x80010108` trace. The failed run's redundant MSYS2 crash-diagnostic
+retries were canceled after preserving its artifacts; the corrected full
+matrix has not started. No native application defect is established by the
+UIA timeout, and no application-side code change is claimed yet.
+
 **Recurring Windows chooser crash (2026-10-18):** Matrix `39154336539`
 reproduced `0x80010108` in `test_file_chooser_cancel_reports_nothing_once` on
 Windows GTK 4.24 while `_wait_for()` ran the GLib main loop after native
