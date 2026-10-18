@@ -17,7 +17,8 @@ Windows. The fallback now hides the dialog and defers destruction; targeted
 chooser tests pass on Linux GTK 4.14.5. The follow-up full matrix run
 `39150184361` on commit `5d3a9db` passed all 30/30 jobs across GTK 4.8–4.24
 on Linux, Windows and macOS, including the macOS GTK 4.24 full regression
-suite. Main-branch validation follows the merge.
+suite. The merged `main` run `39150864061` completed 30/30 jobs successfully
+after rerunning its initially aborted Windows GTK 4.24 full-suite job.
 
 ## Topics
 
