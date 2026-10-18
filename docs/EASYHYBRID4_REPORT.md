@@ -11,6 +11,11 @@ files and rewritten branch history. A repository scan found no private key
 blocks or credential-bearing URLs. GitHub secret-scanning alerts are not
 available for this repository. History rewriting removes these strings from
 the reachable refs, but GitHub may retain unreachable cached objects.
+The first full clean-history GTK matrix exposed an access violation when the
+GTK 4.8 `Gtk.ColorChooserDialog` response handler destroyed its dialog inline
+on Windows. The fallback now hides the dialog and defers destruction; the
+targeted chooser tests pass on Linux GTK 4.14.5. A full matrix rerun is
+required before merging the feature branches.
 
 ## Topics
 

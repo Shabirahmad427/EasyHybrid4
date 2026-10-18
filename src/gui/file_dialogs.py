@@ -359,7 +359,11 @@ def choose_color(parent, callback, *, title="Choose color", initial=None,
 
     def on_response(chooser, response):
         rgba = chooser.get_rgba() if response in (gtk.ResponseType.OK, gtk.ResponseType.ACCEPT) else None
-        chooser.destroy()
+        # Defer destruction until GTK has returned from the native response
+        # callback. Destroying Gtk.ColorChooserDialog in that callback can
+        # access-violate on Windows GTK 4.8.
+        chooser.set_visible(False)
+        GLib.timeout_add_seconds(_CHOOSER_DESTROY_DELAY_SECONDS, _destroy_once, chooser)
         if not handle.done:
             handle.done = True
             handle.dialog = None
