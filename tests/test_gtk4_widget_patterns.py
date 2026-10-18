@@ -762,7 +762,13 @@ def test_file_chooser_cancel_reports_nothing_once(tmp_path, use_new_api):
     window = Gtk.Window(title="parent")
     window.present()
     try:
-        for mode in _file_modes():
+        # On Windows, each Gtk.FileDialog launches a native COM dialog. A
+        # rapid sequence of native cancellations can leave GTK's COM callback
+        # apartment disconnected (0x80010108) while GLib iterates. Exercise
+        # one real native cancel here. The other mode mappings and callback
+        # result shapes are checked without launching native dialogs below.
+        modes = (fd.OPEN,) if sys.platform == "win32" and use_new_api else _file_modes()
+        for mode in modes:
             results = []
             handle = fd.choose_file(
                 window, results.append, mode=mode, title="Pick %s" % mode,
@@ -790,21 +796,124 @@ def test_file_dialog_is_configured_like_the_request(tmp_path):
     _chooser_paths(True)
     pngs = fd.file_filter("PNG image (*.png)", "*.png")
     results = []
+    gtk_api = Gtk
+    if sys.platform == "win32":
+        class RecordingFileDialog:
+            def __init__(self, *, title, modal):
+                self.title = title
+                self.modal = modal
+                self.filters = None
+                self.default_filter = None
+                self.call = None
+
+            def set_accept_label(self, value):
+                self.accept_label = value
+
+            def set_initial_folder(self, value):
+                self.initial_folder = value
+
+            def set_initial_name(self, value):
+                self.initial_name = value
+
+            def set_filters(self, value):
+                self.filters = value
+
+            def set_default_filter(self, value):
+                self.default_filter = value
+
+            def save(self, window, cancellable, callback):
+                self.call = (window, cancellable, callback)
+
+        class GtkApi:
+            FileDialog = RecordingFileDialog
+
+        gtk_api = GtkApi
     handle = fd.choose_file(None, results.append, mode=fd.SAVE, title="Export PNG",
                             initial_path=str(tmp_path / "plot.png"), filters=[pngs],
-                            use_file_dialog=True)
+                            use_file_dialog=True, gtk=gtk_api)
     dialog = handle.dialog
-    try:
-        assert dialog.get_title() == "Export PNG"
-        assert dialog.get_accept_label() == "Save"
-        assert dialog.get_modal()
-        assert dialog.get_initial_name() == "plot.png"
-        assert os.path.samefile(dialog.get_initial_folder().get_path(), str(tmp_path))
-        assert dialog.get_filters().get_n_items() == 1
-        assert dialog.get_default_filter() is pngs
-    finally:
-        _dismiss(handle, "Export PNG")
-    assert _wait_for(lambda: results == [None]), results
+    if sys.platform == "win32":
+        assert dialog.title == "Export PNG"
+        assert dialog.accept_label == "Save"
+        assert dialog.modal
+        assert dialog.initial_name == "plot.png"
+        assert os.path.samefile(dialog.initial_folder.get_path(), str(tmp_path))
+        assert dialog.filters.get_n_items() == 1
+        assert dialog.default_filter is pngs
+        assert dialog.call is not None
+    else:
+        try:
+            assert dialog.get_title() == "Export PNG"
+            assert dialog.get_accept_label() == "Save"
+            assert dialog.get_modal()
+            assert dialog.get_initial_name() == "plot.png"
+            assert os.path.samefile(dialog.get_initial_folder().get_path(), str(tmp_path))
+            assert dialog.get_filters().get_n_items() == 1
+            assert dialog.get_default_filter() is pngs
+        finally:
+            _dismiss(handle, "Export PNG")
+        assert _wait_for(lambda: results == [None]), results
+
+
+def test_windows_file_dialog_mode_mapping_avoids_native_dialog_launches(monkeypatch, tmp_path):
+    from gui import file_dialogs as fd
+
+    monkeypatch.setattr(sys, "platform", "win32")
+
+    class RecordingFileDialog:
+        def __init__(self, **_kwargs):
+            self.filters = None
+            self.operation = None
+
+        def set_accept_label(self, _value):
+            pass
+
+        def set_initial_folder(self, _value):
+            pass
+
+        def set_initial_name(self, _value):
+            pass
+
+        def set_filters(self, _value):
+            pass
+
+        def set_default_filter(self, _value):
+            pass
+
+        def __getattr__(self, name):
+            if name.endswith("_finish"):
+                def finish(_result):
+                    raise GLib.Error.new_literal(
+                        Gio.io_error_quark(), "cancelled", Gio.IOErrorEnum.CANCELLED
+                    )
+                return finish
+
+            def start(window, cancellable, callback):
+                self.operation = (name, window, cancellable, callback)
+            return start
+
+    class GtkApi:
+        FileDialog = RecordingFileDialog
+
+    expected = {
+        fd.OPEN: "open",
+        fd.OPEN_MULTIPLE: "open_multiple",
+        fd.SAVE: "save",
+        fd.SELECT_FOLDER: "select_folder",
+        fd.SELECT_MULTIPLE_FOLDERS: "select_multiple_folders",
+    }
+    for mode, method in expected.items():
+        results = []
+        handle = fd.choose_file(None, results.append, mode=mode,
+                                initial_path=str(tmp_path / "item.dat"),
+                                use_file_dialog=True, gtk=GtkApi)
+        assert handle.uses_new_api
+        assert handle.dialog is not None
+        name, _window, _cancellable, callback = handle.dialog.operation
+        assert name == method
+        callback(handle.dialog, object())
+        assert results == ([[]] if mode in fd.MULTIPLE_MODES else [None])
+        assert handle.dialog is None
 
 
 @needs_display

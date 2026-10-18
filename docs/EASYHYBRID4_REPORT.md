@@ -39,6 +39,20 @@ real-widget synthetic `Gtk.GestureClick` and `Gtk.EventControllerKey` signal
 coverage. Linux x86_64/Xvfb, GTK 4.14.5: focused tests **2 passed**; widget
 module **52 passed, 7 skipped**. The required 30-cell matrix is pending;
 physical macOS trackpad behavior remains **NOT TESTED**.
+
+**Recurring Windows chooser crash (2026-10-18):** Matrix `39154336539`
+reproduced `0x80010108` in `test_file_chooser_cancel_reports_nothing_once` on
+Windows GTK 4.24 while `_wait_for()` ran the GLib main loop after native
+`Gtk.FileDialog` cancellation. The earlier CI change prevented a second run
+of the widget module but left this test opening and cancelling five native
+COM dialogs in one loop; a separate configuration test opened another. The
+test now performs one real native Windows cancellation per job. Five mode
+mappings and cancellation result shapes use a recording `Gtk.FileDialog`
+double, and the Windows configuration test uses that double too. This reduces
+repeated native COM interactions while retaining one real user-cancel path.
+Linux GTK 4.14.5 chooser tests: **3 passed, 1 skipped**; full widget module:
+**53 passed, 7 skipped**. A green full native matrix is still required before
+calling this stable.
 The first full clean-history GTK matrix log showed an access violation when
 the `Gtk.ColorChooserDialog` response handler destroyed its dialog inline on
 Windows. The fallback now hides the dialog and defers destruction; targeted
