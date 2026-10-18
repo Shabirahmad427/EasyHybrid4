@@ -64,9 +64,12 @@ failed because importing the GUI packages pulled in NumPy, which is absent
 from the GTK-only test environment. Extracted the shared timer/tick logic to
 `src/gui/playback.py` and changed the focused tests to avoid those heavyweight
 imports. On Linux x86_64/Xvfb, Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 /
-GLib 2.80.0, the two focused playback tests now pass (**2 passed**). The
-xTB-only commit's matrix passed **30/30**; the matrix for the shared playback
-helper is pending. Expanded the native GTK smoke to open, render and close
+GLib 2.80.0, the two focused playback tests now pass (**2 passed**). Initial
+playback matrix run [`39172212413`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39172212413)
+failed in 28 cells because those tests imported GUI packages that transitively
+require NumPy; two Windows crash-diagnostic jobs were canceled after the fix
+was verified. The xTB-only commit's matrix passed **30/30**. Expanded the
+native GTK smoke to open, render and close
 three fresh windows per run; the first attempt exposed automatic application
 deregistration between cycles, fixed by holding the application until the
 third window closes. Final Linux x86_64/Xvfb smoke: **3/3 lifecycle cycles
