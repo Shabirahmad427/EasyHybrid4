@@ -13,6 +13,7 @@ mode, so callers do not need to request it.
 """
 
 import os
+import sys
 from logging import getLogger
 
 import gi
@@ -106,6 +107,43 @@ def _is_cancel(error, gtk=Gtk):
                for code in (dialog_error.CANCELLED, dialog_error.DISMISSED))
 
 
+FILE_CHOOSER_SCHEMA = "org.gtk.gtk4.Settings.FileChooser"
+COLOR_CHOOSER_SCHEMA = "org.gtk.gtk4.Settings.ColorChooser"
+
+
+def gsettings_schema_installed(schema_id):
+    """True if GLib can find ``schema_id`` (a compiled GSettings schema).
+
+    GTK's own file and colour chooser widgets abort the whole process
+    ("No GSettings schemas are installed") when their schema is missing,
+    for example in an environment whose post-install step did not run
+    glib-compile-schemas. Looking the schema up first is safe.
+    """
+    source = Gio.SettingsSchemaSource.get_default()
+    return source is not None and source.lookup(schema_id, True) is not None
+
+
+def _uses_gtk_chooser_widget(use_new_api, platform=None):
+    # The old dialogs are GTK widgets everywhere. Gtk.FileDialog shows the
+    # native Windows/macOS dialog; elsewhere it uses a desktop portal or,
+    # without one, the same GTK widget.
+    platform = sys.platform if platform is None else platform
+    return not use_new_api or not platform.startswith(("win32", "darwin"))
+
+
+def _report_missing_schema(window, schema_id):
+    from gui.message_dialogs import show_message
+
+    logger.error("GSettings schema %s is not installed", schema_id)
+    show_message(
+        window, "This chooser cannot open",
+        "GTK's settings schema %s is not installed, so GTK would stop the "
+        "program. Compile the schemas of this GTK installation "
+        "(glib-compile-schemas <prefix>/share/glib-2.0/schemas) and restart." % schema_id,
+        kind="error",
+    )
+
+
 class ChooserHandle:
     """A presented chooser. ``cancel()`` closes it and reports no selection."""
 
@@ -142,6 +180,11 @@ def choose_file(parent, callback, *, mode=OPEN, title=None, initial_path=None,
     folder, name = split_initial_path(initial_path, mode)
     filters = list(filters or [])
     window = _parent_window(parent) if parent is not None else None
+    if _uses_gtk_chooser_widget(use_file_dialog) and not gsettings_schema_installed(FILE_CHOOSER_SCHEMA):
+        _report_missing_schema(window, FILE_CHOOSER_SCHEMA)
+        handle = ChooserHandle(None, use_file_dialog)
+        _report(handle, callback, mode, [])
+        return handle
     if use_file_dialog:
         return _choose_with_file_dialog(
             gtk, window, callback, mode, title, accept_label, folder, name, filters)
@@ -262,6 +305,13 @@ def choose_color(parent, callback, *, title="Choose color", initial=None,
     if use_color_dialog is None:
         use_color_dialog = has_color_dialog(gtk)
     window = _parent_window(parent) if parent is not None else None
+    # Gtk.ColorDialog shows the GTK colour chooser widget on every platform.
+    if not gsettings_schema_installed(COLOR_CHOOSER_SCHEMA):
+        _report_missing_schema(window, COLOR_CHOOSER_SCHEMA)
+        handle = ChooserHandle(None, use_color_dialog)
+        handle.done = True
+        callback(None)
+        return handle
 
     if use_color_dialog:
         dialog = gtk.ColorDialog(title=title, modal=True)

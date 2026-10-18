@@ -87,10 +87,15 @@ jobs:
             gtk4=${{ matrix.gtk }}.*
             ${{ matrix.gtk == '4.8' && 'jpeg=9e' || '' }}
             ${{ matrix.os == 'windows-x86_64' && (matrix.gtk == '4.8' || matrix.gtk == '4.10') && 'libglib=2.78.4=h16e383f_0 glib-tools=2.78.4=h12be248_0 libiconv=1.17 --skip-run-link-scripts' || '' }}
+            glib-tools
             pygobject
             pycairo
             pytest
             pyopengl
+
+      - name: Compile GSettings schemas
+        # GTK's file/colour choosers abort without a compiled schema cache.
+        run: micromamba run -n easyhybrid-gtk python .github/scripts/compile_gsettings_schemas.py
 
       - name: Diagnose and generate Windows gdk-pixbuf loader cache
         if: runner.os == 'Windows' && (matrix.gtk == '4.8' || matrix.gtk == '4.10')

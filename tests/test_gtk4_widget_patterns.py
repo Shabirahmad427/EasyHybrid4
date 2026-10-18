@@ -723,3 +723,44 @@ def test_gtk48_color_chooser_path_returns_the_chosen_rgba():
     dialog.response(Gtk.ResponseType.OK)
     assert _wait_for(lambda: results), results
     assert results[0] is not None and results[0].equal(chosen)
+
+
+def test_gtk_chooser_schemas_installed_when_required():
+    """GTK's choosers abort without their compiled schemas; CI cells must
+    provide them so the real dialogs are exercised (not silently refused)."""
+    from gui import file_dialogs as fd
+
+    if os.environ.get("EASYHYBRID_REQUIRE_GTK_DISPLAY") != "1":
+        pytest.skip("only enforced in cells that require the real GTK runtime")
+    for schema in (fd.FILE_CHOOSER_SCHEMA, fd.COLOR_CHOOSER_SCHEMA):
+        assert fd.gsettings_schema_installed(schema), (
+            "%s missing: run glib-compile-schemas on this GTK's schema directory" % schema)
+
+
+def _message_windows():
+    return [window for window in Gtk.Window.list_toplevels()
+            if window.has_css_class("easyhybrid-message-dialog") and window.get_visible()]
+
+
+@needs_display
+@pytest.mark.parametrize("use_new_api", [False, True], ids=["gtk48-path", "new-api"])
+def test_missing_schema_shows_an_error_instead_of_aborting(monkeypatch, use_new_api):
+    from gui import file_dialogs as fd
+
+    monkeypatch.setattr(fd, "gsettings_schema_installed", lambda _schema: False)
+    monkeypatch.setattr(fd.sys, "platform", "linux")  # where Gtk.FileDialog may use the GTK widget
+    for message in _message_windows():
+        message.destroy()
+    try:
+        files, colours = [], []
+        handle = fd.choose_file(None, files.append, mode=fd.OPEN_MULTIPLE, use_file_dialog=use_new_api)
+        assert files == [[]] and handle.dialog is None and handle.done
+        handle.cancel()
+        assert files == [[]]
+        fd.choose_color(None, colours.append, use_color_dialog=use_new_api)
+        assert colours == [None]
+        assert _wait_for(lambda: len(_message_windows()) == 2)
+        assert all(window.dialog_kind == "error" for window in _message_windows())
+    finally:
+        for message in _message_windows():
+            message.destroy()
