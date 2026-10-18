@@ -354,6 +354,75 @@ def test_event_controllers_dispatch_mouse_and_keyboard_input():
         window.destroy()
 
 
+def test_xtb_worker_callbacks_skip_closed_window_widgets():
+    from gui.windows.setup.xtb_fragment_charges_window import XtbFragmentChargesWindow
+
+    dialog = object.__new__(XtbFragmentChargesWindow)
+    dialog._ui_generation = 2
+    dialog.window = None
+    dialog._running = True
+
+    class DestroyedWidget:
+        def __getattr__(self, name):
+            raise AssertionError("stale callback accessed destroyed widget: " + name)
+
+    dialog.progress = DestroyedWidget()
+    dialog.btn_build = DestroyedWidget()
+    dialog.btn_run = DestroyedWidget()
+    dialog.btn_apply = DestroyedWidget()
+
+    assert dialog._update_progress(1, 0.5, "late progress") is False
+    result = {"converged": True, "cycles": 2, "max_dq": 0.001}
+    assert dialog._run_done(1, result, None) is False
+    assert dialog._running is False
+    assert dialog.result is result
+
+
+def test_stale_xtb_close_request_cannot_clear_reopened_window():
+    from gui.windows.setup.xtb_fragment_charges_window import XtbFragmentChargesWindow
+
+    dialog = object.__new__(XtbFragmentChargesWindow)
+    old_window = object()
+    current_window = object()
+    dialog.window = current_window
+    dialog._ui_generation = 4
+
+    dialog._on_destroy(old_window, 2)
+
+    assert dialog.window is current_window
+    assert dialog._ui_generation == 4
+
+
+def test_stale_xtb_completion_restores_reopened_window_controls():
+    from gui.windows.setup.xtb_fragment_charges_window import XtbFragmentChargesWindow
+
+    class Button:
+        def __init__(self):
+            self.sensitive = None
+
+        def set_sensitive(self, value):
+            self.sensitive = value
+
+    dialog = object.__new__(XtbFragmentChargesWindow)
+    dialog._ui_generation = 5
+    dialog.window = object()
+    dialog._running = True
+    dialog.result = None
+    dialog.btn_build = Button()
+    dialog.btn_import_sel = Button()
+    dialog.btn_run = Button()
+    dialog.btn_apply = Button()
+
+    result = {"converged": True}
+    assert dialog._run_done(3, result, None) is False
+    assert dialog._running is False
+    assert dialog.result is result
+    assert dialog.btn_build.sensitive is True
+    assert dialog.btn_import_sel.sensitive is True
+    assert dialog.btn_run.sensitive is True
+    assert dialog.btn_apply.sensitive is True
+
+
 def test_scroll_delta_conversion_preserves_smooth_steps_and_wheel_sign():
     from src.gtk4_compat import scroll_delta_to_steps
 

@@ -148,6 +148,7 @@ class XtbFragmentChargesWindow:
         self.fragments = []          # lista de xfc.Fragment
         self.result = None           # dict returned by the engine
         self._running = False
+        self._ui_generation = 0
         self._selection_counter = 0  # numbers the fragments imported from selection
 
     # ------------------------------------------------------------------ #
@@ -212,13 +213,18 @@ class XtbFragmentChargesWindow:
             self.window.present()
             return
 
+        self._ui_generation += 1
+        generation = self._ui_generation
         self.window = Gtk.Window(title="xTB fragment charges")
         self.window.set_default_size(640, 560)
         self.window.set_margin_top(8)
         self.window.set_margin_bottom(8)
         self.window.set_margin_start(8)
         self.window.set_margin_end(8)
-        self.window.connect("close-request", self._on_destroy)
+        self.window.connect(
+            "close-request",
+            lambda window: self._on_destroy(window, generation),
+        )
 
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         self.window.set_child(vbox)
@@ -376,11 +382,13 @@ class XtbFragmentChargesWindow:
         row_btn.append(self.btn_apply)
 
         self.btn_close = Gtk.Button(label="Close")
-        self.btn_close.connect("clicked", lambda *_: self.window.destroy())
+        self.btn_close.connect("clicked", lambda *_: self.window.close())
         row_btn.append(self.btn_close)
 
         vbox.append(row_btn)
 
+        self.btn_build.set_sensitive(not self._running)
+        self.btn_import_sel.set_sensitive(not self._running)
         self._setup_tooltips()
         self.window.present()
         self._on_level_changed(self.combo_level)  # set initial visibility
@@ -577,6 +585,8 @@ class XtbFragmentChargesWindow:
     #  Callbacks                                                          #
     # ------------------------------------------------------------------ #
     def on_build_fragments(self, _button):
+        if self._running:
+            return
         level = _dropdown_text(self.combo_level)
         if level == "selection":
             # in selection mode fragments come from "Import selection fragment"
@@ -632,6 +642,8 @@ class XtbFragmentChargesWindow:
         Can be called multiple times: each call adds a new selection as an
         independent fragment (editable charge/multiplicity).
         """
+        if self._running:
+            return
         indexes = self._get_current_selection_indexes()
         if not indexes:
             self._error("No atoms selected in the viewer.")
@@ -717,18 +729,22 @@ class XtbFragmentChargesWindow:
         self._running = True
         self.btn_run.set_sensitive(False)
         self.btn_build.set_sensitive(False)
+        self.btn_import_sel.set_sensitive(False)
         self.btn_apply.set_sensitive(False)
         self.progress.set_fraction(0.0)
         self.progress.set_text("running...")
 
-        thread = threading.Thread(target=self._run_worker, args=(params,), daemon=True)
+        generation = self._ui_generation
+        thread = threading.Thread(
+            target=self._run_worker, args=(params, generation), daemon=True
+        )
         thread.start()
 
-    def _run_worker(self, params):
+    def _run_worker(self, params, generation):
         """Run the engine in a separate thread; update the UI via GLib.idle_add."""
         def cycle_cb(cycle, max_dq):
             frac = min(cycle / float(params["max_cycles"]), 1.0)
-            GLib.idle_add(self._update_progress, frac,
+            GLib.idle_add(self._update_progress, generation, frac,
                           "cycle {}: max |dq| = {:.5f}".format(cycle, max_dq))
 
         try:
@@ -739,24 +755,40 @@ class XtbFragmentChargesWindow:
                 tolerance=params["tolerance"], max_cycles=params["max_cycles"],
                 nprocs=params["nprocs"], workroot=params["workroot"],
                 verbose=False, cycle_cb=cycle_cb)
-            GLib.idle_add(self._run_done, result, None)
+            GLib.idle_add(self._run_done, generation, result, None)
         except Exception as e:
-            GLib.idle_add(self._run_done, None, str(e))
+            GLib.idle_add(self._run_done, generation, None, str(e))
 
-    def _update_progress(self, fraction, text):
+    def _update_progress(self, generation, fraction, text):
+        if generation != self._ui_generation or self.window is None:
+            return False
         self.progress.set_fraction(fraction)
         self.progress.set_text(text)
         return False
 
-    def _run_done(self, result, error):
+    def _run_done(self, generation, result, error):
         self._running = False
+        if result is not None and error is None:
+            self.result = result
+
+        # A closed window invalidates its queued worker updates. If the user
+        # reopened the tool while the worker was finishing, restore the new
+        # window's controls without touching any widgets from the old window.
+        if generation != self._ui_generation or self.window is None:
+            if self.window is not None:
+                self.btn_build.set_sensitive(True)
+                self.btn_import_sel.set_sensitive(True)
+                self.btn_run.set_sensitive(True)
+                self.btn_apply.set_sensitive(self.result is not None)
+            return False
+
         self.btn_build.set_sensitive(True)
+        self.btn_import_sel.set_sensitive(True)
         self.btn_run.set_sensitive(True)
         if error:
             self.progress.set_text("error")
             self._error("Run failed: {}".format(error))
             return
-        self.result = result
         conv = "converged" if result["converged"] else "NOT converged"
         self.progress.set_fraction(1.0)
         self.progress.set_text("{} in {} cycles (max|dq|={:.5f})".format(
@@ -783,8 +815,11 @@ class XtbFragmentChargesWindow:
         except Exception as e:
             self._error("Failed to apply charges: {}".format(e))
 
-    def _on_destroy(self, *_):
-        self.window = None
+    def _on_destroy(self, window, generation):
+        if self.window is window and self._ui_generation == generation:
+            self.window = None
+            self._ui_generation += 1
+        return False
 
     def _error(self, message):
         show_message(self.window, message, kind='error', modal=True)
