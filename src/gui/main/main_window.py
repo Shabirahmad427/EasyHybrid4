@@ -1499,7 +1499,7 @@ class MainWindow:
             #'~/programs/pDynamo3/scratch/examples-3.1.2/bAlaPhiPsiPMF/generatedFiles/bAla_psi_32.ptRes_Values.dat' ,
             #'~/programs/pDynamo3/scratch/examples-3.1.2/bAlaPhiPsiPMF/generatedFiles/bAla_psi_33.ptRes_Values.dat' ,
             #'~/programs/pDynamo3/scratch/examples-3.1.2/bAlaPhiPsiPMF/generatedFiles/bAla_psi_34.ptRes_Values.dat' ,
-            #'~/programs/pDynamo3/scratch/examples-3.1.2/bAlaPhiPsiPMF/generatedFiles/bAla_psi_35.ptRes_Values.dat' ,           
+            #'~/programs/pDynamo3/scratch/examples-3.1.2/bAlaPhiPsiPMF/generatedFiles/bAla_psi_35.ptRes_Values.dat' ,
             ]
             
             

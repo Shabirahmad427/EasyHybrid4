@@ -380,7 +380,7 @@ class QCModelXTB ( QCModel ):
         #cmd += state.paths["Coord"] #+ ' > ' + state.paths["Output"]
         cmd += state.paths["Coord"] + ' > ' + state.paths["Output"] 
         '''
-        ~/programs/xtb-6.6.1/bin/xtb -c 0 -u 0  -P 1  --gfn 1  
+        ~/programs/xtb-6.6.1/bin/xtb -c 0 -u 0  -P 1  --gfn 1
         --etemp 300.0  --acc 1.0  --iterations 300  --grad  
         --input ~/programs/pDynamo3/scratch/XTBScratch/XTBJob.inp ~/programs/pDynamo3/scratch/XTBScratch/XTBJob.coord > ~/programs/pDynamo3/scratch/XTBScratch/XTBJob.log
         '''
