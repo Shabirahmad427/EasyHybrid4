@@ -239,6 +239,7 @@ and `SimpleDialog` (81 call sites) now use it. The removed
 `SimpleDialog.finished()` called `Gdk.cairo_surface_create_from_pixbuf`,
 which no GTK4 release provides. Dialog tests passed 10 consecutive runs on
 each local minor after replacing fixed sleeps with condition waits.
+Native matrix run `39083365433` (commit `07585a1`): **14/14 passed in all 30 cells**.
 
 Native matrix run `39082144669` (commit `9373956`): **10/10 passed in all 30 cells** — every GTK4 minor 4.8–4.24 on Linux, Windows and macOS arm64, plus GTK 4.8/4.10 on macOS x86_64.
 
