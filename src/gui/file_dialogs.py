@@ -161,7 +161,10 @@ class ChooserHandle:
         if self.cancellable is not None:
             self.cancellable.cancel()
         else:
-            self.dialog.response(Gtk.ResponseType.CANCEL)
+            # Gtk.Dialog.response() is deprecated since GTK 4.10. Emitting
+            # the response signal preserves GTK 4.8 behavior without using
+            # that deprecated convenience method.
+            self.dialog.emit("response", Gtk.ResponseType.CANCEL)
 
 
 def choose_file(parent, callback, *, mode=OPEN, title=None, initial_path=None,
@@ -360,11 +363,15 @@ def choose_color(parent, callback, *, title="Choose color", initial=None,
     if window is not None:
         dialog.set_transient_for(window)
     if initial is not None:
-        dialog.set_rgba(initial)
+        # The ColorChooser.set_rgba()/get_rgba() methods are deprecated in
+        # GTK 4.10. The RGBA property remains available on the GTK 4.8
+        # fallback chooser across the supported GTK range.
+        dialog.set_property("rgba", initial)
     handle = ChooserHandle(dialog, False)
 
     def on_response(chooser, response):
-        rgba = chooser.get_rgba() if response in (gtk.ResponseType.OK, gtk.ResponseType.ACCEPT) else None
+        rgba = (chooser.get_property("rgba")
+                if response in (gtk.ResponseType.OK, gtk.ResponseType.ACCEPT) else None)
         # Defer destruction until GTK has returned from the native response
         # callback. Destroying Gtk.ColorChooserDialog in that callback can
         # access-violate on Windows GTK 4.8.

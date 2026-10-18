@@ -1,6 +1,6 @@
 # EasyHybrid4 Development and Compatibility Report
 
-**Report date:** 2026-10-17  
+**Report date:** 2026-10-18
 **Purpose:** One consolidated source for repository, architecture, dependency,
 GTK/Python compatibility, parity, platform, testing, and known-limitation
 status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).
@@ -1069,10 +1069,26 @@ older are unsupported.
   both APIs were introduced in GTK 4.10. The application uses its existing
   async chooser and message-window helpers instead. See GTK's
   [`Gtk.FileDialog` API](https://docs.gtk.org/gtk4/class.FileDialog.html).
+- GTK deprecation cleanup is in progress as EH4-106. The file/color chooser
+  adapter must retain `Gtk.FileChooserDialog` and `Gtk.ColorChooserDialog` for
+  GTK 4.8, and currently uses the GTK widget fallback on Windows after native
+  async dialog cancellation disconnected COM on multiple GTK releases. Those
+  chooser-class references are therefore deliberate compatibility exceptions.
+  `ChooserHandle.cancel()` now emits the existing `response` signal instead of
+  calling the deprecated `Gtk.Dialog.response()` convenience method. The
+  fallback color chooser now reads/writes its `rgba` property instead of the
+  deprecated `Gtk.ColorChooser.get_rgba()`/`set_rgba()` methods. On local GTK
+  4.14.5, focused chooser tests passed (6 passed, 1 skipped), three repeated
+  display-backed cancellation/open-close runs passed (3/3 each), and the full
+  widget-pattern module passed (60 passed, 7 skipped). Native matrix validation
+  across every claimed OS and GTK 4.8–4.24 is pending; do not infer support from
+  this Linux result. The static regression scan now exempts only those legacy
+  chooser class references in the adapter, not unrelated deprecated calls in
+  that module.
 - The installer checks the loaded GTK version at runtime, but it does not
-  validate every API referenced by Python or GtkBuilder resources. The broad
-  removed/deprecated API audit and minimum-runtime builder/UI tests remain
-  follow-up items.
+  validate every API referenced by Python or GtkBuilder resources. EH4-106
+  remains open until the broader deprecation inventory and full native matrix
+  acceptance are complete.
 
 ## Validation matrix
 
