@@ -11,6 +11,16 @@ files and rewritten branch history. A repository scan found no private key
 blocks or credential-bearing URLs. GitHub secret-scanning alerts are not
 available for this repository. History rewriting removes these strings from
 the reachable refs, but GitHub may retain unreachable cached objects.
+
+**Windows GTK test stability (2026-10-18):** The matrix had executed the
+real-display GTK chooser/widget tests twice in one Windows GTK 4.24 job: once
+in their dedicated step and again as part of the full suite. Repeated native
+`Gtk.FileDialog` cancellation intermittently produced COM-disconnected errors
+and a process access violation on the second pass. The workflow now runs the
+GTK widget/chooser module once in every OS/GTK cell, then runs the remaining
+full regression suite separately. Matrix run `39151909478` passed **30/30**;
+Windows GTK 4.24 reported **50 passed, 6 skipped** in the GTK module and
+**80 passed, 4 skipped** in the remaining suite.
 The first full clean-history GTK matrix log showed an access violation when
 the `Gtk.ColorChooserDialog` response handler destroyed its dialog inline on
 Windows. The fallback now hides the dialog and defers destruction; targeted
