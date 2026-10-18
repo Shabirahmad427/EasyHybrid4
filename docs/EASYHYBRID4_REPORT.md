@@ -71,10 +71,13 @@ three fresh windows per run; the first attempt exposed automatic application
 deregistration between cycles, fixed by holding the application until the
 third window closes. Final Linux x86_64/Xvfb smoke: **3/3 lifecycle cycles
 passed**, GTK 4.14.5 / GLib 2.80.0 / PyGObject 3.48.2, OpenGL 4.5 Core Profile
-on Mesa llvmpipe. The earlier matrix was canceled before completion to include
-the repeated lifecycle check; a full matrix for this revision is pending. No
-xTB or trajectory scientific calculation was run or changed; real trajectory
-data playback was **NOT TESTED**.
+on Mesa llvmpipe. The repeated-cycle code was tested in native matrix run
+[`39173458935`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39173458935):
+**30/30 PASS** across Linux x86_64, Windows x86_64, macOS arm64, and provisioned
+Intel macOS, GTK 4.8–4.24. The two focused playback tests and actual GUI module
+imports passed locally. EH4-105 automated acceptance is complete. No xTB or
+trajectory scientific calculation was run or changed; real trajectory-data
+playback was **NOT TESTED**.
 
 **Windows chooser cancellation harness diagnosis (2026-10-18):** The initial
 UI Automation attempt in commit `1a88c31` did not operate the Cancel button:
