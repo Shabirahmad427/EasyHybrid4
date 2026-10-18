@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-source $HOME/software/pdynamo3.sh
+source "$HOME/software/pdynamo3.sh"
 
 # Avoid loading a GTK3-only desktop module into the GTK4 process.
 unset GTK3_MODULES
