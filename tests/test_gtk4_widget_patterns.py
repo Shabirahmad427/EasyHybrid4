@@ -715,15 +715,22 @@ def _chooser_paths(use_new_api):
 
 
 def _press_native_cancel(title, timeout=20.0):
-    """Close the native Windows dialog titled ``title`` through its window manager."""
+    """Dismiss a native Windows file dialog with a real Escape keypress."""
     import ctypes
     from ctypes import wintypes
 
     user32 = ctypes.WinDLL("user32", use_last_error=True)
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.GetCurrentThreadId.restype = wintypes.DWORD
     user32.FindWindowW.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR]
     user32.FindWindowW.restype = wintypes.HWND
-    user32.PostMessageW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
-    user32.PostMessageW.restype = wintypes.BOOL
+    user32.SetForegroundWindow.argtypes = [wintypes.HWND]
+    user32.SetForegroundWindow.restype = wintypes.BOOL
+    user32.GetForegroundWindow.restype = wintypes.HWND
+    user32.GetWindowThreadProcessId.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
+    user32.GetWindowThreadProcessId.restype = wintypes.DWORD
+    user32.AttachThreadInput.argtypes = [wintypes.DWORD, wintypes.DWORD, wintypes.BOOL]
+    user32.AttachThreadInput.restype = wintypes.BOOL
     found = []
 
     def dialog_open():
@@ -733,10 +740,48 @@ def _press_native_cancel(title, timeout=20.0):
         return bool(found)
 
     assert _wait_for(dialog_open, timeout), "native Windows dialog %r never appeared" % title
-    # WM_CLOSE is the standard window-manager request produced by the title
-    # bar's close button. Let the native dialog process it and report cancel.
-    WM_CLOSE = 0x0010
-    assert user32.PostMessageW(found[-1], WM_CLOSE, 0, 0)
+    # SetForegroundWindow restrictions apply to the current foreground
+    # thread, not just the dialog's thread. Attach to both before focusing.
+    foreground = user32.GetForegroundWindow()
+    foreground_thread = user32.GetWindowThreadProcessId(foreground, None) if foreground else 0
+    dialog_thread = user32.GetWindowThreadProcessId(found[-1], None)
+    current_thread = kernel32.GetCurrentThreadId()
+    attached_threads = []
+    for thread_id in {foreground_thread, dialog_thread} - {0, current_thread}:
+        if user32.AttachThreadInput(current_thread, thread_id, True):
+            attached_threads.append(thread_id)
+    try:
+        user32.SetForegroundWindow(found[-1])
+        assert user32.GetForegroundWindow() == found[-1], "could not focus native dialog %r" % title
+    finally:
+        for thread_id in attached_threads:
+            user32.AttachThreadInput(current_thread, thread_id, False)
+
+    WORD, DWORD, LONG, ULONG_PTR = ctypes.c_uint16, ctypes.c_uint32, ctypes.c_int32, ctypes.c_size_t
+
+    class KEYBDINPUT(ctypes.Structure):
+        _fields_ = [("wVk", WORD), ("wScan", WORD), ("dwFlags", DWORD),
+                    ("time", DWORD), ("dwExtraInfo", ULONG_PTR)]
+
+    class MOUSEINPUT(ctypes.Structure):
+        _fields_ = [("dx", LONG), ("dy", LONG), ("mouseData", DWORD),
+                    ("dwFlags", DWORD), ("time", DWORD), ("dwExtraInfo", ULONG_PTR)]
+
+    class INPUTUNION(ctypes.Union):
+        _fields_ = [("ki", KEYBDINPUT), ("mi", MOUSEINPUT), ("_alignment", ctypes.c_void_p)]
+
+    class INPUT(ctypes.Structure):
+        _anonymous_ = ("u",)
+        _fields_ = [("type", DWORD), ("u", INPUTUNION)]
+
+    user32.SendInput.argtypes = [wintypes.UINT, ctypes.POINTER(INPUT), ctypes.c_int]
+    user32.SendInput.restype = wintypes.UINT
+    events = (INPUT * 2)(
+        INPUT(type=1, ki=KEYBDINPUT(0x1B, 0, 0, 0, 0)),
+        INPUT(type=1, ki=KEYBDINPUT(0x1B, 0, 0x0002, 0, 0)),
+    )
+    sent = user32.SendInput(2, events, ctypes.sizeof(INPUT))
+    assert sent == 2, "SendInput sent %d/2 events (WinError %d)" % (sent, ctypes.get_last_error())
 
 
 def _dismiss(handle, title):
