@@ -6,6 +6,7 @@ import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gio, GLib, Gtk
 
+from gui.choice_dropdown import new_choice_dropdown, select_choice_value, selected_choice_value
 from gui.model_rows import OPLSParameterRow
 from gui.widgets.custom_widgets import SystemComboBox
 
@@ -73,10 +74,13 @@ class OPLSParametersWindow:
         self.combobox_systems.set_hexpand(True)
         top.append(self.combobox_systems)
         top.append(Gtk.Label(label="Show:", xalign=0))
-        self.combo_filter = Gtk.ComboBoxText()
-        for key, label in _FILTERS:
-            self.combo_filter.append(key, label)
-        self.combo_filter.connect("changed", self.on_combo_filter_changed)
+        # Start on "all" and choose ligand/attention when the first system
+        # loads, unless the user picked a filter first. This is tracked in
+        # Python because an empty Gtk.DropDown selection is not portable:
+        # GTK 4.8-4.14 keep it, GTK 4.20+ auto-select the first item.
+        self._filter_default_pending = True
+        self.combo_filter = new_choice_dropdown(_FILTERS, "all")
+        self.combo_filter.connect("notify::selected", self.on_combo_filter_changed)
         top.append(self.combo_filter)
         self.label_legend = Gtk.Label(xalign=1)
         top.append(self.label_legend)
@@ -204,22 +208,23 @@ class OPLSParametersWindow:
 
     def _row_visible(self, row):
         if row is None: return True
-        mode = self.combo_filter.get_active_id() or "all"
+        mode = selected_choice_value(self.combo_filter) or "all"
         data = row._opls_data
         return mode == "all" or (mode == "ligand" and bool(data.get("ligand"))) or (
             mode == "attention" and data.get("level") in ("yellow", "red"))
 
     def on_combo_filter_changed(self, *_args):
+        self._filter_default_pending = False
         for listing in self.lists.values(): listing.invalidate_filter()
         self._update_tab_titles()
 
     def _update_tab_titles(self):
         for term, (label, title) in self.tab_labels.items():
             rows = self.tables.get(term, []) if self.tables else []
-            shown = sum(1 for row in rows if (self.combo_filter.get_active_id() == "all"
-                or self.combo_filter.get_active_id() is None
-                or self.combo_filter.get_active_id() == "ligand" and row.get("ligand")
-                or self.combo_filter.get_active_id() == "attention" and row.get("level") in ("yellow", "red")))
+            mode = selected_choice_value(self.combo_filter) or "all"
+            shown = sum(1 for row in rows if (mode == "all"
+                or mode == "ligand" and row.get("ligand")
+                or mode == "attention" and row.get("level") in ("yellow", "red")))
             red = sum(1 for row in rows if row.get("level") == "red")
             yellow = sum(1 for row in rows if row.get("level") == "yellow")
             label.set_markup(f"{title} ({shown})" + (f' <span foreground="#e5534b">●{red}</span>' if red else "")
@@ -239,8 +244,9 @@ class OPLSParametersWindow:
                     None if editable else "Built-in pDynamo parameter sets are read-only. Prepare a per-system OPLS set to edit."
                 )
                 has_ligand = any(row["ligand"] for row in self.tables["charges"])
-                if self.combo_filter.get_active_id() is None:
-                    self.combo_filter.set_active_id("ligand" if has_ligand else "attention")
+                if self._filter_default_pending:
+                    select_choice_value(self.combo_filter, "ligand" if has_ligand else "attention")
+                    self._filter_default_pending = False
             except Exception as error:
                 self.label_status.set_text(str(error))
                 self.button_apply.set_sensitive(False)

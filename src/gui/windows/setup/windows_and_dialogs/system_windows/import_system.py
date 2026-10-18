@@ -222,7 +222,7 @@ class ImportANewSystemWindow(Gtk.Window):
             # Create a combo box to select the system type
             self.system_types_combo = Gtk.DropDown.new(
                 self.system_type_store,
-                Gtk.PropertyExpression.new(Gtk.StringObject, None, "string"),
+                None,
             )
             self.system_types_combo.set_tooltip_text(self.amber_txt)
             self.box_combo = self.builder.get_object('box')

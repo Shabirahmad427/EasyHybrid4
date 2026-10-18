@@ -33,7 +33,6 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, GdkPixbuf, Gdk, Gio
-from src.gtk4_compat import GTK_INVALID_LIST_POSITION
 from gui.gtk4_builder import connect_builder_signals, load_builder_file, load_builder_string
 #from GTKGUI.gtkWidgets.filechooser import FileChooser
 #from easyhybrid.pDynamoMethods.pDynamo2Vismol import *
@@ -43,7 +42,7 @@ import numpy as np
 
 from gui.widgets.custom_widgets import SystemComboBox
 from gui.widgets.custom_widgets import CoordinatesComboBox
-from gui.model_rows import ChoiceRow
+from gui.choice_dropdown import populate_choice_dropdown, selected_choice_value
 from gui.model_rows import PeriodicElementRow
 from vismol.libgl.vismol_font import list_available_fonts
 from vismol.libgl.vismol_font import resolve_font_path
@@ -540,25 +539,11 @@ class EasyHybridPreferencesWindow():
 
     @staticmethod
     def _populate_choice_dropdown(combo, choices, current_value, fallback=None):
-        model = Gio.ListStore.new(ChoiceRow)
-        selected = GTK_INVALID_LIST_POSITION
-        for position, (value, label) in enumerate(choices):
-            model.append(ChoiceRow(value, label))
-            if value == current_value:
-                selected = position
-        if selected == GTK_INVALID_LIST_POSITION and fallback is not None:
-            for position in range(model.get_n_items()):
-                if model.get_item(position).value == fallback:
-                    selected = position
-                    break
-        combo.set_model(model)
-        combo.set_expression(Gtk.PropertyExpression.new(ChoiceRow, None, "label"))
-        combo.set_selected(selected)
+        populate_choice_dropdown(combo, choices, current_value, fallback)
 
     @staticmethod
     def _selected_choice_value(combo):
-        row = combo.get_selected_item()
-        return row.value if row is not None else None
+        return selected_choice_value(combo)
 
     def _iter_all_vm_objects_atoms(self):
         """ Yields every (vm_object, atom) pair currently loaded, across

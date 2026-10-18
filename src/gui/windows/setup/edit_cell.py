@@ -116,7 +116,7 @@ class EditCellWindow:
                 self.crystal_system_model.append(name)
             self.combobox_crystal_system = Gtk.DropDown.new(
                 self.crystal_system_model,
-                Gtk.PropertyExpression.new(Gtk.StringObject, None, "string"),
+                None,
             )
             self.combobox_crystal_system.connect("notify::selected", self.on_combobox_crystal_system_changed)
             self.box_crystal_system.append(self.combobox_crystal_system)

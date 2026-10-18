@@ -251,15 +251,9 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkComboBoxText" id="combobox_beta_type">
+                      <object class="GtkDropDown" id="combobox_beta_type">
                         <property name="visible">True</property>
                         <property name="focusable">False</property>
-                        <items>
-                          <item translatable="yes" id="PRP">PRP (Polak-Ribiere)</item>
-                          <item translatable="yes" id="FR">FR (Fletcher-Reeves)</item>
-                          <item translatable="yes" id="HS">HS (Hestenes-Stiefel)</item>
-                        </items>
-                        <property name="active">0</property>
                         <layout>
                           <property name="column">1</property>
                           <property name="row">5</property>

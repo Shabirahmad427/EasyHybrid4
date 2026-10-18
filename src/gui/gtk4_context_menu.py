@@ -83,6 +83,21 @@ class ContextMenu:
         self.popover.set_pointing_to(rectangle)
         self.popover.popup()
 
+    def present_at_widget(self, widget):
+        """Pop up below ``widget`` (e.g. a button), like GTK3's popup_at_widget.
+
+        Uses Gtk.Widget.compute_bounds, available in every GTK4 release, to
+        place the popover in the anchor's coordinates. Falls back to the
+        anchor itself when the widget is not in the same window.
+        """
+        found, bounds = widget.compute_bounds(self.anchor)
+        if not found:
+            return self.present()
+        return self.present(
+            x=bounds.get_x() + bounds.get_width() / 2,
+            y=bounds.get_y() + bounds.get_height(),
+        )
+
     def _activate(self, action, _parameter, callback):
         self.popover.popdown()
         callback(action)

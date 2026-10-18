@@ -427,6 +427,19 @@ before EasyHybrid's molecular graphics code; physical Windows hardware
 remains **NOT TESTED**. The `GDK_DEBUG=opengl` diagnostic was removed because
 conda GTK release builds omit `G_ENABLE_DEBUG`.
 
+### GTK4 widget-pattern portability (EH4-103, 2026-10-18)
+
+A GTK 4.8 floor probe found that `Gtk.PropertyExpression.new` cannot be
+called from Python on GTK 4.8 (PyGObject 3.42–3.46), which broke 43
+dropdown/sorter call sites in about 25 windows on the declared minimum. All
+were replaced with expression-free adapters in `src/gtk4_compat.py`;
+`Gtk.ComboBoxText` uses moved to `src/gui/choice_dropdown.py` with identical
+scientific option IDs; and the PES Actions button's GTK3 `popup_at_widget`
+crash was fixed. GTK 4.20+ also auto-selects empty dropdowns, so no code
+relies on an empty selection. Details and the per-minor probe are in
+`GTK4_COMPATIBILITY.md`. Native Windows/macOS and GTK 4.16/4.18 results are
+pending the CI matrix; deprecated dialog APIs remain to be migrated.
+
 ## 7. Contributor workflow
 
 Windows follow-up: `39067404621` reproduced the GTK 4.8/4.10 failures.

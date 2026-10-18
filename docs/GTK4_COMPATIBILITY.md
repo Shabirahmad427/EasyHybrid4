@@ -214,6 +214,23 @@ use software OpenGL; all macOS results use hosted-runner Apple OpenGL.
 
 User-set `GSK_RENDERER` values are always kept.
 
+## GTK4 widget-pattern portability (EH4-103, 2026-10-18)
+
+Probed locally on every conda-forge GTK minor with a real display (GTK
+4.8.2/PyGObject 3.46.0, 4.10.1/3.50.0, 4.12.1, 4.14.1, 4.20.3, 4.22.5,
+4.24.1/3.58.1, plus 4.14.5/3.48.2 and 4.8.2/3.42.2):
+
+| Finding | Range | Handling |
+|---|---|---|
+| `Gtk.PropertyExpression.new` raises `TypeError: No means to translate argument or return value for 'GtkPropertyExpression'` | GTK 4.8 with every PyGObject conda pairs with it (3.42.2, 3.44.1, 3.46.0); works on 4.10+ | Removed all 43 uses. `Gtk.StringList` dropdowns need no expression (GTK displays `Gtk.StringObject` itself on every minor). Custom rows use `gtk4_compat.bind_dropdown_label_property` (a list-item factory). ColumnView sorting uses `gtk4_compat.property_sorter` (`Gtk.CustomSorter`). |
+| Empty `Gtk.DropDown` selection | Kept on 4.8–4.14; GTK 4.20+ auto-selects item 0 | Code never relies on an empty selection; the OPLS filter tracks its pending default in Python. |
+| `Gtk.ComboBoxText` | Deprecated since 4.10 | Five uses moved to `gui.choice_dropdown` value-keyed dropdowns with identical IDs (`PRP/FR/HS`, `BOFILL/BFGS/MS/POWELL`, xTB `2/1`, `none/water/methanol`, OPLS filters). |
+| `popup_at_widget` (GTK3 `Gtk.Menu`) | Absent in all GTK4 | PES Actions button raised `AttributeError`; now `ContextMenu.present_at_widget` via `Gtk.Widget.compute_bounds`. |
+
+`tests/test_gtk4_widget_patterns.py` checks these with real widgets and a
+static guard against reintroducing the patterns; CI runs it in every matrix
+cell with `EASYHYBRID_REQUIRE_GTK_DISPLAY=1` so it cannot silently skip.
+
 ## Verification requirements
 
 For every claimed OS and GTK4 minor, record the exact GTK patch version,

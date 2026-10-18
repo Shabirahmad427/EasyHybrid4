@@ -149,9 +149,6 @@ class MolecularDynamicsWindow:
             self.md_methods_liststore.append(method)
         self.methods_combo = self.builder.get_object("comobobox_md_integrator")
         self.methods_combo.set_model(self.md_methods_liststore)
-        self.methods_combo.set_expression(
-            Gtk.PropertyExpression.new(Gtk.StringObject, None, "string")
-        )
         self.methods_combo.connect("notify::selected", self.combobox_change)
 
         # Setup temperature scaling combobox
@@ -160,9 +157,6 @@ class MolecularDynamicsWindow:
             self.temp_scale_option_store.append(option)
         self.temp_scale_options_combo = self.builder.get_object("combobox_temperature_scale_options")
         self.temp_scale_options_combo.set_model(self.temp_scale_option_store)
-        self.temp_scale_options_combo.set_expression(
-            Gtk.PropertyExpression.new(Gtk.StringObject, None, "string")
-        )
         self.temp_scale_options_combo.connect("notify::selected", self.combobox_change)
         self.temp_scale_options_combo.set_selected(0)
 
@@ -539,9 +533,6 @@ class MolecularDynamicsWindow_OLD():
             
             self.methods_combo = self.builder.get_object('comobobox_md_integrator')
             self.methods_combo.set_model(self.md_methods_liststore)
-            self.methods_combo.set_expression(
-                Gtk.PropertyExpression.new(Gtk.StringObject, None, "string")
-            )
             #'''--------------------------------------------------------------------------------------------'''
             self.methods_combo.connect("notify::selected", self.combobox_change)
             
@@ -558,9 +549,6 @@ class MolecularDynamicsWindow_OLD():
             
             self.temp_scale_options_combo = self.builder.get_object('combobox_temperature_scale_options')
             self.temp_scale_options_combo.set_model(self.temp_scale_option_store)
-            self.temp_scale_options_combo.set_expression(
-                Gtk.PropertyExpression.new(Gtk.StringObject, None, "string")
-            )
             #'''--------------------------------------------------------------------------------------------'''
             
             

@@ -1014,10 +1014,7 @@ class TreeViewMenu:
             label_cmap = Gtk.Label ( label = "Colormap:" )
             label_cmap.set_xalign ( 0 )
             cmap_model = Gtk.StringList.new(cmap_names)
-            cmap_expression = Gtk.PropertyExpression.new(
-                Gtk.StringObject, None, "string"
-            )
-            cbx_cmap = Gtk.DropDown.new(cmap_model, cmap_expression)
+            cbx_cmap = Gtk.DropDown.new(cmap_model, None)
             selected_cmap = current_cmap if current_cmap in cmap_names else (
                 cmap_names[0] if cmap_names else None
             )

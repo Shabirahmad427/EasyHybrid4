@@ -126,3 +126,60 @@ def gl_area_required_version(gtk=Gtk, platform=None):
     if platform == "darwin" and version < (4, 12):
         return (3, 2)
     return (3, 3)
+
+
+# PyGObject cannot construct Gtk expressions against GTK 4.8: on every
+# PyGObject release conda-forge pairs with it (3.42-3.46),
+# ``Gtk.PropertyExpression.new`` raises "TypeError: No means to translate
+# argument or return value for 'GtkPropertyExpression'". GTK 4.10+ works.
+# The helpers below avoid expressions entirely so one code path serves every
+# minor. Gtk.DropDown displays Gtk.StringList items without any expression;
+# only models of custom rows need ``bind_dropdown_label_property``.
+
+
+def _setup_dropdown_label(_factory, list_item):
+    list_item.set_child(Gtk.Label(xalign=0))
+
+
+def _bind_dropdown_label(_factory, list_item, property_name):
+    item = list_item.get_item()
+    text = item.get_property(property_name) if item is not None else ""
+    list_item.get_child().set_text("" if text is None else str(text))
+
+
+def bind_dropdown_label_property(dropdown, property_name, gtk=Gtk):
+    """Show each item's ``property_name`` in ``dropdown`` on every GTK4 minor.
+
+    Replaces ``dropdown.set_expression(Gtk.PropertyExpression.new(Row, None,
+    property_name))``, which fails on GTK 4.8. Returns the factory.
+    """
+    factory = gtk.SignalListItemFactory()
+    factory.connect("setup", _setup_dropdown_label)
+    factory.connect("bind", _bind_dropdown_label, property_name)
+    dropdown.set_factory(factory)
+    return factory
+
+
+def property_sorter(property_name, numeric=False, gtk=Gtk):
+    """Return a sorter ordering items by ``property_name`` on every GTK4 minor.
+
+    Replaces ``Gtk.StringSorter``/``Gtk.NumericSorter`` built from a
+    ``Gtk.PropertyExpression`` (unavailable from Python on GTK 4.8). Strings
+    compare case-insensitively, like Gtk.StringSorter's default; numbers
+    compare numerically with missing values first.
+    """
+
+    def key(item):
+        value = item.get_property(property_name)
+        if numeric:
+            try:
+                return (1, float(value))
+            except (TypeError, ValueError):
+                return (0, 0.0)
+        return "" if value is None else str(value).casefold()
+
+    def compare(first, second, *_data):
+        first_key, second_key = key(first), key(second)
+        return (first_key > second_key) - (first_key < second_key)
+
+    return gtk.CustomSorter.new(compare, None)

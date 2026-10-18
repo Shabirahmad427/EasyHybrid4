@@ -105,9 +105,6 @@ class AdvancedPotentialEnergyScanWindow:
         self.methods_combo = self.builder.get_object("combobox_methods")
         self.method_store = Gtk.StringList.new(methods)
         self.methods_combo.set_model(self.method_store)
-        self.methods_combo.set_expression(
-            Gtk.PropertyExpression.new(Gtk.StringObject, None, "string")
-        )
         self.methods_combo.set_selected(0)
 
         # Coordinates combobox

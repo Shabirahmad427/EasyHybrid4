@@ -98,8 +98,7 @@ class SequenceViewerBox(Gtk.Box):
         self.box_horizontal1.append(self.label2)
 
         self.chain_names = Gtk.StringList.new([])
-        chain_expression = Gtk.PropertyExpression.new(Gtk.StringObject, None, "string")
-        self.chain_dropdown = Gtk.DropDown.new(self.chain_names, chain_expression)
+        self.chain_dropdown = Gtk.DropDown.new(self.chain_names, None)
         self.chain_dropdown.connect("notify::selected", self.on_chain_selected)
         self.box_horizontal1.append(self.chain_dropdown)
 

@@ -133,11 +133,7 @@ class WHAMWindow(Gtk.Window):
                         ]
             self.methods_combo = self.builder.get_object('PMF_combobox')
             self.method_model = Gtk.StringList.new(methods)
-            method_expression = Gtk.PropertyExpression.new(
-                Gtk.StringObject, None, "string"
-            )
             self.methods_combo.set_model(self.method_model)
-            self.methods_combo.set_expression(method_expression)
             self.methods_combo.set_selected(0)
             
             

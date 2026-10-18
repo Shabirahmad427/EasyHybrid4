@@ -573,11 +573,8 @@ class SurfaceAnalysisWindow(Gtk.Window):
                                     'External'              ,
                                     'MEP (density + potential)' ]
             surface_type_model = Gtk.StringList.new(self.surface_options)
-            surface_type_expression = Gtk.PropertyExpression.new(
-                Gtk.StringObject, None, "string"
-            )
             self.cbx_surface_type = Gtk.DropDown.new(
-                surface_type_model, surface_type_expression
+                surface_type_model, None
             )
             self.cbx_surface_type.connect(
                 "notify::selected", self.surface_combobox_change
@@ -601,11 +598,8 @@ class SurfaceAnalysisWindow(Gtk.Window):
             # immediately tweak it" flow needs no extra clicking).
             self.label_surface_target = Gtk.Label(label="Target surface:")
             self.surface_target_names = Gtk.StringList.new([])
-            target_expression = Gtk.PropertyExpression.new(
-                Gtk.StringObject, None, "string"
-            )
             self.cbx_surface_target = Gtk.DropDown.new(
-                self.surface_target_names, target_expression
+                self.surface_target_names, None
             )
             self.cbx_surface_target.set_tooltip_text(
                 "Which already-generated surface the controls below (Wireframe, "
@@ -692,10 +686,7 @@ class SurfaceAnalysisWindow(Gtk.Window):
             self.label_mep_cmap = Gtk.Label(label="Colormap:")
             self._mep_cmap_names = list(COLOR_MAPS.keys())
             cmap_model = Gtk.StringList.new(self._mep_cmap_names)
-            cmap_expression = Gtk.PropertyExpression.new(
-                Gtk.StringObject, None, "string"
-            )
-            self.cbx_mep_cmap = Gtk.DropDown.new(cmap_model, cmap_expression)
+            self.cbx_mep_cmap = Gtk.DropDown.new(cmap_model, None)
             self.cbx_mep_cmap.set_tooltip_text(
                 "Colormap used to map the electrostatic potential to color "
                 "(see COLOR_MAPS in util/colormaps.py). Diverging maps "

@@ -183,16 +183,9 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkComboBoxText" id="combobox_hessian_updating">
+                      <object class="GtkDropDown" id="combobox_hessian_updating">
                         <property name="visible">True</property>
                         <property name="focusable">False</property>
-                        <items>
-                          <item translatable="yes" id="BOFILL">BOFILL</item>
-                          <item translatable="yes" id="BFGS">BFGS</item>
-                          <item translatable="yes" id="MS">MS (Murtagh-Sargent)</item>
-                          <item translatable="yes" id="POWELL">POWELL</item>
-                        </items>
-                        <property name="active">0</property>
                         <layout>
                           <property name="column">1</property>
                           <property name="row">4</property>

@@ -205,9 +205,6 @@ class EasyHybridSetupQCModelWindow:
             
             self.qc_engine_combobox = self.builder.get_object('QCEngine_combobox')
             self.qc_engine_combobox.set_model(self.qc_engine_store)
-            self.qc_engine_combobox.set_expression(
-                Gtk.PropertyExpression.new(Gtk.StringObject, None, "string")
-            )
             self.qc_engine_combobox.set_selected(0)
             self.qc_engine_combobox.connect("notify::selected", self.on_qc_engine_combo_changed)
             '''--------------------------------------------------------------------------------------------'''
@@ -221,9 +218,6 @@ class EasyHybridSetupQCModelWindow:
             
             self.methods_combo = self.builder.get_object('QCModel_methods_combobox')
             self.methods_combo.set_model(self.methods_type_store)
-            self.methods_combo.set_expression(
-                Gtk.PropertyExpression.new(Gtk.StringObject, None, "string")
-            )
             self.methods_combo.set_selected(0)
             self.methods_combo.connect("notify::selected", self.on_name_combo_changed)
             

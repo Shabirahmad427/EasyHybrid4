@@ -100,9 +100,6 @@ class PotentialEnergyScanWindow:
             self.method_store.append(method)
         self.methods_combo = self.builder.get_object("combobox_methods")
         self.methods_combo.set_model(self.method_store)
-        self.methods_combo.set_expression(
-            Gtk.PropertyExpression.new(Gtk.StringObject, None, "string")
-        )
         self.methods_combo.set_selected(0)
 
         # Coordinates combobox
@@ -390,9 +387,6 @@ class PotentialEnergyScanWindow_old():
             
             self.methods_combo = self.builder.get_object('combobox_methods')
             self.methods_combo.set_model(self.method_store)
-            self.methods_combo.set_expression(
-                Gtk.PropertyExpression.new(Gtk.StringObject, None, "string")
-            )
             self.methods_combo.set_selected(0)
             #'''--------------------------------------------------------------------------------------------'''
             

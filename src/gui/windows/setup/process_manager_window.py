@@ -32,7 +32,7 @@ from util.debug import dprint
 import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gdk, GLib, GObject, Gio
-from src.gtk4_compat import GTK_INVALID_LIST_POSITION
+from src.gtk4_compat import GTK_INVALID_LIST_POSITION, property_sorter
 from gi.repository import GdkPixbuf
 from gui.widgets.custom_widgets  import get_colorful_square_pixel_buffer
 from gui.windows.setup.windows_and_dialogs import TextWindow, TabbedLogWindow
@@ -275,12 +275,9 @@ class ProcessManagerWindow(Gtk.Window):
             factory.connect("bind", self._bind_job_cell, attribute, kind)
             factory.connect("unbind", self._unbind_job_cell)
             column = Gtk.ColumnViewColumn.new(title, factory)
-            expression = Gtk.PropertyExpression.new(
-                JobHistoryRow, None, attribute.replace("_", "-")
-            )
-            sorter = (Gtk.NumericSorter.new(expression) if kind == "number"
-                      else Gtk.StringSorter.new(expression))
-            column.set_sorter(sorter)
+            column.set_sorter(property_sorter(
+                attribute.replace("_", "-"), numeric=(kind == "number")
+            ))
             if attribute == "system_name":
                 column.set_expand(True)
             self.treeview.append_column(column)

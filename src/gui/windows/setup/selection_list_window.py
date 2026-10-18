@@ -181,11 +181,7 @@ class SelectionListWindow(Gtk.Window):
             restraint_type_names = Gtk.StringList.new(
                 list(self.restraint_types.values())
             )
-            restraint_type_expression = Gtk.PropertyExpression.new(
-                Gtk.StringObject, None, "string"
-            )
             self.comobobox_restraints.set_model(restraint_type_names)
-            self.comobobox_restraints.set_expression(restraint_type_expression)
             self.comobobox_restraints.set_selected(0)
             self.comobobox_restraints.connect(
                 "notify::selected", self._on_rest_types_changed

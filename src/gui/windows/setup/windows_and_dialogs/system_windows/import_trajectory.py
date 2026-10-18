@@ -187,9 +187,6 @@ class ImportTrajectoryWindow:
             ]
             self.coordinate_type_model = Gtk.StringList.new(coordinate_types)
             self.combox.set_model(self.coordinate_type_model)
-            self.combox.set_expression(
-                Gtk.PropertyExpression.new(Gtk.StringObject, None, "string")
-            )
             self.combox.connect("notify::selected", self.on_combobox_coordinate_type)
     
             self.folder_chooser_button.btn.connect('clicked', self.update_logfile_chooser_btn)

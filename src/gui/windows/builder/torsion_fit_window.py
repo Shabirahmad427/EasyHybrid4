@@ -40,6 +40,11 @@ gi.require_version ( "Gtk", "4.0" )
 from gi.repository import Gtk, GLib, Gio
 
 from pdynamo import torsion_fit as F
+from gui.choice_dropdown import new_choice_dropdown, selected_choice_value
+
+# (value, label): values are passed to xTB unchanged (--gfn N, --alpb NAME).
+XTB_METHOD_CHOICES = (("2", "GFN2-xTB"), ("1", "GFN1-xTB"))
+XTB_SOLVENT_CHOICES = (("none", "none (gas phase)"), ("water", "water"), ("methanol", "methanol"))
 
 _COLORS = { "qm": ( 0.0, 0.0, 0.0 ), "before": ( 0.85, 0.33, 0.30 ), "after": ( 0.20, 0.45, 0.85 ) }
 
@@ -145,8 +150,8 @@ class TorsionFitWindow:
         try:
             F.moving_side ( F.adjacency_from_bonds ( len ( symbols ), bonds ), quad[1], quad[2] )
             xtb = self.vm_session.vm_config.gl_parameters.get ( 'xtb_command' ) or None
-            solvent = self.combo_solvent.get_active_id ( )
-            self.runner = F.XTBRunner ( xtb = xtb, gfn = int ( self.combo_method.get_active_id ( ) or 2 ),
+            solvent = selected_choice_value ( self.combo_solvent )
+            self.runner = F.XTBRunner ( xtb = xtb, gfn = int ( selected_choice_value ( self.combo_method ) or 2 ),
                                         charge = int ( self.spin_charge.get_value ( ) ),
                                         multiplicity = int ( self.spin_multiplicity.get_value ( ) ),
                                         solvent = None if solvent in ( None, "none" ) else solvent,
@@ -324,12 +329,8 @@ class TorsionFitWindow:
         root.append(self.label_title)
         self.grid_options = Gtk.Grid(column_spacing=8, row_spacing=6)
         root.append(self.grid_options)
-        self.combo_method = Gtk.ComboBoxText()
-        self.combo_method.append("2", "GFN2-xTB"); self.combo_method.append("1", "GFN1-xTB"); self.combo_method.set_active_id("2")
-        self.combo_solvent = Gtk.ComboBoxText()
-        for key, label in (("none", "none (gas phase)"), ("water", "water"), ("methanol", "methanol")):
-            self.combo_solvent.append(key, label)
-        self.combo_solvent.set_active_id("none")
+        self.combo_method = new_choice_dropdown(XTB_METHOD_CHOICES, "2")
+        self.combo_solvent = new_choice_dropdown(XTB_SOLVENT_CHOICES, "none")
         for col, label, widget in ((0,"Method:",self.combo_method),(2,"Solvent (ALPB):",self.combo_solvent)):
             self.grid_options.attach(Gtk.Label(label=label, xalign=0), col, 0, 1, 1)
             self.grid_options.attach(widget, col+1, 0, 1, 1)

@@ -44,6 +44,15 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
 from src.gtk4_compat import GTK_INVALID_LIST_POSITION
 from gui.gtk4_builder import connect_builder_signals, load_builder_file
+from gui.choice_dropdown import populate_choice_dropdown, select_choice_value, selected_choice_value
+
+# (value, label): values are pDynamo transition-state hessianUpdatingOption names.
+HESSIAN_UPDATING_CHOICES = (
+    ("BOFILL", "BOFILL"),
+    ("BFGS", "BFGS"),
+    ("MS", "MS (Murtagh-Sargent)"),
+    ("POWELL", "POWELL"),
+)
 from gui.windows.simulation.gtk4_simulation_helpers import selected_vobject, show_folder_error, show_message
 
 import os
@@ -88,7 +97,9 @@ class TransitionStateSearchWindow:
 
         # -------------------- Baker-specific widgets --------------------
         self.spinbtn_follow_mode        = self.builder.get_object('spinbtn_follow_mode')
-        self.combobox_hessian_updating  = self.builder.get_object('combobox_hessian_updating')
+        self.combobox_hessian_updating  = populate_choice_dropdown(
+            self.builder.get_object('combobox_hessian_updating'), HESSIAN_UPDATING_CHOICES, "BOFILL"
+        )
         self.spinbtn_analytic_frequency = self.builder.get_object('spinbtn_analytic_frequency')
 
         # -------------------- trajectory saving --------------------
@@ -164,15 +175,15 @@ class TransitionStateSearchWindow:
         # . Baker-specific parameters.
         simParameters["followMode"]            = int(self.spinbtn_follow_mode.get_value())
         simParameters["analyticFrequency"]     = int(self.spinbtn_analytic_frequency.get_value())
-        # . get_active_id(), not get_active_text() -- the combobox's
-        #   display text is the descriptive "MS (Murtagh-Sargent)" label,
-        #   while the id (set via the .glade <item id="..."> attribute)
+        # . Read the choice value, not the displayed label -- the
+        #   dropdown shows the descriptive "MS (Murtagh-Sargent)" label,
+        #   while the value (HESSIAN_UPDATING_CHOICES above)
         #   is the short code SymmetricMatrix.Update()'s own
         #   `option` argument actually expects ("BFGS"/"BOFILL"/"MS"/
         #   "POWELL"); passing the display text through would silently
         #   fail the backend's option.upper() lookup and fall back to
         #   BFGS regardless of what was actually selected.
-        simParameters["hessianUpdatingOption"] = self.combobox_hessian_updating.get_active_id()
+        simParameters["hessianUpdatingOption"] = selected_choice_value(self.combobox_hessian_updating)
 
         # . Trajectory saving (if enabled).
         if self.save_trajectory_box.builder.get_object('checkbox_save_traj').get_active():
@@ -237,10 +248,10 @@ class TransitionStateSearchWindow:
         self.spinbtn_follow_mode.set_value(parameters.get('followMode', 0))
         self.spinbtn_analytic_frequency.set_value(parameters.get('analyticFrequency', 0))
 
-        # . set_active_id(), matching the id-based read in run_opt() --
+        # . Select by value, matching the value-based read in run_opt() --
         #   see that method's own comment for why the text/id distinction
         #   matters here.
-        self.combobox_hessian_updating.set_active_id(parameters.get('hessianUpdatingOption', 'BOFILL'))
+        select_choice_value(self.combobox_hessian_updating, parameters.get('hessianUpdatingOption', 'BOFILL'))
 
         if parameters.get('save_traj'):
             checkbox = self.save_trajectory_box.builder.get_object('checkbox_save_traj')

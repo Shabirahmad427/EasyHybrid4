@@ -38,6 +38,14 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
 from src.gtk4_compat import GTK_INVALID_LIST_POSITION
 from gui.gtk4_builder import connect_builder_signals, load_builder_file
+from gui.choice_dropdown import populate_choice_dropdown, select_choice_value, selected_choice_value
+
+# (value, label): values are pDynamo ConjugatePeakRefinement betaType options.
+BETA_TYPE_CHOICES = (
+    ("PRP", "PRP (Polak-Ribiere)"),
+    ("FR", "FR (Fletcher-Reeves)"),
+    ("HS", "HS (Hestenes-Stiefel)"),
+)
 from gui.windows.simulation.gtk4_simulation_helpers import selected_vobject, show_folder_error, show_message
 
 import os
@@ -88,7 +96,9 @@ class ConjugatePeakRefinementWindow:
         self._starting_coordinates_model_update(init=True)
 
         # -------------------- CPR-specific widgets --------------------
-        self.combobox_beta_type = self.builder.get_object('combobox_beta_type')
+        self.combobox_beta_type = populate_choice_dropdown(
+            self.builder.get_object('combobox_beta_type'), BETA_TYPE_CHOICES, "PRP"
+        )
 
         # -------------------- working folder --------------------
         self.folder_chooser_button = FolderChooserButton(main=self.main, sel_type='folder', home=self.home)
@@ -143,7 +153,7 @@ class ConjugatePeakRefinementWindow:
         parameters["stepsPerSegment"]            = int(self.builder.get_object('entry_steps_per_segment').get_text())
         parameters["maxCPRrun"]                  = int(self.builder.get_object('entry_max_cpr_run').get_text())
         parameters["initialOrthogonalRuns"]      = int(self.builder.get_object('entry_initial_orthogonal_runs').get_text())
-        parameters["betaType"]                   = self.combobox_beta_type.get_active_id()
+        parameters["betaType"]                   = selected_choice_value(self.combobox_beta_type)
         parameters["breakIfTauReached"]          = self.builder.get_object('check_break_if_tau_reached').get_active()
         parameters["increaseTau"]                = self.builder.get_object('check_increase_tau').get_active()
         parameters["finalUnrefinableRefinement"] = self.builder.get_object('check_final_unrefinable_refinement').get_active()
@@ -230,7 +240,7 @@ class ConjugatePeakRefinementWindow:
         self.builder.get_object('entry_max_cpr_run').set_text(str(parameters.get('maxCPRrun', 1000)))
         self.builder.get_object('entry_initial_orthogonal_runs').set_text(str(parameters.get('initialOrthogonalRuns', 0)))
 
-        self.combobox_beta_type.set_active_id(parameters.get('betaType', 'PRP'))
+        select_choice_value(self.combobox_beta_type, parameters.get('betaType', 'PRP'))
         self.builder.get_object('check_break_if_tau_reached').set_active(parameters.get('breakIfTauReached', True))
         self.builder.get_object('check_increase_tau').set_active(parameters.get('increaseTau', False))
         self.builder.get_object('check_final_unrefinable_refinement').set_active(parameters.get('finalUnrefinableRefinement', False))

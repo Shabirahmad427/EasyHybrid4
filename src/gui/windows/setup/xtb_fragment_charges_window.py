@@ -473,8 +473,7 @@ class XtbFragmentChargesWindow:
     @staticmethod
     def _make_dropdown(options):
         model = Gtk.StringList.new(list(options))
-        expression = Gtk.PropertyExpression.new(Gtk.StringObject, None, "string")
-        dropdown = Gtk.DropDown.new(model, expression)
+        dropdown = Gtk.DropDown.new(model, None)
         dropdown.set_selected(0 if model.get_n_items() else GTK_INVALID_LIST_POSITION)
         return dropdown
 

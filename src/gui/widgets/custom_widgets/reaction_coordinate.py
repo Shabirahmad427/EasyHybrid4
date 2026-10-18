@@ -957,9 +957,6 @@ class ReactionCoordinateBox(Gtk.Box):
             self.method_store.append(method)
         self.combobox_reaction_coord1 = self.builder.get_object('combobox_reaction_coord1')
         self.combobox_reaction_coord1.set_model(self.method_store)
-        self.combobox_reaction_coord1.set_expression(
-            Gtk.PropertyExpression.new(Gtk.StringObject, None, "string")
-        )
         self.combobox_reaction_coord1.connect('notify::selected', self.change_cb_coordType1)
         #-----------------------------------------------------------------------------------
 

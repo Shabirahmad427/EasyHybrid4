@@ -144,7 +144,7 @@ class SetupPySCFWindow:
                 self.method_model.append(method)
             self.method_cbox = Gtk.DropDown.new(
                 self.method_model,
-                Gtk.PropertyExpression.new(Gtk.StringObject, None, "string"),
+                None,
             )
             self.method_cbox.connect("notify::selected", self.on_method_changed)
             self.box_method.append(self.method_cbox)
@@ -157,7 +157,7 @@ class SetupPySCFWindow:
                 self.basis_model.append(basis)
             self.basis_cbox = Gtk.DropDown.new(
                 self.basis_model,
-                Gtk.PropertyExpression.new(Gtk.StringObject, None, "string"),
+                None,
             )
             self.basis_entry = Gtk.Entry()
             self.basis_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
@@ -174,7 +174,7 @@ class SetupPySCFWindow:
                 self.functional_model.append(functional)
             self.functional_cbox = Gtk.DropDown.new(
                 self.functional_model,
-                Gtk.PropertyExpression.new(Gtk.StringObject, None, "string"),
+                None,
             )
             self.functional_entry = Gtk.Entry()
             self.functional_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)

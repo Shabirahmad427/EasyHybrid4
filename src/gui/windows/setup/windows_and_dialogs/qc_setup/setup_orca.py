@@ -303,9 +303,6 @@ class SetupORCAWindow:
     @staticmethod
     def _set_dropdown_model(dropdown, model):
         dropdown.set_model(model)
-        dropdown.set_expression(
-            Gtk.PropertyExpression.new(Gtk.StringObject, None, "string")
-        )
         if model is not None and model.get_n_items():
             dropdown.set_selected(0)
         else:

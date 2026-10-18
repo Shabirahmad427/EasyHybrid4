@@ -111,11 +111,7 @@ class ReimagingTrajectoryWindow:
             
             self.cb_align_by = self.builder.get_object('cb_align_by')
             self.method_model = Gtk.StringList.new(methods)
-            method_expression = Gtk.PropertyExpression.new(
-                Gtk.StringObject, None, "string"
-            )
             self.cb_align_by.set_model(self.method_model)
-            self.cb_align_by.set_expression(method_expression)
             self.cb_align_by.set_selected(0)
             
 

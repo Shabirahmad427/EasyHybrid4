@@ -343,9 +343,6 @@ class ExportDataWindow:
             self.format_model = Gtk.StringList.new(list(self.formats.values()))
             self.format_dropdown = self.builder.get_object('format_dropdown')
             self.format_dropdown.set_model(self.format_model)
-            self.format_dropdown.set_expression(
-                Gtk.PropertyExpression.new(Gtk.StringObject, None, "string")
-            )
             # ----------------------------------------------------------- #
             
             

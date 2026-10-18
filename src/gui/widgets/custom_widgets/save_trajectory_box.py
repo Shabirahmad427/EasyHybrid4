@@ -80,11 +80,7 @@ class SaveTrajectoryBox:
             ]
         self.format_model = Gtk.StringList.new(formats)
         self.format_dropdown = self.builder.get_object('format_dropdown')
-        format_expression = Gtk.PropertyExpression.new(
-            Gtk.StringObject, None, "string"
-        )
         self.format_dropdown.set_model(self.format_model)
-        self.format_dropdown.set_expression(format_expression)
         '''--------------------------------------------------------------------------------------------'''
         self.format_dropdown.set_selected(0)
         self.set_folder(None)

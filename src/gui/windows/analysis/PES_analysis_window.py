@@ -908,7 +908,7 @@ class PotentialEnergyAnalysisWindow:
         """ Shows the same "Optimize Pathway / Export Incomplete Matrix /
         Delete" menu available via right-click on the plot, but from a
         normal, discoverable button click. """
-        self.menu.popup_at_widget(widget, Gdk.Gravity.SOUTH_WEST, Gdk.Gravity.NORTH_WEST, None)
+        self.menu.present_at_widget(widget)
 
     def on_button_export_trajectory (self, widget):
         """ Function doc 

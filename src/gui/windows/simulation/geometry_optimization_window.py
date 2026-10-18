@@ -94,9 +94,6 @@ class GeometryOptimization(Gtk.Window):
                 #print (method)
             self.methods_combo = self.builder.get_object('combobox_geo_opt')
             self.methods_combo.set_model(self.method_store)
-            self.methods_combo.set_expression(
-                Gtk.PropertyExpression.new(Gtk.StringObject, None, "string")
-            )
             self.methods_combo.connect("notify::selected", self.on_name_combo_changed)
             self.methods_combo.set_selected(0)
             

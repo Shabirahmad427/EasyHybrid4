@@ -32,7 +32,7 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
-from src.gtk4_compat import GTK_INVALID_LIST_POSITION
+from src.gtk4_compat import GTK_INVALID_LIST_POSITION, bind_dropdown_label_property
 from gi.repository import Gdk
 from gi.repository import GdkPixbuf
 from gui.model_rows import CoordinateChoiceRow, SystemChoiceRow
@@ -77,7 +77,7 @@ class SystemComboBox(Gtk.DropDown):
         # Set the model for the combobox using the main application's system liststore
         self.system_liststore = self.main.system_liststore
         self.set_model(self.system_liststore)
-        self.set_expression(Gtk.PropertyExpression.new(SystemChoiceRow, None, "name"))
+        bind_dropdown_label_property(self, "name")
         self.connect("notify::selected", self.on_change)
         
         # Store whether this combobox should update a coordinates combobox
@@ -142,9 +142,7 @@ class CoordinatesComboBox(Gtk.DropDown):
         self.coordinates_liststore = coordinates_liststore
         self.set_model(self.coordinates_liststore)
         
-        self.set_expression(
-            Gtk.PropertyExpression.new(CoordinateChoiceRow, None, "name")
-        )
+        bind_dropdown_label_property(self, "name")
 
     def get_vobject(self):
         """

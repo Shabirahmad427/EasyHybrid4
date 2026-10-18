@@ -1,3 +1,5 @@
 # EasyHybrid4 Codex instructions
 
 Before **every** coding session, read `docs/ROADMAP.md` in full. Treat it as the authoritative task queue. Read `docs/EASYHYBRID4_REPORT.md` for consolidated repository, compatibility, test, and limitation status. Select the next eligible unchecked task, work incrementally, add tests, run only tests you can actually execute, and record OS/architecture and GTK runtime versions in the roadmap evidence log. Never claim Linux tests prove macOS/Windows support. Do not mark a task complete unless its acceptance criteria pass. Preserve scientific calculations, project compatibility and published graphics submodule reachability. Update the roadmap and consolidated report before ending.
+
+**Mandatory for every implementation:** verify on ALL supported platforms (Linux, Windows, macOS) and ALL GTK4 minor versions from 4.8 through the latest stable, using the full `.github/workflows/native-gtk-matrix.yml` matrix before merging to `main`. Never validate against only one GTK version or one platform. See roadmap Section 0, item 7.

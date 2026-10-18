@@ -124,7 +124,6 @@ class UmbrellaSamplingWindow(Gtk.Window):
                 self.input_type_store.append(input_type)
             
             self.input_type_combo.set_model(self.input_type_store)
-            self.input_type_combo.set_expression(Gtk.PropertyExpression.new(Gtk.StringObject, None, "string"))
             self.input_type_combo.connect("notify::selected", self.on_combobox_inputtype)
             '''--------------------------------------------------------------------------------------------'''
             
@@ -199,7 +198,6 @@ class UmbrellaSamplingWindow(Gtk.Window):
                 self.opt_method_store.append(method)
             
             self.opt_methods_combo.set_model(self.opt_method_store)
-            self.opt_methods_combo.set_expression(Gtk.PropertyExpression.new(Gtk.StringObject, None, "string"))
             #----------------------------------------------------------------------------------------------
             
             
@@ -214,7 +212,6 @@ class UmbrellaSamplingWindow(Gtk.Window):
                 self.md_integrators_store.append(integrators)
             
             self.md_integrators_combobox.set_model(self.md_integrators_store)
-            self.md_integrators_combobox.set_expression(Gtk.PropertyExpression.new(Gtk.StringObject, None, "string"))
             self.md_integrators_combobox.connect("notify::selected", self.on_md_integrator_combobox)
             #----------------------------------------------------------------------------------------------
             
@@ -927,7 +924,6 @@ class UmbrellaSamplingWindow_old(Gtk.Window):
                 self.input_type_store.append(input_type)
             
             self.input_type_combo.set_model(self.input_type_store)
-            self.input_type_combo.set_expression(Gtk.PropertyExpression.new(Gtk.StringObject, None, "string"))
             self.input_type_combo.connect("notify::selected", self.on_combobox_inputtype)
             '''--------------------------------------------------------------------------------------------'''
             
@@ -999,7 +995,6 @@ class UmbrellaSamplingWindow_old(Gtk.Window):
                 self.opt_method_store.append(method)
             
             self.opt_methods_combo.set_model(self.opt_method_store)
-            self.opt_methods_combo.set_expression(Gtk.PropertyExpression.new(Gtk.StringObject, None, "string"))
             #----------------------------------------------------------------------------------------------
             
             
@@ -1014,7 +1009,6 @@ class UmbrellaSamplingWindow_old(Gtk.Window):
                 self.md_integrators_store.append(integrators)
             
             self.md_integrators_combobox.set_model(self.md_integrators_store)
-            self.md_integrators_combobox.set_expression(Gtk.PropertyExpression.new(Gtk.StringObject, None, "string"))
             self.md_integrators_combobox.connect("notify::selected", self.on_md_integrator_combobox)
             #----------------------------------------------------------------------------------------------
             
