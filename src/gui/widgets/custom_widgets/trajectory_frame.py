@@ -31,13 +31,10 @@
 import gi
 
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gtk
+from gi.repository import Gtk, GLib
 from gi.repository import Gdk
 from gi.repository import GdkPixbuf
 import os
-
-import threading
-import time
 
 from util.geometric_analysis            import get_distance 
 from util.geometric_analysis            import get_dihedral 
@@ -74,6 +71,7 @@ class VismolTrajectoryFrame(Gtk.Frame):
         self.upper      = 100
         self.scale      = Gtk.Scale()
         self.running    = False
+        self._playback_source_id = None
         #self.adjustment = Gtk.Adjustment(self.value, 1, 1, 0, 1, 0)
         self.adjustment     = Gtk.Adjustment(value         = self.value,
                                              lower         = 0,
@@ -157,67 +155,39 @@ class VismolTrajectoryFrame(Gtk.Frame):
         #----------------------------------------------------------------------------
 
     def play (self, button):
-        # Create and start a new thread when the button is clicked
         if self.running:
-            pass
-        
+            return False
+        self.running = True
+        fps = max(1.0, float(self.entry.get_value()))
+        interval_ms = max(1, int(round(1000.0 / fps)))
+        self._playback_source_id = GLib.timeout_add(
+            interval_ms, self._playback_tick
+        )
+        return False
+
+    def _playback_tick(self):
+        if not self.running:
+            self._playback_source_id = None
+            return GLib.SOURCE_REMOVE
+
+        step = max(1, int(self.entry_step.get_value()))
+        if self.frame_forward:
+            value = self.forward(step=step)
+            if value >= self.upper - 1:
+                self.frame_forward = False
         else:
-            #thread = threading.Thread(target=self.long_task)
-            thread = threading.Thread(target=self.long_task_boomerang)
-            thread.start()
-            
-            self.running = True
-        
-    def long_task_boomerang(self):
-        self.stop_thread = False
-        i = 0
-        
-        while self.stop_thread == False:
-            if self.stop_thread:
-                return
-            
-            if self.frame_forward:
-            
-                value = self.forward(step =  self.entry_step.get_value()) 
-                #value = self.reverse(None) 
+            value = self.reverse(step=step)
+            if value <= 0:
+                self.frame_forward = True
+        return GLib.SOURCE_CONTINUE
 
-                if value >= self.upper-1:
-                    #value = 0
-                    self.frame_forward = False
-                    self.scale.set_value(int(value))
-                    self.vm_session.set_frame(int(value))
-                #time.sleep(0.01)
-                time.sleep(1/self.entry.get_value())
-            
-            else:
-                value = self.reverse(step =  self.entry_step.get_value()) 
-                if value <= 0:
-                    self.frame_forward = True
-                    self.scale.set_value(int(value))
-                    self.vm_session.set_frame(int(value))
-                time.sleep(1/self.entry.get_value())
-    
-    def long_task(self):
-        # This flag is used to stop the thread
-        self.stop_thread = False
-        i = 0
-        while self.stop_thread == False:
-            if self.stop_thread:
-                return
-            value = self.forward(None) 
-            #value = self.reverse(None) 
-
-            if value >= self.upper-1:
-                value = 0
-                self.scale.set_value(int(value))
-                self.vm_session.set_frame(int(value))
-            #time.sleep(0.01)
-            time.sleep(1/self.entry.get_value())
-            
     def stop (self, button):
-        """ Function doc """
-        self.stop_thread = True
-        self.running = False    
+        """Stop playback and remove its GLib source."""
+        self.running = False
+        source_id, self._playback_source_id = self._playback_source_id, None
+        if source_id is not None:
+            GLib.source_remove(source_id)
+        return False
 
     def forward (self, button = None, step = 1):
         """ Function doc """

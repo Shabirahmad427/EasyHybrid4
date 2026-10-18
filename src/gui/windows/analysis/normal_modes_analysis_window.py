@@ -32,7 +32,7 @@ from util.debug import dprint
 import gi
 
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gtk, GObject
+from gi.repository import Gtk, GObject, GLib
 from gui import file_dialogs
 from src.gtk4_compat import GTK_INVALID_LIST_POSITION
 from gui.gtk4_builder import connect_builder_signals, load_builder_file, load_builder_string
@@ -40,8 +40,6 @@ from gui.gtk4_builder import connect_builder_signals, load_builder_file, load_bu
 #from easyhybrid.pDynamoMethods.pDynamo2Vismol import *
 import gc
 import os
-import threading
-import time
 
 from gui.widgets.custom_widgets import SystemComboBox
 from gui.widgets.custom_widgets import CoordinatesComboBox
@@ -91,7 +89,7 @@ class NormalModesAnalysisWindow(Gtk.Window):
         
         self.modes = None
         self.running = False
-        self.stop_thread = True
+        self._playback_source_id = None
         
         self.lower = 0
         self.upper = 0
@@ -331,44 +329,36 @@ class NormalModesAnalysisWindow(Gtk.Window):
 
         
     def play (self, button):
-        # Create and start a new thread when the button is clicked
         if self.running:
-            pass
-        
-        else:
-            thread = threading.Thread(target=self.long_task)
-            thread.start()
-            
-            self.running = True
-        
-        
-    def long_task(self):
-        # This flag is used to stop the thread
-        self.stop_thread = False
-        i = 0
-        
-        self.lower
-        self.upper
-        
+            return False
+
+        self.running = True
         self.value = self.lower
-        while self.stop_thread == False:
-            if self.stop_thread:
-                return
+        fps = max(1.0, float(self.spin_button.get_value()))
+        interval_ms = max(1, int(round(1000.0 / fps)))
+        self._playback_source_id = GLib.timeout_add(
+            interval_ms, self._playback_tick
+        )
+        return False
 
-            self.vm_session.set_frame(int(self.value))
-            self.value += 1
-            #print(self.value)
+    def _playback_tick(self):
+        if not self.running:
+            self._playback_source_id = None
+            return GLib.SOURCE_REMOVE
 
-            if self.value >= self.upper:
-                self.value = self.lower
-                self.vm_session.set_frame(self.value)
-            #time.sleep(0.01)
-            time.sleep(1/self.spin_button.get_value())
+        self.vm_session.set_frame(int(self.value))
+        self.value += 1
+        if self.value >= self.upper:
+            self.value = self.lower
+        return GLib.SOURCE_CONTINUE
             
     def stop (self, button):
-        """ Function doc """
-        self.stop_thread = True
-        self.running = False    
+        """Stop playback and remove its GLib source."""
+        self.running = False
+        source_id, self._playback_source_id = self._playback_source_id, None
+        if source_id is not None:
+            GLib.source_remove(source_id)
+        return False
 
     def forward (self, button):
         """ Function doc """

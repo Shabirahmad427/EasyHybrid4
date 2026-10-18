@@ -423,6 +423,72 @@ def test_stale_xtb_completion_restores_reopened_window_controls():
     assert dialog.btn_apply.sensitive is True
 
 
+def test_trajectory_playback_uses_removable_glib_timer(monkeypatch):
+    from types import SimpleNamespace
+    from gui.widgets.custom_widgets import trajectory_frame
+
+    scheduled = []
+    removed = []
+    monkeypatch.setattr(
+        trajectory_frame.GLib, "timeout_add",
+        lambda interval, callback: scheduled.append((interval, callback)) or 41,
+    )
+    monkeypatch.setattr(trajectory_frame.GLib, "source_remove", removed.append)
+    calls = []
+    frame = SimpleNamespace(
+        running=False, _playback_source_id=None, frame_forward=True, upper=5,
+        entry=SimpleNamespace(get_value=lambda: 25),
+        entry_step=SimpleNamespace(get_value=lambda: 1),
+        forward=lambda step: calls.append(("forward", step)) or 4,
+        reverse=lambda step: calls.append(("reverse", step)) or 0,
+    )
+    frame._playback_tick = lambda: trajectory_frame.VismolTrajectoryFrame._playback_tick(frame)
+
+    assert trajectory_frame.VismolTrajectoryFrame.play(frame, None) is False
+    assert frame.running is True
+    assert scheduled[0][0] == 40
+    assert scheduled[0][1]() == trajectory_frame.GLib.SOURCE_CONTINUE
+    assert calls == [("forward", 1)]
+    assert frame.frame_forward is False
+
+    trajectory_frame.VismolTrajectoryFrame.stop(frame, None)
+    assert removed == [41]
+    assert frame.running is False
+    assert frame._playback_source_id is None
+
+
+def test_normal_mode_playback_wraps_on_main_loop_and_stops(monkeypatch):
+    from types import SimpleNamespace
+    from gui.windows.analysis import normal_modes_analysis_window as nm
+
+    scheduled = []
+    removed = []
+    monkeypatch.setattr(
+        nm.GLib, "timeout_add",
+        lambda interval, callback: scheduled.append((interval, callback)) or 73,
+    )
+    monkeypatch.setattr(nm.GLib, "source_remove", removed.append)
+    frames = []
+    player = SimpleNamespace(
+        running=False, _playback_source_id=None, lower=2, upper=4,
+        spin_button=SimpleNamespace(get_value=lambda: 20),
+        vm_session=SimpleNamespace(set_frame=frames.append),
+    )
+    player._playback_tick = lambda: nm.NormalModesAnalysisWindow._playback_tick(player)
+
+    assert nm.NormalModesAnalysisWindow.play(player, None) is False
+    assert scheduled[0][0] == 50
+    assert scheduled[0][1]() == nm.GLib.SOURCE_CONTINUE
+    assert scheduled[0][1]() == nm.GLib.SOURCE_CONTINUE
+    assert frames == [2, 3]
+    assert player.value == 2
+
+    nm.NormalModesAnalysisWindow.stop(player, None)
+    assert removed == [73]
+    assert player.running is False
+    assert player._playback_source_id is None
+
+
 def test_scroll_delta_conversion_preserves_smooth_steps_and_wheel_sign():
     from src.gtk4_compat import scroll_delta_to_steps
 

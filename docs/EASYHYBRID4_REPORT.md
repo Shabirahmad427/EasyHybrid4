@@ -50,16 +50,21 @@ provisioned Intel macOS for GTK 4.8–4.24. EH4-104 automated/native-matrix
 acceptance is complete. Physical macOS trackpad behavior remains **NOT
 TESTED** and is recorded separately.
 
-**EH4-105 async lifecycle fix in progress (2026-10-18):** The xTB fragment
-charge worker posted progress and completion callbacks that could still touch
-the closed window's widgets. Added a per-window generation guard, suppressed
-stale progress callbacks, made stale completion release the running state
-without touching a closed window, and guarded fragment build/import while the
-worker uses the fragment list. The Close button now uses `Gtk.Window.close()`
-so cleanup follows `close-request`. Focused lifecycle tests: **3 passed** on
-Linux x86_64, GTK 4.14.5 / Python 3.12.3 / PyGObject 3.48.2 / GLib 2.80.0;
-compile and whitespace checks passed. Full GTK/OS matrix is pending. No xTB
-calculation was run, and the scientific calculation code was not changed.
+**EH4-105 async lifecycle and playback thread-boundary work (2026-10-18):**
+The xTB fragment-charge worker posted progress and completion callbacks that
+could still touch a closed window's widgets. Added a per-window generation
+guard, suppressed stale progress callbacks, made stale completion release the
+running state without touching a closed window, and guarded fragment
+build/import while the worker uses the fragment list. The Close button now
+uses `Gtk.Window.close()` so cleanup follows `close-request`. The broader
+thread audit found both trajectory playback loops read GTK controls and
+updated the viewer from Python worker threads. Replaced them with removable
+GLib timer callbacks on the main loop. Focused lifecycle/playback tests: **5
+passed** on Linux x86_64, GTK 4.14.5 / Python 3.12.3 / PyGObject 3.48.2 / GLib
+2.80.0; compile and whitespace checks passed. The xTB-only commit's matrix
+passed **30/30**; full matrix for the playback correction is pending. No xTB
+or trajectory scientific calculation was run or changed; physical playback
+was **NOT TESTED**.
 
 **Windows chooser cancellation harness diagnosis (2026-10-18):** The initial
 UI Automation attempt in commit `1a88c31` did not operate the Cancel button:
