@@ -72,7 +72,7 @@ def get_scroll_unit(controller):
 
 
 def scroll_delta_to_steps(delta, *, surface, remainder=0.0, pixels_per_step=30.0):
-    """Convert GTK scroll deltas to wheel steps, preserving smooth fractions."""
+    """Convert GTK scroll deltas to wheel steps, preserving partial deltas."""
     try:
         delta = float(delta)
         remainder = float(remainder)
@@ -87,7 +87,9 @@ def scroll_delta_to_steps(delta, *, surface, remainder=0.0, pixels_per_step=30.0
         total = remainder - delta / pixels_per_step
         steps = int(total)
         return steps, total - steps
-    return int(delta), 0.0
+    total = remainder + delta
+    steps = int(total)
+    return steps, total - steps
 
 
 def set_gl_area_allowed_apis(gl_area, gdk=Gdk, api=None):

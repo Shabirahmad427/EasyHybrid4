@@ -34,11 +34,16 @@ every cell. EH4-103 acceptance is complete; the next roadmap item is EH4-104.
 **EH4-104 input-event regression (2026-10-18):** Centralized GTK scroll-delta
 conversion in `src/gtk4_compat.py` and wired the VisMol GL widget to it. The
 adapter retains fractional surface deltas until they make a full zoom step,
-keeps discrete wheel direction, and ignores non-finite deltas safely. Added
+keeps discrete wheel direction, and ignores non-finite deltas safely. Further
+review found that wheel-unit handlers discarded fractional deltas on
+non-surface paths. They now accumulate those fractions to whole zoom steps and
+reset the accumulator when switching between surface and wheel units. Added
 real-widget synthetic `Gtk.GestureClick` and `Gtk.EventControllerKey` signal
-coverage. Linux x86_64/Xvfb, GTK 4.14.5: focused tests **2 passed**; widget
-module **52 passed, 7 skipped**. The required 30-cell matrix is pending;
-physical macOS trackpad behavior remains **NOT TESTED**.
+coverage and tests for smooth surface and partial wheel deltas. Linux
+x86_64/Xvfb, GTK 4.14.5, Python 3.12.3, PyGObject 3.48.2, GLib 2.80.0:
+focused scroll tests **2 passed**; prior widget-pattern module **52 passed, 7
+skipped**. The full 30-cell matrix for this correction is pending; physical
+macOS trackpad behavior remains **NOT TESTED**. EH4-104 remains in progress.
 
 **Windows chooser cancellation harness diagnosis (2026-10-18):** The initial
 UI Automation attempt in commit `1a88c31` did not operate the Cancel button:

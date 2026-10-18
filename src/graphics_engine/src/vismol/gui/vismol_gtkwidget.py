@@ -154,6 +154,7 @@ class VismolGTKWidget(_WidgetBase):
         self.add_controller(scroll_controller)
         self._scroll_remainder = 0.0
         self._scroll_modifiers = None
+        self._scroll_unit_mode = None
 
         self.set_focusable(True)
         self.grab_focus()
@@ -267,7 +268,12 @@ class VismolGTKWidget(_WidgetBase):
         if not np.isfinite(dy):
             return True
         if not _IS_MACOS or not _HAS_SCROLL_UNIT_API:
-            steps, _remainder = scroll_delta_to_steps(dy, surface=False)
+            if self._scroll_unit_mode != "wheel":
+                self._scroll_remainder = 0.0
+                self._scroll_unit_mode = "wheel"
+            steps, self._scroll_remainder = scroll_delta_to_steps(
+                dy, surface=False, remainder=self._scroll_remainder
+            )
             direction = 1 if steps < 0 else -1
             for _ in range(abs(steps)):
                 self.vm_glcore.mouse_scroll(direction)
@@ -278,6 +284,9 @@ class VismolGTKWidget(_WidgetBase):
 
         unit = get_scroll_unit(controller)
         if unit == Gdk.ScrollUnit.SURFACE:
+            if self._scroll_unit_mode != "surface":
+                self._scroll_remainder = 0.0
+                self._scroll_unit_mode = "surface"
             # Quartz trackpads report surface pixels, often 1–20 per event.
             # Accumulate 30 pixels per wheel step to avoid runaway zoom and
             # the resulting loss of the molecule from the clipping volume.
@@ -303,11 +312,15 @@ class VismolGTKWidget(_WidgetBase):
             finally:
                 self.vm_glcore.ctrl, self.vm_glcore.shift = saved_ctrl, saved_shift
         else:
-            # Wheel-unit events are already expressed as detents. Discard a
-            # partial trackpad gesture before handling a physical wheel.
-            self._scroll_remainder = 0.0
+            # Wheel-unit deltas can still be fractional on some backends.
+            # Preserve their remainder just like the older-runtime fallback.
+            if self._scroll_unit_mode != "wheel":
+                self._scroll_remainder = 0.0
+                self._scroll_unit_mode = "wheel"
             self._scroll_modifiers = None
-            steps, _remainder = scroll_delta_to_steps(dy, surface=False)
+            steps, self._scroll_remainder = scroll_delta_to_steps(
+                dy, surface=False, remainder=self._scroll_remainder
+            )
             if steps:
                 direction = 1 if steps < 0 else -1
                 for _ in range(abs(steps)):

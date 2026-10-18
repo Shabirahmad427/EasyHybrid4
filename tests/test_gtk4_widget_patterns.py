@@ -367,7 +367,14 @@ def test_scroll_delta_conversion_preserves_smooth_steps_and_wheel_sign():
 
     steps, remainder = scroll_delta_to_steps(-2.5, surface=False, remainder=remainder)
     assert steps == -2
-    assert remainder == 0.0
+    assert remainder == pytest.approx(-0.5 - 1.0 / 30.0)
+
+    steps, remainder = scroll_delta_to_steps(0.25, surface=False, remainder=0.0)
+    assert steps == 0
+    assert remainder == pytest.approx(0.25)
+    steps, remainder = scroll_delta_to_steps(0.8, surface=False, remainder=remainder)
+    assert steps == 1
+    assert remainder == pytest.approx(0.05)
 
     steps, remainder = scroll_delta_to_steps(float("nan"), surface=True, remainder=0.25)
     assert steps == 0
