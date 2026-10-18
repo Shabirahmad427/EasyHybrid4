@@ -21,6 +21,14 @@ GTK widget/chooser module once in every OS/GTK cell, then runs the remaining
 full regression suite separately. Matrix run `39151909478` passed **30/30**;
 Windows GTK 4.24 reported **50 passed, 6 skipped** in the GTK module and
 **80 passed, 4 skipped** in the remaining suite.
+
+**EH4-103 acceptance review (2026-10-18):** Added a deterministic native
+`Gtk.ColumnView` regression that checks `Gtk.SingleSelection` and
+`Gtk.MultiSelection` selection, clearing, and selected row identity. On Linux
+x86_64 under Xvfb with GTK 4.14.5, Python 3.12.3, PyGObject 3.48.2, and GLib
+2.80.0, the focused test passed and the complete widget-pattern module passed
+(50 passed, 7 skipped). The full 30-cell matrix is pending for this change;
+EH4-103 remains open until it passes.
 The first full clean-history GTK matrix log showed an access violation when
 the `Gtk.ColorChooserDialog` response handler destroyed its dialog inline on
 Windows. The fallback now hides the dialog and defers destruction; targeted

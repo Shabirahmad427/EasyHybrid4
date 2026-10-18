@@ -230,6 +230,10 @@ Probed locally on every conda-forge GTK minor with a real display (GTK
 `tests/test_gtk4_widget_patterns.py` checks these with real widgets and a
 static guard against reintroducing the patterns; CI runs it in every matrix
 cell with `EASYHYBRID_REQUIRE_GTK_DISPLAY=1` so it cannot silently skip.
+The acceptance review also covers data-view selection: a real `Gtk.ColumnView`
+is attached to `Gtk.SingleSelection` and `Gtk.MultiSelection`, and tests
+select, clear, and inspect rows by their model objects/positions. This
+complements the existing sorter, dialog, chooser, and Builder-window tests.
 Message dialogs (2026-10-18): `Gtk.MessageDialog` is deprecated since GTK
 4.10 and `Gtk.AlertDialog`/`Gtk.FileDialog` are absent on GTK 4.8 (probed on
 every conda minor). `src/gui/message_dialogs.py` builds message, question and

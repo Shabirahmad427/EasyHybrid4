@@ -234,6 +234,50 @@ def test_property_sorter_orders_text_and_numbers():
 
 
 @needs_display
+def test_column_view_single_and_multiple_selection_models():
+    """Exercise real GTK4 data views and their selection models together."""
+    store = Gio.ListStore.new(_Job)
+    rows = [_Job("alpha", 1), _Job("beta", 2), _Job("gamma", 3)]
+    for row in rows:
+        store.append(row)
+
+    single = Gtk.SingleSelection.new(store)
+    single.set_autoselect(False)
+    single.set_can_unselect(True)
+    single_view = Gtk.ColumnView.new(single)
+
+    multiple = Gtk.MultiSelection.new(store)
+    multiple_view = Gtk.ColumnView.new(multiple)
+
+    box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    box.append(single_view)
+    box.append(multiple_view)
+    window = Gtk.Window()
+    window.set_child(box)
+    window.present()
+    try:
+        assert _wait_for(lambda: single_view.get_realized() and multiple_view.get_realized())
+
+        single.set_selected(1)
+        assert single.get_selected() == 1
+        assert single.get_selected_item() is rows[1]
+        single.set_selected(Gtk.INVALID_LIST_POSITION)
+        assert single.get_selected_item() is None
+
+        multiple.select_item(0, False)
+        multiple.select_item(2, False)
+        selected = multiple.get_selection()
+        assert selected.contains(0)
+        assert not selected.contains(1)
+        assert selected.contains(2)
+        multiple.unselect_item(0)
+        assert not multiple.get_selection().contains(0)
+        assert multiple.get_selection().contains(2)
+    finally:
+        window.destroy()
+
+
+@needs_display
 def test_context_menu_presents_below_a_button():
     from gui.gtk4_context_menu import ContextMenu
 
