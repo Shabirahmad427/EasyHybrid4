@@ -308,6 +308,8 @@ The adapter still hides the chooser on response and destroys it five
 seconds later, which also protects GTK 4.8 on slow machines (macOS x86_64
 GTK 4.8/4.10 runners crashed the same way before that change).
 
+Native matrix run `39140683707` (commit `01ea9a5`): **30/30 cells PASS** — GTK 4.8: 36 passed, 3 skipped (Linux, Windows, macOS arm64/x86_64); GTK 4.10–4.24: 33 passed, 6 skipped. One intermittent access violation on MSYS2 Windows GTK 4.18.6 in run `39139961309` (after a native `Gtk.FileDialog` cancel) did not recur; a gdb backtrace step captures it if it does.
+
 Native matrix run `39082144669` (commit `9373956`): **10/10 passed in all 30 cells** — every GTK4 minor 4.8–4.24 on Linux, Windows and macOS arm64, plus GTK 4.8/4.10 on macOS x86_64.
 
 ## Verification requirements
