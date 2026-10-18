@@ -48,10 +48,13 @@ of the widget module but left this test opening five native COM dialogs in a
 loop plus a separate configuration-test dialog. Limiting Windows to one real
 native cancel and testing the other modes with a fake removed the hard process
 failure, but matrix `39155304114` still logged the COM exception on that one
-cancel while returning exit code 0. Inspection showed the test had posted
-`WM_COMMAND` to the native dialog instead of invoking its Cancel control. It
-now sends `BM_CLICK` to the actual child button. The COM failure remains
-unresolved until a fresh Windows GTK 4.24 artifact completes without it.
+cancel while returning exit code 0. Replacing the posted `WM_COMMAND` with
+`BM_CLICK` did not resolve it: matrix `39156076019` also logged the same
+exception on GTK 4.24 Windows, despite the job passing. The test helper is now
+being changed to focus the dialog and send a real Escape key via `SendInput`;
+this attempt is unverified. Treat the recurring failure as unresolved until
+the Windows artifact is clean, including stderr, rather than relying on pytest
+exit status.
 
 The Windows-only test double initially lacked `Gtk.FileFilter`, so the
 mitigation matrix `39155132412` failed on GTK 4.10, 4.12, 4.20 and 4.22 before
@@ -59,13 +62,12 @@ any native chooser was opened. That test-only `AttributeError` is fixed. The
 corrected matrix `39155304114` passed 30/30 jobs, but its Windows GTK 4.24
 artifact still contained the `0x80010108` trace after the single native
 cancellation, although pytest completed (54 passed, 6 skipped) and the
-workflow exited successfully. This disproves the hypothesis that reducing
-five native cancellations to one was sufficient. The test harness had been
-posting `WM_COMMAND` directly to the native dialog rather than invoking its
-Cancel child control. It now sends `BM_CLICK` to that button so Windows routes
-the action through the dialog's normal control handling. The COM failure is
-not considered fixed until a new Windows GTK 4.24 run completes without the
-exception trace.
+workflow exited successfully. Matrix `39156076019` showed the same exception
+after changing the dialog action from posted `WM_COMMAND` to `BM_CLICK`; both
+approaches leave the native GLib callback failure unresolved. The next test
+uses foreground keyboard Escape through `SendInput`. Its result is pending.
+Do not regard a green pytest/job status as a fix while the artifact contains
+the fatal exception trace.
 The first full clean-history GTK matrix log showed an access violation when
 the `Gtk.ColorChooserDialog` response handler destroyed its dialog inline on
 Windows. The fallback now hides the dialog and defers destruction; targeted

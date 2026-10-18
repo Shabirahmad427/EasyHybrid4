@@ -715,25 +715,16 @@ def _chooser_paths(use_new_api):
 
 
 def _press_native_cancel(title, timeout=20.0):
-    """Press Cancel on the native Windows file dialog titled ``title``.
-
-    On Windows, Gtk.FileDialog shows the system dialog (window class
-    #32770) from a helper thread. Cancelling it through Gio.Cancellable --
-    something the app never does -- left that thread finishing after the
-    dialog was gone, and the next main-loop iteration crashed with an access
-    violation (CI runs 39139961309 and 39141510378). Closing it with its own
-    Cancel button is what a person does and what the app must survive.
-    """
+    """Dismiss the native Windows file dialog titled ``title`` with Escape."""
     import ctypes
     from ctypes import wintypes
 
     user32 = ctypes.WinDLL("user32", use_last_error=True)
     user32.FindWindowW.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR]
     user32.FindWindowW.restype = wintypes.HWND
-    user32.GetDlgItem.argtypes = [wintypes.HWND, ctypes.c_int]
-    user32.GetDlgItem.restype = wintypes.HWND
-    user32.SendMessageW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
-    user32.SendMessageW.restype = wintypes.LPARAM
+    user32.SetForegroundWindow.argtypes = [wintypes.HWND]
+    user32.SetForegroundWindow.restype = wintypes.BOOL
+    user32.GetForegroundWindow.restype = wintypes.HWND
     found = []
 
     def dialog_open():
@@ -743,13 +734,37 @@ def _press_native_cancel(title, timeout=20.0):
         return bool(found)
 
     assert _wait_for(dialog_open, timeout), "native Windows dialog %r never appeared" % title
-    IDCANCEL, BM_CLICK = 2, 0x00F5
-    cancel_button = user32.GetDlgItem(found[-1], IDCANCEL)
-    assert cancel_button, "native dialog %r has no Cancel control" % title
-    # Drive the actual child button. Posting WM_COMMAND directly can bypass
-    # IFileDialog's native control handling and leave its COM callback on a
-    # disconnected apartment (0x80010108).
-    user32.SendMessageW(cancel_button, BM_CLICK, 0, 0)
+    # Use real keyboard input rather than posting WM_COMMAND or sending BM_CLICK
+    # across the native dialog's COM boundary. Both message-based shortcuts
+    # reproduced RPC_E_DISCONNECTED (0x80010108) in GTK's callback thread.
+    user32.SetForegroundWindow(found[-1])
+    assert user32.GetForegroundWindow() == found[-1], "could not focus native dialog %r" % title
+
+    class KEYBDINPUT(ctypes.Structure):
+        _fields_ = [("wVk", wintypes.WORD), ("wScan", wintypes.WORD),
+                    ("dwFlags", wintypes.DWORD), ("time", wintypes.DWORD),
+                    ("dwExtraInfo", ctypes.c_size_t)]
+
+    class MOUSEINPUT(ctypes.Structure):
+        _fields_ = [("dx", wintypes.LONG), ("dy", wintypes.LONG),
+                    ("mouseData", wintypes.DWORD), ("dwFlags", wintypes.DWORD),
+                    ("time", wintypes.DWORD), ("dwExtraInfo", ctypes.c_size_t)]
+
+    class INPUTUNION(ctypes.Union):
+        _fields_ = [("ki", KEYBDINPUT), ("mi", MOUSEINPUT)]
+
+    class INPUT(ctypes.Structure):
+        _anonymous_ = ("u",)
+        _fields_ = [("type", wintypes.DWORD), ("u", INPUTUNION)]
+
+    user32.SendInput.argtypes = [wintypes.UINT, ctypes.POINTER(INPUT), ctypes.c_int]
+    user32.SendInput.restype = wintypes.UINT
+    KEYBDINPUT_TYPE, VK_ESCAPE, KEYUP = 1, 0x1B, 0x0002
+    events = (INPUT * 2)(
+        INPUT(type=KEYBDINPUT_TYPE, ki=KEYBDINPUT(VK_ESCAPE, 0, 0, 0, 0)),
+        INPUT(type=KEYBDINPUT_TYPE, ki=KEYBDINPUT(VK_ESCAPE, 0, KEYUP, 0, 0)),
+    )
+    assert user32.SendInput(2, events, ctypes.sizeof(INPUT)) == 2, ctypes.get_last_error()
 
 
 def _dismiss(handle, title):
