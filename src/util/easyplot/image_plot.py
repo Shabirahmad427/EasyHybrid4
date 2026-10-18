@@ -943,8 +943,8 @@ class ImagePlot(Canvas):
 
         """
         self.cr =  cr
-        self.width = widget.get_allocated_width()   #widget dimentions
-        self.height = widget.get_allocated_height() #widget dimentions   
+        self.width = widget.get_width()   #widget dimentions
+        self.height = widget.get_height() #widget dimentions
         self._make_bg(cr)
 
         if self.data:

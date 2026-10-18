@@ -434,8 +434,8 @@ class XYPlot(Gtk.DrawingArea):
         forma nitida e proporcional -- nao ha' nenhum "temp_surface" de
         resolucao fixa no meio do caminho para atrapalhar. """
         self.cr =  cr
-        self.width = widget.get_allocated_width()
-        self.height = widget.get_allocated_height()
+        self.width = widget.get_width()
+        self.height = widget.get_height()
         if export_scale != 1:
             cr.scale(export_scale, export_scale)
 
@@ -727,8 +727,8 @@ class XYScatterPlot(Gtk.DrawingArea) :
 
     def on_draw(self, widget, cr):
         self.cr =  cr
-        self.width = widget.get_allocated_width()
-        self.height = widget.get_allocated_height()
+        self.width = widget.get_width()
+        self.height = widget.get_height()
 
         line_color = self.line_color
         #bg_color   = self.bg_color  

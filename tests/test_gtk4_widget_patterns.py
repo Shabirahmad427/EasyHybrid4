@@ -457,12 +457,19 @@ def test_deprecated_choosers_only_in_the_portable_adapter():
         r"\.set_do_overwrite_confirmation\(": "absent from every GTK4 release",
         r"\bchoose_path\(": "removed (use gui.file_dialogs.choose_file)",
         r"Gtk\.ColorButton\b": "deprecated since GTK 4.10 (use gui.color_button.ColorButton)",
+        r"(?<!\bplt)\.(show|hide)\(\)": "deprecated since GTK 4.10 (use set_visible)",
+        r"\.get_allocated_(width|height|baseline)\(": "deprecated since GTK 4.12 (use get_width/get_height)",
+        r"\.set_from_pixbuf\(|\.set_pixbuf\(|\.new_from_pixbuf\(|\.new_for_pixbuf\(":
+            "deprecated since GTK 4.12/4.20 (use gtk4_compat.texture_from_pixbuf)",
+        r"Gtk\.Statusbar\b": "deprecated since GTK 4.10 (use gui.status_label.StatusLabel)",
+        r"\.get_style_context\(": "deprecated since GTK 4.10",
         r"(list|tuple)\([^()]*get_rgba\(\)\)|\blist\(color\)": "Gdk.RGBA is iterable only from PyGObject 3.58 (use gtk4_compat.rgba_components)",
     }
     adapter = SRC / "gui" / "file_dialogs.py"
+    compat = SRC / "gtk4_compat.py"
     offenders = []
     for path in SRC.rglob("*.py"):
-        if path == adapter:
+        if path in (adapter, compat):
             continue
         for number, code in _code_lines(path):
             code = code.replace(" . ", ".").replace(" ( ", "(").replace(" (", "(")
@@ -470,7 +477,7 @@ def test_deprecated_choosers_only_in_the_portable_adapter():
                 if re.search(pattern, code):
                     offenders.append("%s:%d %s" % (path.relative_to(PROJECT_ROOT), number, why))
     for path in list(SRC.rglob("*.glade")) + list(SRC.rglob("*.ui")):
-        if re.search(r'class="Gtk(FileChooser|ColorChooser|ColorButton)\w*"', path.read_text(encoding="utf-8")):
+        if re.search(r'class="Gtk(FileChooser|ColorChooser|ColorButton|Statusbar)\w*"', path.read_text(encoding="utf-8")):
             offenders.append("%s GtkFileChooser/GtkColorChooser/GtkColorButton" % path.relative_to(PROJECT_ROOT))
     for path in SRC.rglob("*.py"):
         if 'class="GtkColorButton"' in path.read_text(encoding="utf-8"):
@@ -989,3 +996,85 @@ def test_color_button_pick_sets_opaque_colour_and_emits_color_set(monkeypatch):
         assert button.get_rgba().to_string() == "rgb(0,0,255)"
     finally:
         window.destroy()
+
+
+# --------------------------------------------------------------------------- #
+#  Deprecation sweep: textures and status line.                                #
+# --------------------------------------------------------------------------- #
+
+@pytest.mark.parametrize("has_alpha", [True, False], ids=["rgba", "rgb"])
+def test_texture_from_pixbuf_keeps_size_and_pixels(has_alpha):
+    gi.require_version("GdkPixbuf", "2.0")
+    from gi.repository import GdkPixbuf
+    from src.gtk4_compat import texture_from_pixbuf
+
+    assert texture_from_pixbuf(None) is None
+    pixbuf = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, has_alpha, 8, 5, 3)
+    pixbuf.fill(0x204060FF)  # opaque rgb(32,64,96)
+    texture = texture_from_pixbuf(pixbuf)
+    assert isinstance(texture, Gdk.Texture)
+    assert (texture.get_width(), texture.get_height()) == (5, 3)
+    # Round-trip through GTK's own PNG encoder (GTK 4.6+) to read pixels.
+    loader = GdkPixbuf.PixbufLoader.new_with_type("png")
+    loader.write_bytes(texture.save_to_png_bytes())
+    loader.close()
+    decoded = loader.get_pixbuf()
+    assert (decoded.get_width(), decoded.get_height()) == (5, 3)
+    pixels = decoded.get_pixels()
+    channels = decoded.get_n_channels()
+    last = decoded.get_rowstride() * 2 + 4 * channels  # bottom-right pixel
+    assert tuple(pixels[0:3]) == (32, 64, 96) and tuple(pixels[last:last + 3]) == (32, 64, 96)
+    if channels == 4:
+        assert pixels[3] == 255
+
+
+@needs_display
+def test_texture_is_shown_by_image_and_picture():
+    gi.require_version("GdkPixbuf", "2.0")
+    from gi.repository import GdkPixbuf
+    from src.gtk4_compat import texture_from_pixbuf
+
+    pixbuf = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, 10, 10)
+    pixbuf.fill(0xFF0000FF)
+    image, picture = Gtk.Image(), Gtk.Picture()
+    image.set_from_paintable(texture_from_pixbuf(pixbuf))
+    picture.set_paintable(texture_from_pixbuf(pixbuf))
+    assert image.get_paintable().get_intrinsic_width() == 10
+    assert picture.get_paintable().get_intrinsic_height() == 10
+    image.set_from_paintable(texture_from_pixbuf(None))
+    assert image.get_paintable() is None
+
+
+def test_status_label_keeps_a_statusbar_message_stack():
+    from gui.status_label import StatusLabel
+
+    status = StatusLabel()
+    assert status.get_text() == ""
+    first = status.push(1, "Welcome")
+    second = status.push(2, "Loading")
+    assert second > first and status.get_text() == "Loading"
+    status.push(1, "system: 12 atoms")
+    assert status.get_text() == "system: 12 atoms"
+    status.pop(1)
+    assert status.get_text() == "Loading"
+    status.remove_all(2)
+    assert status.get_text() == "Welcome"
+    status.pop(1)
+    assert status.get_text() == ""
+
+
+@needs_display
+def test_main_window_status_line_is_portable():
+    from gui.gtk4_builder import load_builder_file
+    from gui.status_label import StatusLabel
+
+    builder = Gtk.Builder()
+    load_builder_file(builder, str(SRC / "gui" / "MainWindow.glade"))
+    status = builder.get_object("statusbar1")
+    assert isinstance(status, StatusLabel)
+    status.push(1, "Welcome to EasyHybrid")
+    assert status.get_text() == "Welcome to EasyHybrid"
+    for name in ("window1", "main_window", "MainWindow"):
+        window = builder.get_object(name)
+        if isinstance(window, Gtk.Window):
+            window.destroy()

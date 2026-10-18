@@ -400,7 +400,7 @@
           </object>
         </child>
         <child>
-          <object class="GtkStatusbar" id="statusbar1">
+          <object class="EasyHybridStatusLabel" id="statusbar1">
             <property name="visible">True</property>
             <property name="focusable">False</property>
             <property name="margin-start">10</property>

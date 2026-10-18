@@ -35,6 +35,7 @@ import threading
 import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, GLib, Gio, GObject, GdkPixbuf
+from src.gtk4_compat import texture_from_pixbuf
 from gui import file_dialogs
 from gui.message_dialogs import show_message
 from src.gtk4_compat import GTK_INVALID_LIST_POSITION
@@ -229,7 +230,7 @@ class XtbFragmentChargesWindow:
         row_sys = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         swatch = self._system_color_swatch()
         if swatch is not None:
-            self.img_system = Gtk.Image.new_from_pixbuf(swatch)
+            self.img_system = Gtk.Image.new_from_paintable(texture_from_pixbuf(swatch))
             row_sys.append(self.img_system)
         self.label_system = Gtk.Label()
         self.label_system.set_xalign(0.0)
@@ -488,7 +489,7 @@ class XtbFragmentChargesWindow:
 
     @staticmethod
     def _bind_color(_factory, list_item, _attribute):
-        list_item.get_child().set_pixbuf(list_item.get_item().color)
+        list_item.get_child().set_paintable(texture_from_pixbuf(list_item.get_item().color))
 
     @staticmethod
     def _setup_label(_factory, list_item):

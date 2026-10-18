@@ -397,14 +397,14 @@ class AdvancedReactionCoordinateBox(Gtk.Box):
         """
 
         if rc_mode == 0:
-            self.builder.get_object('label_f').hide()
-            self.builder.get_object('label_b').hide()
-            self.builder.get_object('entry_nsteps2').hide()
+            self.builder.get_object('label_f').set_visible(False)
+            self.builder.get_object('label_b').set_visible(False)
+            self.builder.get_object('entry_nsteps2').set_visible(False)
 
         if rc_mode == 1:
-            self.builder.get_object('label_f').show()
-            self.builder.get_object('label_b').show()
-            self.builder.get_object('entry_nsteps2').show()
+            self.builder.get_object('label_f').set_visible(True)
+            self.builder.get_object('label_b').set_visible(True)
+            self.builder.get_object('entry_nsteps2').set_visible(True)
 
     def remove_selected_row (self, widget = None):
         """Remove the selected row from the reaction-coordinate table,
@@ -984,14 +984,14 @@ class ReactionCoordinateBox(Gtk.Box):
         """
         
         if rc_mode == 0:
-            self.builder.get_object('label_f').hide()
-            self.builder.get_object('label_b').hide()
-            self.builder.get_object('entry_nsteps2').hide()
+            self.builder.get_object('label_f').set_visible(False)
+            self.builder.get_object('label_b').set_visible(False)
+            self.builder.get_object('entry_nsteps2').set_visible(False)
         
         if rc_mode == 1:
-            self.builder.get_object('label_f').show()
-            self.builder.get_object('label_b').show()
-            self.builder.get_object('entry_nsteps2').show()
+            self.builder.get_object('label_f').set_visible(True)
+            self.builder.get_object('label_b').set_visible(True)
+            self.builder.get_object('entry_nsteps2').set_visible(True)
             
     def refresh_dmininum (self, coord1 =  False, coord2 = False):
         """ Function doc """
@@ -1131,56 +1131,56 @@ class ReactionCoordinateBox(Gtk.Box):
         _type = self.combobox_reaction_coord1.get_selected()
         
         if _type == 0:
-            self.builder.get_object('label_atom3_coord1').hide()
-            self.builder.get_object('entry_atom3_index_coord1').hide()
-            self.builder.get_object('label_name3_coord1').hide()
-            self.builder.get_object('entry_atom3_name_coord1').hide()
+            self.builder.get_object('label_atom3_coord1').set_visible(False)
+            self.builder.get_object('entry_atom3_index_coord1').set_visible(False)
+            self.builder.get_object('label_name3_coord1').set_visible(False)
+            self.builder.get_object('entry_atom3_name_coord1').set_visible(False)
             
-            self.builder.get_object('label_atom4_coord1').hide()
-            self.builder.get_object('entry_atom4_index_coord1').hide()
-            self.builder.get_object('label_name4_coord1').hide()
-            self.builder.get_object('entry_atom4_name_coord1').hide()
+            self.builder.get_object('label_atom4_coord1').set_visible(False)
+            self.builder.get_object('entry_atom4_index_coord1').set_visible(False)
+            self.builder.get_object('label_name4_coord1').set_visible(False)
+            self.builder.get_object('entry_atom4_name_coord1').set_visible(False)
             self.builder.get_object('mass_restraints1').set_sensitive(False)
             self.label_initial_dist_angle_dihedral.set_text('Initial Distance:')
 
         if _type == 1:
-            self.builder.get_object('label_atom3_coord1').show()
-            self.builder.get_object('entry_atom3_index_coord1').show()
-            self.builder.get_object('label_name3_coord1').show()
-            self.builder.get_object('entry_atom3_name_coord1').show()
+            self.builder.get_object('label_atom3_coord1').set_visible(True)
+            self.builder.get_object('entry_atom3_index_coord1').set_visible(True)
+            self.builder.get_object('label_name3_coord1').set_visible(True)
+            self.builder.get_object('entry_atom3_name_coord1').set_visible(True)
             
-            self.builder.get_object('label_atom4_coord1').hide()
-            self.builder.get_object('entry_atom4_index_coord1').hide()
-            self.builder.get_object('label_name4_coord1').hide()
-            self.builder.get_object('entry_atom4_name_coord1').hide()
+            self.builder.get_object('label_atom4_coord1').set_visible(False)
+            self.builder.get_object('entry_atom4_index_coord1').set_visible(False)
+            self.builder.get_object('label_name4_coord1').set_visible(False)
+            self.builder.get_object('entry_atom4_name_coord1').set_visible(False)
             self.builder.get_object('mass_restraints1').set_sensitive(True)
             self.label_initial_dist_angle_dihedral.set_text('Initial Distance:')
 
         
         if _type == 2:
-            self.builder.get_object('label_atom3_coord1').show()
-            self.builder.get_object('entry_atom3_index_coord1').show()
-            self.builder.get_object('label_name3_coord1').show()
-            self.builder.get_object('entry_atom3_name_coord1').show()
+            self.builder.get_object('label_atom3_coord1').set_visible(True)
+            self.builder.get_object('entry_atom3_index_coord1').set_visible(True)
+            self.builder.get_object('label_name3_coord1').set_visible(True)
+            self.builder.get_object('entry_atom3_name_coord1').set_visible(True)
             
-            self.builder.get_object('label_atom4_coord1').show()
-            self.builder.get_object('entry_atom4_index_coord1').show()
-            self.builder.get_object('label_name4_coord1').show()
-            self.builder.get_object('entry_atom4_name_coord1').show()
+            self.builder.get_object('label_atom4_coord1').set_visible(True)
+            self.builder.get_object('entry_atom4_index_coord1').set_visible(True)
+            self.builder.get_object('label_name4_coord1').set_visible(True)
+            self.builder.get_object('entry_atom4_name_coord1').set_visible(True)
             self.builder.get_object('mass_restraints1').set_sensitive(False)
             #self.label_initial_dist_angle_dihedral.set_text('Initial Distance:')
             self.label_initial_dist_angle_dihedral.set_text('Initial Distance:')
 
         if _type == 3:
-            self.builder.get_object('label_atom3_coord1').show()
-            self.builder.get_object('entry_atom3_index_coord1').show()
-            self.builder.get_object('label_name3_coord1').show()
-            self.builder.get_object('entry_atom3_name_coord1').show()
+            self.builder.get_object('label_atom3_coord1').set_visible(True)
+            self.builder.get_object('entry_atom3_index_coord1').set_visible(True)
+            self.builder.get_object('label_name3_coord1').set_visible(True)
+            self.builder.get_object('entry_atom3_name_coord1').set_visible(True)
             
-            self.builder.get_object('label_atom4_coord1').show()
-            self.builder.get_object('entry_atom4_index_coord1').show()
-            self.builder.get_object('label_name4_coord1').show()
-            self.builder.get_object('entry_atom4_name_coord1').show()
+            self.builder.get_object('label_atom4_coord1').set_visible(True)
+            self.builder.get_object('entry_atom4_index_coord1').set_visible(True)
+            self.builder.get_object('label_name4_coord1').set_visible(True)
+            self.builder.get_object('entry_atom4_name_coord1').set_visible(True)
             self.builder.get_object('mass_restraints1').set_sensitive(False)
             #self.label_initial_dist_angle_dihedral.set_text('Initial Distance:')
             self.label_initial_dist_angle_dihedral.set_text('Initial Angle:')
@@ -1210,9 +1210,9 @@ class ReactionCoordinateBox(Gtk.Box):
 
     def set_hide_scan_parameters (self):
         """ Function doc """
-        self.builder.get_object('rc_grid').hide()
-        self.builder.get_object('mass_restraints1').hide()
-        self.builder.get_object('rc_aligment').hide()
+        self.builder.get_object('rc_grid').set_visible(False)
+        self.builder.get_object('mass_restraints1').set_visible(False)
+        self.builder.get_object('rc_aligment').set_visible(False)
         self.scan = False
 
     def get_rc_data (self, _is_ts_mode = False):

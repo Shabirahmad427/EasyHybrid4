@@ -160,8 +160,8 @@ class WHAMWindow(Gtk.Window):
             self.window.connect("close-request", self.close_window)
             self.window.present()
             
-            self.builder.get_object('entry_bins_RC2').hide()
-            self.builder.get_object('label_bins_RC2').hide()
+            self.builder.get_object('entry_bins_RC2').set_visible(False)
+            self.builder.get_object('label_bins_RC2').set_visible(False)
 
             
             self.Visible  = True   
@@ -333,12 +333,12 @@ class WHAMWindow(Gtk.Window):
     def on_combobox_PMF_type(self, widget, _pspec=None):
         _type     = self.methods_combo.get_selected()
         if _type ==1:
-            self.builder.get_object('entry_bins_RC2').show()
-            self.builder.get_object('label_bins_RC2').show()
+            self.builder.get_object('entry_bins_RC2').set_visible(True)
+            self.builder.get_object('label_bins_RC2').set_visible(True)
             #parameters['bins'] = [int(bins), int(bins)] 
         else:
-            self.builder.get_object('entry_bins_RC2').hide()
-            self.builder.get_object('label_bins_RC2').hide()
+            self.builder.get_object('entry_bins_RC2').set_visible(False)
+            self.builder.get_object('label_bins_RC2').set_visible(False)
         
         #self.builder.get_object('label_bins_RC2').hide()
         

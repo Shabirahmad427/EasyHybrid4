@@ -676,10 +676,10 @@ class SurfaceAnalysisWindow(Gtk.Window):
             self.box_surface_type.append(self.entry_mep_vmax)
             # comecam escondidos -- so fazem sentido com "MEP" selecionado
             # (index == 4), ver surface_combobox_change().
-            self.label_mep_vmin.hide()
-            self.entry_mep_vmin.hide()
-            self.label_mep_vmax.hide()
-            self.entry_mep_vmax.hide()
+            self.label_mep_vmin.set_visible(False)
+            self.entry_mep_vmin.set_visible(False)
+            self.label_mep_vmax.set_visible(False)
+            self.entry_mep_vmax.set_visible(False)
             #'''--------------------------------------------------------------------------------------------'''
 
 
@@ -704,8 +704,8 @@ class SurfaceAnalysisWindow(Gtk.Window):
 
             self.box_surface_type.append(self.label_mep_cmap)
             self.box_surface_type.append(self.cbx_mep_cmap)
-            self.label_mep_cmap.hide()
-            self.cbx_mep_cmap.hide()
+            self.label_mep_cmap.set_visible(False)
+            self.cbx_mep_cmap.set_visible(False)
             #'''--------------------------------------------------------------------------------------------'''
 
 
@@ -745,8 +745,8 @@ class SurfaceAnalysisWindow(Gtk.Window):
                 "= ~15x fewer points = ~15x faster).")
             self.box_surface_type.append(self.label_mep_pot_spacing)
             self.box_surface_type.append(self.entry_mep_pot_spacing)
-            self.label_mep_pot_spacing.hide()
-            self.entry_mep_pot_spacing.hide()
+            self.label_mep_pot_spacing.set_visible(False)
+            self.entry_mep_pot_spacing.set_visible(False)
             #'''--------------------------------------------------------------------------------------------'''
 
 
@@ -792,7 +792,7 @@ class SurfaceAnalysisWindow(Gtk.Window):
                 _outer_box = _scrolled_parent.get_parent ( )
             if _outer_box is not None and hasattr(_outer_box, "append"):
                 _outer_box.append(self.btn_export_orbitals)
-                self.btn_export_orbitals.show ( )
+                self.btn_export_orbitals.set_visible(True)
             # [EN] User request: "ao clicar em um orbital da treeview, ele
             # printe os dados da LCAO no terminal, por hora." --
             #-----------------------------------------------------------
@@ -848,8 +848,8 @@ class SurfaceAnalysisWindow(Gtk.Window):
                 "Optional cube file used to color the surface by its electrostatic potential.")
             self.box_surface_type.append(self.label_external_potential)
             self.box_surface_type.append(self.btn_external_potential_file)
-            self.label_external_potential.hide()
-            self.btn_external_potential_file.hide()
+            self.label_external_potential.set_visible(False)
+            self.btn_external_potential_file.set_visible(False)
 
 
 
@@ -865,8 +865,8 @@ class SurfaceAnalysisWindow(Gtk.Window):
             self.cbx_surface_type.set_selected(0)
             self._refresh_surface_target_combo()
 
-            self.builder.get_object('btn_external_file').hide()
-            self.builder.get_object('label_external_file').hide()
+            self.builder.get_object('btn_external_file').set_visible(False)
+            self.builder.get_object('label_external_file').set_visible(False)
             #self.system_names_combo.set_selected(0)
             self.visible    =  True
             '''--------------------------------------------------------------------------------------------'''
@@ -1070,117 +1070,117 @@ class SurfaceAnalysisWindow(Gtk.Window):
         dprint(index)
 
         if index == 4:
-            self.label_mep_vmin.show()
-            self.entry_mep_vmin.show()
-            self.label_mep_vmax.show()
-            self.entry_mep_vmax.show()
-            self.label_mep_cmap.show()
-            self.cbx_mep_cmap.show()
-            self.label_mep_pot_spacing.show()
-            self.entry_mep_pot_spacing.show()
+            self.label_mep_vmin.set_visible(True)
+            self.entry_mep_vmin.set_visible(True)
+            self.label_mep_vmax.set_visible(True)
+            self.entry_mep_vmax.set_visible(True)
+            self.label_mep_cmap.set_visible(True)
+            self.cbx_mep_cmap.set_visible(True)
+            self.label_mep_pot_spacing.set_visible(True)
+            self.entry_mep_pot_spacing.set_visible(True)
         else:
-            self.label_mep_vmin.hide()
-            self.entry_mep_vmin.hide()
-            self.label_mep_vmax.hide()
-            self.entry_mep_vmax.hide()
-            self.label_mep_cmap.hide()
-            self.cbx_mep_cmap.hide()
-            self.label_mep_pot_spacing.hide()
-            self.entry_mep_pot_spacing.hide()
+            self.label_mep_vmin.set_visible(False)
+            self.entry_mep_vmin.set_visible(False)
+            self.label_mep_vmax.set_visible(False)
+            self.entry_mep_vmax.set_visible(False)
+            self.label_mep_cmap.set_visible(False)
+            self.cbx_mep_cmap.set_visible(False)
+            self.label_mep_pot_spacing.set_visible(False)
+            self.entry_mep_pot_spacing.set_visible(False)
 
         if index == 1:
             #self.builder.get_object('btn_import_wavefunction').set_sensitive(False)
             #self.builder.get_object('orbital_column_view')     .set_sensitive(False)
-            self.builder.get_object('btn_import_wavefunction').hide()
-            self.builder.get_object('orbital_column_view')     .hide()
-            self.builder.get_object('orbital_scrolled_window')     .hide()
-            self.builder.get_object('label_external_file').hide()
-            self.builder.get_object('btn_external_file')  .hide()
-            self.label_external_potential.hide()
-            self.btn_external_potential_file.hide()
-            
-            self.builder.get_object('btn_color_minus').show()
-            self.builder.get_object('btn_color_plus' ).show()
-            self.builder.get_object('label_color_minus' ).show()
-            self.builder.get_object('label_color_plus' ).show()
-            self.btn_export_orbitals.hide()
+            self.builder.get_object('btn_import_wavefunction').set_visible(False)
+            self.builder.get_object('orbital_column_view')     .set_visible(False)
+            self.builder.get_object('orbital_scrolled_window')     .set_visible(False)
+            self.builder.get_object('label_external_file').set_visible(False)
+            self.builder.get_object('btn_external_file')  .set_visible(False)
+            self.label_external_potential.set_visible(False)
+            self.btn_external_potential_file.set_visible(False)
+
+            self.builder.get_object('btn_color_minus').set_visible(True)
+            self.builder.get_object('btn_color_plus' ).set_visible(True)
+            self.builder.get_object('label_color_minus' ).set_visible(True)
+            self.builder.get_object('label_color_plus' ).set_visible(True)
+            self.btn_export_orbitals.set_visible(False)
             #self.btn_external_potential_file.hide()
             self.window.queue_resize()
             
         elif index == 2:
             #self.builder.get_object('btn_import_wavefunction').set_sensitive(False)
             #self.builder.get_object('orbital_column_view')     .set_sensitive(False)
-            self.builder.get_object('btn_import_wavefunction').hide()
-            self.builder.get_object('orbital_column_view')     .hide()
-            self.builder.get_object('orbital_scrolled_window')     .hide()
-            self.builder.get_object('label_external_file').hide()
-            self.builder.get_object('btn_external_file')  .hide()
-            self.label_external_potential.hide()
-            self.btn_external_potential_file.hide()
-            
-            self.builder.get_object('btn_color_minus').hide()
-            self.builder.get_object('btn_color_plus' ).show()
-            self.builder.get_object('label_color_minus' ).hide()
-            self.builder.get_object('label_color_plus' ).show()
-            self.btn_export_orbitals.hide()
+            self.builder.get_object('btn_import_wavefunction').set_visible(False)
+            self.builder.get_object('orbital_column_view')     .set_visible(False)
+            self.builder.get_object('orbital_scrolled_window')     .set_visible(False)
+            self.builder.get_object('label_external_file').set_visible(False)
+            self.builder.get_object('btn_external_file')  .set_visible(False)
+            self.label_external_potential.set_visible(False)
+            self.btn_external_potential_file.set_visible(False)
+
+            self.builder.get_object('btn_color_minus').set_visible(False)
+            self.builder.get_object('btn_color_plus' ).set_visible(True)
+            self.builder.get_object('label_color_minus' ).set_visible(False)
+            self.builder.get_object('label_color_plus' ).set_visible(True)
+            self.btn_export_orbitals.set_visible(False)
             self.window.queue_resize()
         elif index == 3:
-            self.builder.get_object('label_external_file').show()
-            self.builder.get_object('btn_external_file').show()
-            self.label_external_potential.show()
-            self.btn_external_potential_file.show()
+            self.builder.get_object('label_external_file').set_visible(True)
+            self.builder.get_object('btn_external_file').set_visible(True)
+            self.label_external_potential.set_visible(True)
+            self.btn_external_potential_file.set_visible(True)
             
             #self.builder.get_object('btn_import_wavefunction').set_sensitive(False)
             #self.builder.get_object('orbital_scrolled_window'     ).set_sensitive(False)
             #self.builder.get_object('orbital_column_view'     ).set_sensitive(False)
             
-            self.builder.get_object('btn_import_wavefunction').hide()
-            self.builder.get_object('orbital_column_view'     ).hide()
+            self.builder.get_object('btn_import_wavefunction').set_visible(False)
+            self.builder.get_object('orbital_column_view'     ).set_visible(False)
             
-            self.builder.get_object('btn_color_minus').show()
-            self.builder.get_object('btn_color_plus' ).show()
-            self.builder.get_object('label_color_minus' ).show()
-            self.builder.get_object('label_color_plus' ).show()
-            self.builder.get_object('btn_import_wavefunction').hide()
-            self.builder.get_object('orbital_column_view')     .hide()
+            self.builder.get_object('btn_color_minus').set_visible(True)
+            self.builder.get_object('btn_color_plus' ).set_visible(True)
+            self.builder.get_object('label_color_minus' ).set_visible(True)
+            self.builder.get_object('label_color_plus' ).set_visible(True)
+            self.builder.get_object('btn_import_wavefunction').set_visible(False)
+            self.builder.get_object('orbital_column_view')     .set_visible(False)
             
-            self.btn_export_orbitals.hide()
+            self.btn_export_orbitals.set_visible(False)
             self.window.queue_resize()
         elif index == 4:
             #self.builder.get_object('btn_import_wavefunction').set_sensitive(False)
             #self.builder.get_object('orbital_column_view')     .set_sensitive(False)
-            self.builder.get_object('btn_import_wavefunction').hide()
-            self.builder.get_object('orbital_column_view')     .hide()
-            self.builder.get_object('orbital_scrolled_window')     .hide()
-            self.builder.get_object('label_external_file').hide()
-            self.builder.get_object('btn_external_file')  .hide()
-            self.label_external_potential.hide()
-            self.btn_external_potential_file.hide()
-            
-            self.builder.get_object('btn_color_minus').hide()
-            self.builder.get_object('btn_color_plus' ).hide()
-            self.builder.get_object('label_color_minus' ).hide()
-            self.builder.get_object('label_color_plus' ).hide()
-            
-            self.btn_export_orbitals.hide()
+            self.builder.get_object('btn_import_wavefunction').set_visible(False)
+            self.builder.get_object('orbital_column_view')     .set_visible(False)
+            self.builder.get_object('orbital_scrolled_window')     .set_visible(False)
+            self.builder.get_object('label_external_file').set_visible(False)
+            self.builder.get_object('btn_external_file')  .set_visible(False)
+            self.label_external_potential.set_visible(False)
+            self.btn_external_potential_file.set_visible(False)
+
+            self.builder.get_object('btn_color_minus').set_visible(False)
+            self.builder.get_object('btn_color_plus' ).set_visible(False)
+            self.builder.get_object('label_color_minus' ).set_visible(False)
+            self.builder.get_object('label_color_plus' ).set_visible(False)
+
+            self.btn_export_orbitals.set_visible(False)
             self.window.queue_resize()
         else:
             self.builder.get_object('btn_import_wavefunction').set_sensitive(True)
             self.builder.get_object('orbital_column_view')     .set_sensitive(True)
-            self.builder.get_object('btn_import_wavefunction').show()
-            self.builder.get_object('orbital_scrolled_window')     .show()
-            self.builder.get_object('orbital_column_view')     .show()
-            self.builder.get_object('label_external_file').hide()
-            self.builder.get_object('btn_external_file')  .hide()
-            self.label_external_potential.hide()
-            self.btn_external_potential_file.hide()
+            self.builder.get_object('btn_import_wavefunction').set_visible(True)
+            self.builder.get_object('orbital_scrolled_window')     .set_visible(True)
+            self.builder.get_object('orbital_column_view')     .set_visible(True)
+            self.builder.get_object('label_external_file').set_visible(False)
+            self.builder.get_object('btn_external_file')  .set_visible(False)
+            self.label_external_potential.set_visible(False)
+            self.btn_external_potential_file.set_visible(False)
 
-            self.builder.get_object('btn_color_minus').show()
-            self.builder.get_object('btn_color_plus' ).show()
-            self.builder.get_object('label_color_minus' ).show()
-            self.builder.get_object('label_color_plus' ).show()
-            
-            self.btn_export_orbitals.show()
+            self.builder.get_object('btn_color_minus').set_visible(True)
+            self.builder.get_object('btn_color_plus' ).set_visible(True)
+            self.builder.get_object('label_color_minus' ).set_visible(True)
+            self.builder.get_object('label_color_plus' ).set_visible(True)
+
+            self.btn_export_orbitals.set_visible(True)
             self.window.queue_resize()
 
     def on_coordinates_combobox_changed(self, widget, _pspec=None):

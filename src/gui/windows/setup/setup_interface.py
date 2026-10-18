@@ -33,6 +33,7 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, GdkPixbuf, Gdk, Gio
+from src.gtk4_compat import texture_from_pixbuf
 from src.gtk4_compat import rgba_components
 from gui.message_dialogs import show_message
 from gui.gtk4_builder import connect_builder_signals, load_builder_file, load_builder_string
@@ -214,7 +215,7 @@ class EasyHybridPreferencesWindow():
 
         def bind(_factory, item):
             row = item.get_item()
-            paintable = Gdk.Texture.new_for_pixbuf(row.color) if row.color else None
+            paintable = texture_from_pixbuf(row.color)
             item.get_child().set_paintable(paintable)
 
         factory.connect("setup", setup)

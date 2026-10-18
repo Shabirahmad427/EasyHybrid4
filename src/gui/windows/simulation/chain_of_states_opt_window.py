@@ -140,8 +140,8 @@ class ChainOfStatesOptWindow(Gtk.Window):
             self.window.set_size_request(-1, -1)
             self.window.present()
             
-            self.builder.get_object('label_poolfactory').hide()
-            self.builder.get_object('entry_poolfactory').hide()
+            self.builder.get_object('label_poolfactory').set_visible(False)
+            self.builder.get_object('entry_poolfactory').set_visible(False)
             
             
             self.Visible  = True   

@@ -1025,37 +1025,37 @@ class MainWindow:
 
         elif menuitem == self._ui('menuitem_file_tools'):
             if menuitem.get_active():
-                self._ui('toolbar1').show()
+                self._ui('toolbar1').set_visible(True)
             else:
-                self._ui('toolbar1').hide()
+                self._ui('toolbar1').set_visible(False)
         
 
         elif menuitem == self._ui('menuitem_seltype_box'):
             if menuitem.get_active():
-                self._ui('toolbutton_selection_box').show()
+                self._ui('toolbutton_selection_box').set_visible(True)
             else:
-                self._ui('toolbutton_selection_box').hide()
+                self._ui('toolbutton_selection_box').set_visible(False)
 
         
         
         elif menuitem == self._ui('menuitem_check_selection_toolbar'):
             if menuitem.get_active():
-                self._ui('toolbar2_selections').show()
+                self._ui('toolbar2_selections').set_visible(True)
             else:
-                self._ui('toolbar2_selections').hide()
+                self._ui('toolbar2_selections').set_visible(False)
         
         
         elif menuitem == self._ui('menuitem_check_pDynamo_tools_bar'):
             if menuitem.get_active():
-                self._ui('toolbar4_pdynamo_tools').show()
+                self._ui('toolbar4_pdynamo_tools').set_visible(True)
             else:
-                self._ui('toolbar4_pdynamo_tools').hide()
+                self._ui('toolbar4_pdynamo_tools').set_visible(False)
         
         elif menuitem == self._ui('menuitem_message_window'):
             if menuitem.get_active():
-                self.bottom_notebook.widget.show()
+                self.bottom_notebook.widget.set_visible(True)
             else:
-                self.bottom_notebook.widget.hide()
+                self.bottom_notebook.widget.set_visible(False)
         
         #----------------------------------------------------------------------
         elif menuitem == self._ui('menuitem_check_xyz_axes'):

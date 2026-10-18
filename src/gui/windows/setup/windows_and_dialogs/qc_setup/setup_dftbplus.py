@@ -235,9 +235,9 @@ class SetupDFTBplusWindow:
         """ Function doc """
 
         if self.chk_extended_input.get_active():
-            self.builder.get_object('scroll_text_viewer').show( )
+            self.builder.get_object('scroll_text_viewer').set_visible(True)
         else:
-            self.builder.get_object('scroll_text_viewer').hide( )
+            self.builder.get_object('scroll_text_viewer').set_visible(False)
 
         '''
         self.builder.get_object('entry_zeta').set_text(str(4.00))

@@ -204,19 +204,19 @@ class EnergyRefinementWindow():
         #print(_id)
         
         if _id == 0:
-            self.builder.get_object('label_coordinates').show()
-            self.combobox_starting_coordinates.show()
+            self.builder.get_object('label_coordinates').set_visible(True)
+            self.combobox_starting_coordinates.set_visible(True)
             
-            self.builder.get_object('label_file_folder').hide()
-            self.builder.get_object('filechooser_file_folder').hide()
+            self.builder.get_object('label_file_folder').set_visible(False)
+            self.builder.get_object('filechooser_file_folder').set_visible(False)
             self.builder.get_object('box_reaction_coordinate2').set_sensitive(False)
         
         elif _id in [1,2]:
-            self.builder.get_object('label_coordinates').hide()
-            self.combobox_starting_coordinates.hide()
+            self.builder.get_object('label_coordinates').set_visible(False)
+            self.combobox_starting_coordinates.set_visible(False)
             
-            self.builder.get_object('label_file_folder').show()
-            self.builder.get_object('filechooser_file_folder').show()
+            self.builder.get_object('label_file_folder').set_visible(True)
+            self.builder.get_object('filechooser_file_folder').set_visible(True)
             
             if _id ==1:
                 self.builder.get_object('box_reaction_coordinate2').set_sensitive(False)

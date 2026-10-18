@@ -263,7 +263,7 @@ class pAnalysis:
                             'Z'  : _Z,
                            }
 
-                    self.imgPlot.show()
+                    self.imgPlot.set_visible(True)
                     self.imgPlot.data    =  data['Z']
                     self.imgPlot.dataRC1 =  data['RC1']
                     self.imgPlot.dataRC2 =  data['RC2']

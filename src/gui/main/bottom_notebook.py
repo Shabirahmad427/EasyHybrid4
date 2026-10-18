@@ -34,6 +34,7 @@ import gi
 import signal
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gdk, GObject, Gio, GLib
+from src.gtk4_compat import texture_from_pixbuf
 from gi.repository import GdkPixbuf
 from gui.gtk4_builder import load_builder_file, load_builder_string
 
@@ -239,7 +240,7 @@ class BottomNoteBook:
         row_box = list_item.get_child()
         picture = row_box.get_first_child()
         label = picture.get_next_sibling()
-        picture.set_pixbuf(row.icon)
+        picture.set_paintable(texture_from_pixbuf(row.icon))
         label.set_text(row.message)
         self._unbind_message_cell(factory, list_item)
         handler_id = row.connect(

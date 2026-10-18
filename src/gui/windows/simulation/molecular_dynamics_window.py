@@ -133,7 +133,7 @@ class MolecularDynamicsWindow:
             "label_collision_freq",
             "entry_collision_frequency",
         ]:
-            self.builder.get_object(widget_name).hide()
+            self.builder.get_object(widget_name).set_visible(False)
 
         # Setup coordinates combobox
         self.box_coordinates = self.builder.get_object("box_coordinates")
@@ -355,9 +355,9 @@ class MolecularDynamicsWindow:
         show = show or []
         hide = hide or []
         for name in show:
-            self.builder.get_object(name).show()
+            self.builder.get_object(name).set_visible(True)
         for name in hide:
-            self.builder.get_object(name).hide()
+            self.builder.get_object(name).set_visible(False)
 
     def update_working_folder_chooser(self, folder = None) -> None:
         """Update the working folder shown in the SaveTrajectoryBox."""
@@ -490,18 +490,18 @@ class MolecularDynamicsWindow_OLD():
         
                 
             #------------------------------------------------------------------------------------------
-            self.builder.get_object('check_pressure_control').hide()
-            self.builder.get_object('entry_pressure').hide()
-            self.builder.get_object('entry_pressure').hide()
+            self.builder.get_object('check_pressure_control').set_visible(False)
+            self.builder.get_object('entry_pressure').set_visible(False)
+            self.builder.get_object('entry_pressure').set_visible(False)
 
-            self.builder.get_object('entry_temp_coupling').hide()
-            self.builder.get_object('label_temp_coupling').hide()
+            self.builder.get_object('entry_temp_coupling').set_visible(False)
+            self.builder.get_object('label_temp_coupling').set_visible(False)
 
-            self.builder.get_object('label_pressure_coupling').hide()
-            self.builder.get_object('entry_pressure_coupling').hide()
+            self.builder.get_object('label_pressure_coupling').set_visible(False)
+            self.builder.get_object('entry_pressure_coupling').set_visible(False)
 
-            self.builder.get_object('label_collision_freq').hide()
-            self.builder.get_object('entry_collision_frequency').hide()
+            self.builder.get_object('label_collision_freq').set_visible(False)
+            self.builder.get_object('entry_collision_frequency').set_visible(False)
             #------------------------------------------------------------------------------------------
 
 
@@ -835,54 +835,54 @@ class MolecularDynamicsWindow_OLD():
             
             #velocity verlet molecular dynamics
             if 0 == widget.get_selected():
-                self.builder.get_object('check_pressure_control').hide()
-                self.builder.get_object('entry_pressure').hide()
-                self.builder.get_object('entry_pressure').hide()
+                self.builder.get_object('check_pressure_control').set_visible(False)
+                self.builder.get_object('entry_pressure').set_visible(False)
+                self.builder.get_object('entry_pressure').set_visible(False)
                 
                 
-                self.builder.get_object('entry_temp_coupling').hide()
-                self.builder.get_object('label_temp_coupling').hide()
+                self.builder.get_object('entry_temp_coupling').set_visible(False)
+                self.builder.get_object('label_temp_coupling').set_visible(False)
                 
-                self.builder.get_object('label_pressure_coupling').hide()
-                self.builder.get_object('entry_pressure_coupling').hide()
+                self.builder.get_object('label_pressure_coupling').set_visible(False)
+                self.builder.get_object('entry_pressure_coupling').set_visible(False)
                 
-                self.builder.get_object('label_collision_freq').hide()
-                self.builder.get_object('entry_collision_frequency').hide()
+                self.builder.get_object('label_collision_freq').set_visible(False)
+                self.builder.get_object('entry_collision_frequency').set_visible(False)
                 
                 self.temp_scale_options_combo.set_sensitive(True)
                 
             #Leap Frog molecular dynamics
             elif 1 == widget.get_selected():
-                self.builder.get_object('check_pressure_control').show()
-                self.builder.get_object('entry_pressure').show()
+                self.builder.get_object('check_pressure_control').set_visible(True)
+                self.builder.get_object('entry_pressure').set_visible(True)
                 
-                self.builder.get_object('label_pressure_coupling').show()
-                self.builder.get_object('entry_pressure_coupling').show()
-                
-                
-                self.builder.get_object('entry_temp_coupling').show()
-                self.builder.get_object('label_temp_coupling').show()
+                self.builder.get_object('label_pressure_coupling').set_visible(True)
+                self.builder.get_object('entry_pressure_coupling').set_visible(True)
                 
                 
-                self.builder.get_object('label_collision_freq').hide()
-                self.builder.get_object('entry_collision_frequency').hide()
+                self.builder.get_object('entry_temp_coupling').set_visible(True)
+                self.builder.get_object('label_temp_coupling').set_visible(True)
+                
+                
+                self.builder.get_object('label_collision_freq').set_visible(False)
+                self.builder.get_object('entry_collision_frequency').set_visible(False)
                 
                 self.temp_scale_options_combo.set_selected(0)
                 self.temp_scale_options_combo.set_sensitive(False)
                 
             #Langevin molecular dynamics
             elif 2 == widget.get_selected():
-                self.builder.get_object('check_pressure_control').hide()
-                self.builder.get_object('entry_pressure').hide()
+                self.builder.get_object('check_pressure_control').set_visible(False)
+                self.builder.get_object('entry_pressure').set_visible(False)
                 
-                self.builder.get_object('entry_temp_coupling').hide()
-                self.builder.get_object('label_temp_coupling').hide()
+                self.builder.get_object('entry_temp_coupling').set_visible(False)
+                self.builder.get_object('label_temp_coupling').set_visible(False)
                 
-                self.builder.get_object('label_pressure_coupling').hide()
-                self.builder.get_object('entry_pressure_coupling').hide()
+                self.builder.get_object('label_pressure_coupling').set_visible(False)
+                self.builder.get_object('entry_pressure_coupling').set_visible(False)
                 
-                self.builder.get_object('label_collision_freq').show()
-                self.builder.get_object('entry_collision_frequency').show()
+                self.builder.get_object('label_collision_freq').set_visible(True)
+                self.builder.get_object('entry_collision_frequency').set_visible(True)
             
                 self.temp_scale_options_combo.set_selected(0)
                 self.temp_scale_options_combo.set_sensitive(False)

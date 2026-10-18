@@ -39,8 +39,8 @@ def export_plot_to_png(plot_widget, filepath, scale=4):
     a janela nunca foi mostrada/redimensionada) -- nesse caso nao ha'
     largura/altura de referencia para escalar.
     """
-    width = plot_widget.get_allocated_width()
-    height = plot_widget.get_allocated_height()
+    width = plot_widget.get_width()
+    height = plot_widget.get_height()
     if width <= 0 or height <= 0:
         raise ValueError(
             "export_plot_to_png: o widget do grafico ainda nao tem "
@@ -56,7 +56,7 @@ def export_plot_to_png(plot_widget, filepath, scale=4):
                                   int(width * scale), int(height * scale))
     cr = cairo.Context(surface)
 
-    # widget real (nao um dublê): get_allocated_width/height() continuam
+    # widget real (nao um dublê): get_width()/get_height() continuam
     # retornando o tamanho ORIGINAL da tela -- e' isso que faz as
     # proporcoes (margens, fontes, grade de dados) ficarem identicas as
     # da tela, so' que desenhadas numa superficie fisicamente maior.

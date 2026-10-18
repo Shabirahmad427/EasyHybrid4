@@ -34,6 +34,7 @@ import gi
 import signal
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gdk, GObject, Gio, Pango
+from src.gtk4_compat import texture_from_pixbuf
 from gi.repository import GdkPixbuf
 from gui.model_rows import CoordinateChoiceRow, SystemChoiceRow
 
@@ -254,12 +255,12 @@ class EasyHybridMainTreeView(Gtk.Box):
         box = expander.get_child()
         picture = box.get_first_child()
         label = picture.get_next_sibling()
-        picture.set_pixbuf(row.color)
+        picture.set_paintable(texture_from_pixbuf(row.color))
         label.set_text(row.name)
         self._connect_row_notify(list_item, row, "notify::name",
                                  lambda item: label.set_text(item.name))
         self._connect_row_notify(list_item, row, "notify::color",
-                                 lambda item: picture.set_pixbuf(item.color))
+                                 lambda item: picture.set_paintable(texture_from_pixbuf(item.color)))
 
     def _setup_visibility(self, factory, list_item):
         check = Gtk.CheckButton()
