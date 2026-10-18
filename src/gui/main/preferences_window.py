@@ -136,7 +136,7 @@ class PreferencesWindow:
             <child><object class="GtkLabel" id="label_tag"><property name="label">Tag:</property><property name="halign">end</property></object><layout><property name="column">0</property><property name="row">1</property></layout></child>
             <child><object class="GtkEntry" id="entry_tag"><property name="max-length">15</property><property name="width-chars">10</property><property name="text">molsys</property></object><layout><property name="column">1</property><property name="row">1</property></layout></child>
             <child><object class="GtkLabel" id="label_color"><property name="label">Color:</property></object><layout><property name="column">0</property><property name="row">2</property></layout></child>
-            <child><object class="GtkColorButton" id="button_color"><property name="rgba">rgb(138,226,52)</property></object><layout><property name="column">1</property><property name="row">2</property></layout></child>
+            <child><object class="EasyHybridColorButton" id="button_color"><property name="rgba">rgb(138,226,52)</property></object><layout><property name="column">1</property><property name="row">2</property></layout></child>
           </object>
         </child>
         <child>

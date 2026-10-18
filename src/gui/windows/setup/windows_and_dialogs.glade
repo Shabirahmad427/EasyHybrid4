@@ -105,7 +105,7 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkColorButton" id="button_color">
+                      <object class="EasyHybridColorButton" id="button_color">
                         <property name="visible">True</property>
                         <property name="focusable">True</property>
                         <property name="rgba">rgb(117,80,123)</property>

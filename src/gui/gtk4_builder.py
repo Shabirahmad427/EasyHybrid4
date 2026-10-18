@@ -8,6 +8,9 @@ import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gio
 
+# Registers EasyHybridColorButton, which Builder files name directly.
+from gui import color_button  # noqa: F401,E402
+
 
 def load_builder_file(builder, filename):
     """Load a UI and defer its signal hookups to GTK4's GObject API.
