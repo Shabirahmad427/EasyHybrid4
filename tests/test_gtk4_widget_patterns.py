@@ -595,6 +595,45 @@ def _chooser_paths(use_new_api):
                     "only where Gtk.FileDialog is absent" % version)
 
 
+def _press_native_cancel(title, timeout=20.0):
+    """Press Cancel on the native Windows file dialog titled ``title``.
+
+    On Windows, Gtk.FileDialog shows the system dialog (window class
+    #32770) from a helper thread. Cancelling it through Gio.Cancellable --
+    something the app never does -- left that thread finishing after the
+    dialog was gone, and the next main-loop iteration crashed with an access
+    violation (CI runs 39139961309 and 39141510378). Closing it with its own
+    Cancel button is what a person does and what the app must survive.
+    """
+    import ctypes
+    from ctypes import wintypes
+
+    user32 = ctypes.WinDLL("user32", use_last_error=True)
+    user32.FindWindowW.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR]
+    user32.FindWindowW.restype = wintypes.HWND
+    user32.PostMessageW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
+    user32.PostMessageW.restype = wintypes.BOOL
+    found = []
+
+    def dialog_open():
+        hwnd = user32.FindWindowW("#32770", title)
+        if hwnd:
+            found.append(hwnd)
+        return bool(found)
+
+    assert _wait_for(dialog_open, timeout), "native Windows dialog %r never appeared" % title
+    WM_COMMAND, IDCANCEL = 0x0111, 2
+    assert user32.PostMessageW(found[-1], WM_COMMAND, IDCANCEL, 0), ctypes.get_last_error()
+
+
+def _dismiss(handle, title):
+    """Close a chooser the way its platform's user would, else cancel it."""
+    if sys.platform == "win32" and handle.uses_new_api:
+        _press_native_cancel(title)
+    else:
+        handle.cancel()
+
+
 @needs_display
 @pytest.mark.parametrize("use_new_api", [False, True], ids=["gtk48-path", "file-dialog"])
 def test_file_chooser_cancel_reports_nothing_once(tmp_path, use_new_api):
@@ -614,7 +653,7 @@ def test_file_chooser_cancel_reports_nothing_once(tmp_path, use_new_api):
             )
             assert handle.uses_new_api is use_new_api
             _iterate(100)
-            handle.cancel()
+            _dismiss(handle, "Pick %s" % mode)
             assert _wait_for(lambda: results), mode
             _iterate(50)
             handle.cancel()  # a second cancel is ignored
@@ -645,7 +684,7 @@ def test_file_dialog_is_configured_like_the_request(tmp_path):
         assert dialog.get_filters().get_n_items() == 1
         assert dialog.get_default_filter() is pngs
     finally:
-        handle.cancel()
+        _dismiss(handle, "Export PNG")
     assert _wait_for(lambda: results == [None]), results
 
 
