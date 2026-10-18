@@ -1,6 +1,7 @@
 # EasyHybrid4 Development and Compatibility Report
 
-**Report date:** 2026-10-17  
+**Report date:** 2026-10-18
+
 **Purpose:** One consolidated source for repository, architecture, dependency,
 GTK/Python compatibility, parity, platform, testing, and known-limitation
 status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).
@@ -1069,10 +1070,31 @@ older are unsupported.
   both APIs were introduced in GTK 4.10. The application uses its existing
   async chooser and message-window helpers instead. See GTK's
   [`Gtk.FileDialog` API](https://docs.gtk.org/gtk4/class.FileDialog.html).
+- GTK deprecation cleanup for the supported chooser paths is complete as
+  EH4-106. The file/color chooser
+  adapter must retain `Gtk.FileChooserDialog` and `Gtk.ColorChooserDialog` for
+  GTK 4.8, and currently uses the GTK widget fallback on Windows after native
+  async dialog cancellation disconnected COM on multiple GTK releases. Those
+  chooser-class references are therefore deliberate compatibility exceptions.
+  `ChooserHandle.cancel()` now emits the existing `response` signal instead of
+  calling the deprecated `Gtk.Dialog.response()` convenience method. The
+  fallback color chooser now reads/writes its `rgba` property instead of the
+  deprecated `Gtk.ColorChooser.get_rgba()`/`set_rgba()` methods. On local GTK
+  4.14.5, focused chooser tests passed (6 passed, 1 skipped), three repeated
+  display-backed cancellation/open-close runs passed (3/3 each), and the full
+  widget-pattern module passed (60 passed, 7 skipped). Native matrix run
+  [`39174543987`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39174543987)
+  passed **30/30** for Linux, Windows and macOS across GTK 4.8–4.24; every
+  matrix widget-pattern step passed. The static regression scan exempts only
+  the legacy chooser class references in the adapter, not unrelated deprecated
+  calls in that module. Two complete local GTK 4.14 module runs reported a
+  GLib `g_error_free` assertion during the color-cancel test sequence; an
+  isolated warning-as-error rerun passed, and the warning did not fail any
+  native matrix cell.
 - The installer checks the loaded GTK version at runtime, but it does not
-  validate every API referenced by Python or GtkBuilder resources. The broad
-  removed/deprecated API audit and minimum-runtime builder/UI tests remain
-  follow-up items.
+  validate every API referenced by Python or GtkBuilder resources. The GTK
+  import scan found the `Gtk 4.0` introspection namespace used consistently;
+  platform/minor API differences are routed through the documented adapters.
 
 ## Validation matrix
 

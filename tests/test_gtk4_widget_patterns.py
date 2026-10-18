@@ -730,11 +730,17 @@ def test_deprecated_choosers_only_in_the_portable_adapter():
     compat = SRC / "gtk4_compat.py"
     offenders = []
     for path in SRC.rglob("*.py"):
-        if path in (adapter, compat):
+        if path == compat:
             continue
         for number, code in _code_lines(path):
             code = code.replace(" . ", ".").replace(" ( ", "(").replace(" (", "(")
             for pattern, why in forbidden.items():
+                # Legacy chooser classes remain necessary on GTK 4.8 and as
+                # the tested in-process Windows fallback. Keep this narrow
+                # exception at the central adapter; the other deprecation
+                # patterns still apply to that file.
+                if path == adapter and pattern == r"Gtk\.(FileChooser(Dialog|Native|Widget)?|ColorChooser(Dialog|Widget)?)\b":
+                    continue
                 if re.search(pattern, code):
                     offenders.append("%s:%d %s" % (path.relative_to(PROJECT_ROOT), number, why))
     for path in list(SRC.rglob("*.glade")) + list(SRC.rglob("*.ui")):
@@ -744,6 +750,51 @@ def test_deprecated_choosers_only_in_the_portable_adapter():
         if 'class="GtkColorButton"' in path.read_text(encoding="utf-8"):
             offenders.append("%s inline GtkColorButton UI" % path.relative_to(PROJECT_ROOT))
     assert not offenders, "\n".join(offenders)
+
+
+@needs_display
+def test_legacy_color_chooser_uses_properties_and_response_signal():
+    """Keep the GTK 4.8/Windows fallback off deprecated chooser methods."""
+    from gui import file_dialogs as fd
+
+    class CheckedColorChooser(Gtk.ColorChooserDialog):
+        def set_rgba(self, _rgba):
+            pytest.fail("deprecated Gtk.ColorChooser.set_rgba() called")
+
+        def get_rgba(self):
+            pytest.fail("deprecated Gtk.ColorChooser.get_rgba() called")
+
+    class GtkApi:
+        ColorChooserDialog = CheckedColorChooser
+        ResponseType = Gtk.ResponseType
+
+    initial = Gdk.RGBA()
+    initial.parse("#336699")
+    results = []
+    handle = fd.choose_color(None, results.append, initial=initial,
+                             use_color_dialog=False, gtk=GtkApi)
+    dialog = handle.dialog
+    assert dialog.get_property("rgba").equal(initial)
+    dialog.emit("response", Gtk.ResponseType.ACCEPT)
+    assert results[0].equal(initial)
+    assert handle.done and handle.dialog is None
+
+
+def test_legacy_chooser_cancel_emits_response_signal():
+    from gui.file_dialogs import ChooserHandle
+
+    class RecordingDialog:
+        response = staticmethod(lambda *_args: pytest.fail("deprecated response() called"))
+
+        def __init__(self):
+            self.emitted = []
+
+        def emit(self, name, value):
+            self.emitted.append((name, value))
+
+    dialog = RecordingDialog()
+    ChooserHandle(dialog, False).cancel()
+    assert dialog.emitted == [("response", Gtk.ResponseType.CANCEL)]
 
 
 def test_split_initial_path_selects_folder_and_save_name(tmp_path):
@@ -826,7 +877,7 @@ def test_widget_cycles_freed_by_garbage_collection_do_not_abort(tmp_path):
         "    holder.dialog.set_transient_for(window)\n"
         "    holder.dialog.connect('response', lambda d, r, h=holder: d.destroy())\n"
         "    holder.dialog.present(); spin(200)\n"
-        "    holder.dialog.response(Gtk.ResponseType.CANCEL); spin(200)\n"
+        "    holder.dialog.emit('response', Gtk.ResponseType.CANCEL); spin(200)\n"
         "    del holder\n"
         "    spin(50)\n"
         "gc.collect(); spin(50)\n"
@@ -1080,7 +1131,7 @@ def test_gtk48_file_chooser_path_returns_selected_paths(tmp_path, mode_name):
         assert _wait_for(selected)
         # Accept at once: the adapter hides the chooser and destroys it
         # later, so a folder lookup still running cannot crash GTK.
-        dialog.response(Gtk.ResponseType.ACCEPT)
+        dialog.emit("response", Gtk.ResponseType.ACCEPT)
         assert _wait_for(lambda: results), results
         assert not dialog.get_visible()
     finally:
@@ -1132,11 +1183,11 @@ def test_gtk48_color_chooser_path_returns_the_chosen_rgba():
     handle = fd.choose_color(None, results.append, initial=initial, use_color_dialog=False)
     dialog = handle.dialog
     assert _wait_for(dialog.get_mapped)
-    assert dialog.get_rgba().equal(initial)
+    assert dialog.get_property("rgba").equal(initial)
     chosen = Gdk.RGBA()
     assert chosen.parse("rgb(0,0,255)")
-    dialog.set_rgba(chosen)
-    dialog.response(Gtk.ResponseType.OK)
+    dialog.set_property("rgba", chosen)
+    dialog.emit("response", Gtk.ResponseType.OK)
     assert _wait_for(lambda: results), results
     assert results[0] is not None and results[0].equal(chosen)
 
@@ -1326,8 +1377,8 @@ def test_color_button_pick_sets_opaque_colour_and_emits_color_set(monkeypatch):
         assert _wait_for(dialog.get_mapped)
         picked = Gdk.RGBA()
         assert picked.parse("rgba(0,0,255,0.25)")
-        dialog.set_rgba(picked)
-        dialog.response(Gtk.ResponseType.OK)
+        dialog.set_property("rgba", picked)
+        dialog.emit("response", Gtk.ResponseType.OK)
         assert _wait_for(lambda: emitted), emitted
         _iterate(50)
         assert emitted == ["rgb(0,0,255)"]
