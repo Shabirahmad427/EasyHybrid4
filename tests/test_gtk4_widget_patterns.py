@@ -730,8 +730,10 @@ def _press_native_cancel(title, timeout=20.0):
     user32 = ctypes.WinDLL("user32", use_last_error=True)
     user32.FindWindowW.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR]
     user32.FindWindowW.restype = wintypes.HWND
-    user32.PostMessageW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
-    user32.PostMessageW.restype = wintypes.BOOL
+    user32.GetDlgItem.argtypes = [wintypes.HWND, ctypes.c_int]
+    user32.GetDlgItem.restype = wintypes.HWND
+    user32.SendMessageW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
+    user32.SendMessageW.restype = wintypes.LPARAM
     found = []
 
     def dialog_open():
@@ -741,8 +743,13 @@ def _press_native_cancel(title, timeout=20.0):
         return bool(found)
 
     assert _wait_for(dialog_open, timeout), "native Windows dialog %r never appeared" % title
-    WM_COMMAND, IDCANCEL = 0x0111, 2
-    assert user32.PostMessageW(found[-1], WM_COMMAND, IDCANCEL, 0), ctypes.get_last_error()
+    IDCANCEL, BM_CLICK = 2, 0x00F5
+    cancel_button = user32.GetDlgItem(found[-1], IDCANCEL)
+    assert cancel_button, "native dialog %r has no Cancel control" % title
+    # Drive the actual child button. Posting WM_COMMAND directly can bypass
+    # IFileDialog's native control handling and leave its COM callback on a
+    # disconnected apartment (0x80010108).
+    user32.SendMessageW(cancel_button, BM_CLICK, 0, 0)
 
 
 def _dismiss(handle, title):

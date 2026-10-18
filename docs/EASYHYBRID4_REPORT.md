@@ -44,23 +44,28 @@ physical macOS trackpad behavior remains **NOT TESTED**.
 reproduced `0x80010108` in `test_file_chooser_cancel_reports_nothing_once` on
 Windows GTK 4.24 while `_wait_for()` ran the GLib main loop after native
 `Gtk.FileDialog` cancellation. The earlier CI change prevented a second run
-of the widget module but left this test opening and cancelling five native
-COM dialogs in one loop; a separate configuration test opened another. The
-test now performs one real native Windows cancellation per job. Five mode
-mappings and cancellation result shapes use a recording `Gtk.FileDialog`
-double, and the Windows configuration test uses that double too. This reduces
-repeated native COM interactions while retaining one real user-cancel path.
-Linux GTK 4.14.5 chooser tests: **3 passed, 1 skipped**; full widget module:
-**53 passed, 7 skipped**. A green full native matrix is still required before
-calling this stable.
+of the widget module but left this test opening five native COM dialogs in a
+loop plus a separate configuration-test dialog. Limiting Windows to one real
+native cancel and testing the other modes with a fake removed the hard process
+failure, but matrix `39155304114` still logged the COM exception on that one
+cancel while returning exit code 0. Inspection showed the test had posted
+`WM_COMMAND` to the native dialog instead of invoking its Cancel control. It
+now sends `BM_CLICK` to the actual child button. The COM failure remains
+unresolved until a fresh Windows GTK 4.24 artifact completes without it.
 
-The first mitigation matrix `39155132412` then exposed a separate omission
-in the Windows-only test double: the fake API lacked `Gtk.FileFilter`, so the
-save-dialog configuration test failed on GTK 4.10, 4.12, 4.20 and 4.22 before
-any native chooser was opened. The test double now supplies that GTK type,
-and the all-mode fake test exercises filtered requests locally. This was a
-test-only `AttributeError`, not an application failure; the corrected matrix
-is required to validate both fixes together.
+The Windows-only test double initially lacked `Gtk.FileFilter`, so the
+mitigation matrix `39155132412` failed on GTK 4.10, 4.12, 4.20 and 4.22 before
+any native chooser was opened. That test-only `AttributeError` is fixed. The
+corrected matrix `39155304114` passed 30/30 jobs, but its Windows GTK 4.24
+artifact still contained the `0x80010108` trace after the single native
+cancellation, although pytest completed (54 passed, 6 skipped) and the
+workflow exited successfully. This disproves the hypothesis that reducing
+five native cancellations to one was sufficient. The test harness had been
+posting `WM_COMMAND` directly to the native dialog rather than invoking its
+Cancel child control. It now sends `BM_CLICK` to that button so Windows routes
+the action through the dialog's normal control handling. The COM failure is
+not considered fixed until a new Windows GTK 4.24 run completes without the
+exception trace.
 The first full clean-history GTK matrix log showed an access violation when
 the `Gtk.ColorChooserDialog` response handler destroyed its dialog inline on
 Windows. The fallback now hides the dialog and defers destruction; targeted
