@@ -249,6 +249,7 @@ Python `Gtk.Dialog` uses (incl. two subclasses and the VisMol preset dialog)
 now use it. Five Builder `GtkDialog`s, used only as windows, became
 `GtkWindow`; their action row, which `GtkDialog` placed at the bottom, was
 moved to the end of the content box so the layout is unchanged.
+Native matrix run `39084141877` (commit `cf8d16b`): **22/22 passed in all 30 cells**.
 
 GTK 4.8 upstream defect: freeing any `Gtk.DropDown` emits
 `GLib-GObject-CRITICAL ... GtkImage ... during instance finalization` (a bare
