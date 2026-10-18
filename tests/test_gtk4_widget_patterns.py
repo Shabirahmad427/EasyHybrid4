@@ -740,15 +740,20 @@ def _press_native_cancel(title, timeout=20.0):
     user32.SetForegroundWindow(found[-1])
     assert user32.GetForegroundWindow() == found[-1], "could not focus native dialog %r" % title
 
+    WORD = ctypes.c_uint16
+    DWORD = ctypes.c_uint32
+    LONG = ctypes.c_int32
+    ULONG_PTR = ctypes.c_size_t
+
     class KEYBDINPUT(ctypes.Structure):
-        _fields_ = [("wVk", wintypes.WORD), ("wScan", wintypes.WORD),
-                    ("dwFlags", wintypes.DWORD), ("time", wintypes.DWORD),
-                    ("dwExtraInfo", ctypes.c_size_t)]
+        _fields_ = [("wVk", WORD), ("wScan", WORD),
+                    ("dwFlags", DWORD), ("time", DWORD),
+                    ("dwExtraInfo", ULONG_PTR)]
 
     class MOUSEINPUT(ctypes.Structure):
-        _fields_ = [("dx", wintypes.LONG), ("dy", wintypes.LONG),
-                    ("mouseData", wintypes.DWORD), ("dwFlags", wintypes.DWORD),
-                    ("time", wintypes.DWORD), ("dwExtraInfo", ctypes.c_size_t)]
+        _fields_ = [("dx", LONG), ("dy", LONG),
+                    ("mouseData", DWORD), ("dwFlags", DWORD),
+                    ("time", DWORD), ("dwExtraInfo", ULONG_PTR)]
 
     class INPUTUNION(ctypes.Union):
         _fields_ = [("ki", KEYBDINPUT), ("mi", MOUSEINPUT),
@@ -756,7 +761,7 @@ def _press_native_cancel(title, timeout=20.0):
 
     class INPUT(ctypes.Structure):
         _anonymous_ = ("u",)
-        _fields_ = [("type", wintypes.DWORD), ("u", INPUTUNION)]
+        _fields_ = [("type", DWORD), ("u", INPUTUNION)]
 
     user32.SendInput.argtypes = [wintypes.UINT, ctypes.POINTER(INPUT), ctypes.c_int]
     user32.SendInput.restype = wintypes.UINT
