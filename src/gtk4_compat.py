@@ -4,6 +4,7 @@ Feature detection is used instead of release-string comparisons so the
 application follows the APIs exposed by the loaded GTK runtime and typelib.
 """
 
+import math
 import sys
 
 import gi
@@ -68,6 +69,25 @@ def get_scroll_unit(controller):
     """Return the controller's scroll unit when the loaded API provides it."""
     getter = getattr(controller, "get_unit", None)
     return getter() if callable(getter) else None
+
+
+def scroll_delta_to_steps(delta, *, surface, remainder=0.0, pixels_per_step=30.0):
+    """Convert GTK scroll deltas to wheel steps, preserving smooth fractions."""
+    try:
+        delta = float(delta)
+        remainder = float(remainder)
+        pixels_per_step = float(pixels_per_step)
+    except (TypeError, ValueError):
+        return 0, remainder
+    if not math.isfinite(delta) or not math.isfinite(remainder):
+        return 0, remainder
+    if surface:
+        if not math.isfinite(pixels_per_step) or pixels_per_step <= 0:
+            raise ValueError("pixels_per_step must be finite and positive")
+        total = remainder - delta / pixels_per_step
+        steps = int(total)
+        return steps, total - steps
+    return int(delta), 0.0
 
 
 def set_gl_area_allowed_apis(gl_area, gdk=Gdk, api=None):

@@ -30,6 +30,15 @@ x86_64 under Xvfb with GTK 4.14.5, Python 3.12.3, PyGObject 3.48.2, and GLib
 (50 passed, 7 skipped). Native matrix run `39153435108` passed **30/30** cells
 on Linux, Windows, and macOS across GTK 4.8–4.24, including this widget test in
 every cell. EH4-103 acceptance is complete; the next roadmap item is EH4-104.
+
+**EH4-104 input-event regression (2026-10-18):** Centralized GTK scroll-delta
+conversion in `src/gtk4_compat.py` and wired the VisMol GL widget to it. The
+adapter retains fractional surface deltas until they make a full zoom step,
+keeps discrete wheel direction, and ignores non-finite deltas safely. Added
+real-widget synthetic `Gtk.GestureClick` and `Gtk.EventControllerKey` signal
+coverage. Linux x86_64/Xvfb, GTK 4.14.5: focused tests **2 passed**; widget
+module **52 passed, 7 skipped**. The required 30-cell matrix is pending;
+physical macOS trackpad behavior remains **NOT TESTED**.
 The first full clean-history GTK matrix log showed an access violation when
 the `Gtk.ColorChooserDialog` response handler destroyed its dialog inline on
 Windows. The fallback now hides the dialog and defers destruction; targeted

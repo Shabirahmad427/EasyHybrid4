@@ -34,6 +34,7 @@ from src.gtk4_compat import (
     apply_legacy_win32_wgl_workaround,
     gl_area_required_version,
     get_scroll_unit,
+    scroll_delta_to_steps,
     scroll_controller_flags,
     set_gl_area_allowed_apis,
     supports_scroll_unit,
@@ -263,14 +264,16 @@ class VismolGTKWidget(_WidgetBase):
         self.vm_glcore.mouse_motion(x, y, controller.get_current_event_state())
 
     def _on_mouse_scroll(self, controller, _dx, dy):
+        if not np.isfinite(dy):
+            return True
         if not _IS_MACOS or not _HAS_SCROLL_UNIT_API:
-            if dy < 0:
-                self.vm_glcore.mouse_scroll(1)
-            elif dy > 0:
-                self.vm_glcore.mouse_scroll(-1)
+            steps, _remainder = scroll_delta_to_steps(dy, surface=False)
+            direction = 1 if steps < 0 else -1
+            for _ in range(abs(steps)):
+                self.vm_glcore.mouse_scroll(direction)
             return True
 
-        if not np.isfinite(dy) or dy == 0:
+        if dy == 0:
             return True
 
         unit = get_scroll_unit(controller)
@@ -285,9 +288,9 @@ class VismolGTKWidget(_WidgetBase):
             if modifiers != self._scroll_modifiers:
                 self._scroll_modifiers = modifiers
                 self._scroll_remainder = 0.0
-            total = self._scroll_remainder - dy / 30.0
-            steps = int(total)
-            self._scroll_remainder = total - steps
+            steps, self._scroll_remainder = scroll_delta_to_steps(
+                dy, surface=True, remainder=self._scroll_remainder
+            )
             if steps == 0:
                 return True
 
@@ -304,7 +307,7 @@ class VismolGTKWidget(_WidgetBase):
             # partial trackpad gesture before handling a physical wheel.
             self._scroll_remainder = 0.0
             self._scroll_modifiers = None
-            steps = int(dy)
+            steps, _remainder = scroll_delta_to_steps(dy, surface=False)
             if steps:
                 direction = 1 if steps < 0 else -1
                 for _ in range(abs(steps)):

@@ -306,6 +306,74 @@ def test_context_menu_presents_below_a_button():
         window.destroy()
 
 
+@needs_display
+def test_event_controllers_dispatch_mouse_and_keyboard_input():
+    """Keep GTK4 gesture and key signal payloads covered on each native cell."""
+    window = Gtk.Window()
+    target = Gtk.DrawingArea()
+    window.set_child(target)
+
+    pointer_events = []
+    click = Gtk.GestureClick()
+    click.set_button(0)
+    click.connect("pressed", lambda _gesture, count, x, y: pointer_events.append(
+        ("pressed", count, x, y)
+    ))
+    click.connect("released", lambda _gesture, count, x, y: pointer_events.append(
+        ("released", count, x, y)
+    ))
+    target.add_controller(click)
+
+    key_events = []
+    keys = Gtk.EventControllerKey()
+    keys.connect("key-pressed", lambda _controller, keyval, keycode, state: (
+        key_events.append(("pressed", keyval, keycode, state)) or True
+    ))
+    keys.connect("key-released", lambda _controller, keyval, keycode, state: key_events.append(
+        ("released", keyval, keycode, state)
+    ))
+    target.add_controller(keys)
+
+    window.present()
+    try:
+        assert _wait_for(target.get_realized)
+        click.emit("pressed", 1, 12.0, 13.0)
+        click.emit("released", 1, 14.0, 15.0)
+        shift = Gdk.ModifierType.SHIFT_MASK
+        assert keys.emit("key-pressed", Gdk.KEY_Escape, 9, shift) is True
+        keys.emit("key-released", Gdk.KEY_Escape, 9, shift)
+
+        assert pointer_events == [
+            ("pressed", 1, 12.0, 13.0), ("released", 1, 14.0, 15.0)
+        ]
+        assert key_events == [
+            ("pressed", Gdk.KEY_Escape, 9, shift),
+            ("released", Gdk.KEY_Escape, 9, shift),
+        ]
+    finally:
+        window.destroy()
+
+
+def test_scroll_delta_conversion_preserves_smooth_steps_and_wheel_sign():
+    from src.gtk4_compat import scroll_delta_to_steps
+
+    steps, remainder = scroll_delta_to_steps(12, surface=True)
+    assert steps == 0
+    assert remainder == pytest.approx(-0.4)
+
+    steps, remainder = scroll_delta_to_steps(19, surface=True, remainder=remainder)
+    assert steps == -1
+    assert remainder == pytest.approx(-1.0 / 30.0)
+
+    steps, remainder = scroll_delta_to_steps(-2.5, surface=False, remainder=remainder)
+    assert steps == -2
+    assert remainder == 0.0
+
+    steps, remainder = scroll_delta_to_steps(float("nan"), surface=True, remainder=0.25)
+    assert steps == 0
+    assert remainder == 0.25
+
+
 # --------------------------------------------------------------------------- #
 #  Portable message dialogs (replace deprecated Gtk.MessageDialog).            #
 # --------------------------------------------------------------------------- #
