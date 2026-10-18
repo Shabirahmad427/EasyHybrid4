@@ -57,8 +57,10 @@ failed the fatal-log guard. Reverted the unproven lifetime workaround.
 Application policy now uses GTK's in-process file and color chooser widgets
 by default on Windows, avoiding the unstable async COM dialog path; Linux and
 macOS continue to use `Gtk.FileDialog`/`Gtk.ColorDialog` when available. The
-Windows widget path across GTK 4.10+ remains unverified; matrix
-`39161457858` was canceled after preserving the failed Windows artifacts.
+Windows widget path passed every supported GTK minor in matrix
+`39161921877`: **30/30 OS/GTK cells passed**, including Windows GTK 4.8–4.24
+widget tests and fatal-exception guards. The hosted native Windows OS COM
+dialog path is no longer used by default and is not claimed as supported.
 
 **Recurring Windows chooser crash (2026-10-18):** Matrix `39154336539`
 reproduced `0x80010108` in `test_file_chooser_cancel_reports_nothing_once` on
@@ -77,10 +79,10 @@ dialog on those runners, leaving its callback empty. `WM_CLOSE` made GTK 4.10
 report cancellation but reproduced `0x80010108`, so that route is unsafe.
 Attaching to foreground and dialog threads also did not overcome the runner's
 activation restriction: failed-job-only retry of run `39157728494` reproduced
-the same focus assertion on GTK 4.12 and 4.22. The helper now invokes the
-native Cancel button with Windows UI Automation `InvokePattern`, avoiding
-foreground activation. This change is unverified until Windows artifacts are
-clean.
+the same focus assertion on GTK 4.12 and 4.22. A later UI Automation attempt
+timed out while querying the native dialog (`39158650884`); it was removed.
+The verified fix is the Windows GTK widget-chooser default described above,
+validated in run `39161921877`.
 The Windows matrix has a post-test log guard that fails if
 `Windows fatal exception` or the corresponding access-violation exit code is
 logged, even if pytest itself returned zero. Matrix `39156544333` tested the
