@@ -253,6 +253,14 @@ _CHOOSER_ACTIONS = {
 }
 
 
+_CHOOSER_DESTROY_DELAY_SECONDS = 5
+
+
+def _destroy_once(widget):
+    widget.destroy()
+    return GLib.SOURCE_REMOVE
+
+
 def _choose_with_file_chooser(gtk, window, callback, mode, title, accept_label,
                               folder, name, filters):
     # GTK 4.8 path: Gtk.FileDialog does not exist there and
@@ -282,7 +290,12 @@ def _choose_with_file_chooser(gtk, window, callback, mode, title, accept_label,
         paths = []
         if response in (gtk.ResponseType.ACCEPT, gtk.ResponseType.OK):
             paths = _paths(chooser.get_files())
-        chooser.destroy()
+        # Hide now, destroy later: on GTK 4.10+ (seen on Linux and macOS)
+        # destroying the chooser while its path bar is still looking up a
+        # folder crashes in gtk_path_bar_set_file_finish. Lookups of local
+        # folders finish long before the delay.
+        chooser.set_visible(False)
+        GLib.timeout_add_seconds(_CHOOSER_DESTROY_DELAY_SECONDS, _destroy_once, chooser)
         _report(handle, callback, mode, paths)
 
     dialog.connect("response", on_response)

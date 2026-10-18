@@ -662,13 +662,11 @@ def test_gtk48_file_chooser_path_returns_selected_paths(tmp_path, mode_name):
             assert dialog.set_file(Gio.File.new_for_path(str(expected)))
         assert _wait_for(lambda: dialog.get_file() is not None
                          and same(dialog.get_file().get_path(), expected))
-        # Let the path bar finish its async folder lookup first, as it has
-        # long before a person clicks. GTK 4.10+ Gtk.FileChooserDialog
-        # (used by the app only on GTK 4.8) crashes in
-        # gtk_path_bar_set_file_finish when destroyed mid-lookup.
-        _iterate(500)
+        # Accept at once: the adapter must survive GTK 4.10+'s path-bar
+        # lookup still running (it hides the dialog and destroys it later).
         dialog.response(Gtk.ResponseType.ACCEPT)
         assert _wait_for(lambda: results), results
+        assert not dialog.get_visible()
     finally:
         if handle.dialog is not None:
             handle.dialog.destroy()
