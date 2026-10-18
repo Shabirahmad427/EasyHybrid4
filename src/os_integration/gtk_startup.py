@@ -12,6 +12,7 @@ import sys
 from pathlib import Path
 
 from src.os_integration.win32_wgl import needs_legacy_wgl_workaround
+from src.os_integration.app_paths import config_file_candidates
 
 
 def load_vblank_mode_preference(config_path):
@@ -200,8 +201,12 @@ def install_native_glib_log_handler(*, runtime_version=None, glib_library=None):
 
 def configure_startup_environment(project_home):
     """Prepare legacy driver environment before importing GTK."""
+    config_path = next(
+        (path for path in config_file_candidates(project_home) if path.is_file()),
+        config_file_candidates(project_home)[0],
+    )
     configure_vblank_mode(
-        config_path=os.path.join(project_home, ".config.json")
+        config_path=config_path
     )
     configure_gl_context_environment()
     install_native_glib_log_handler()
