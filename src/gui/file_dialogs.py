@@ -149,6 +149,7 @@ class ChooserHandle:
 
     def __init__(self, dialog, uses_new_api, cancellable=None):
         self.dialog = dialog
+        self._completed_dialog = None
         self.uses_new_api = uses_new_api
         self.cancellable = cancellable
         self.done = False
@@ -196,14 +197,26 @@ def _report(handle, callback, mode, paths):
     if handle.done:
         return
     handle.done = True
-    # Drop the dialog so the handle/closure/dialog cycle is gone and the
-    # dialog is freed by reference counting now, not by a later cyclic
-    # garbage collection (see gtk_startup.install_native_glib_log_handler).
+    # Keep Gtk.FileDialog alive briefly after its async completion on Windows.
+    # Its native COM dialog can still be unwinding the completion/cancel
+    # callback when GTK returns to GLib; releasing the wrapper in that window
+    # can disconnect the COM apartment (RPC_E_DISCONNECTED / 0x80010108).
+    # Retain a separate reference while preserving the public closed-handle
+    # state, then release it from the GTK main context.
+    completed_dialog = handle.dialog
     handle.dialog = None
+    if sys.platform == "win32" and handle.cancellable is not None:
+        handle._completed_dialog = completed_dialog
+        GLib.timeout_add_seconds(5, _release_completed_dialog, handle)
     if mode in MULTIPLE_MODES:
         callback(paths)
     else:
         callback(paths[0] if paths else None)
+
+
+def _release_completed_dialog(handle):
+    handle._completed_dialog = None
+    return GLib.SOURCE_REMOVE
 
 
 def _choose_with_file_dialog(gtk, window, callback, mode, title, accept_label,

@@ -49,10 +49,15 @@ cells; they do not demonstrate an application-side failure. Removed the UIA
 helper. The regression now cancels the real `Gtk.FileDialog` through the
 application's `ChooserHandle.cancel()` / `Gio.Cancellable` path. This must
 still be validated on native Windows, including checking for the previously
-observed `0x80010108` trace. The failed run's redundant MSYS2 crash-diagnostic
-retries were canceled after preserving its artifacts; the corrected full
-matrix has not started. No native application defect is established by the
-UIA timeout, and no application-side code change is claimed yet.
+observed `0x80010108` trace. Matrix `39160656186` then exercised Gio
+cancellation and confirmed that `0x80010108` remains in Windows GTK 4.10; it
+also exposed one stale helper call in a Linux chooser-configuration test
+(`TypeError: _dismiss() takes 1 positional argument but 2 were given`). Added
+a Windows-only five-second strong-reference hold for the completed
+`Gtk.FileDialog`, so GTK can finish unwinding its native COM cancellation
+before the wrapper is released; corrected the stale call. The incomplete
+matrix was canceled after saving artifacts. This application-side fix has
+not yet been validated on Windows; no compatibility claim is made.
 
 **Recurring Windows chooser crash (2026-10-18):** Matrix `39154336539`
 reproduced `0x80010108` in `test_file_chooser_cancel_reports_nothing_once` on

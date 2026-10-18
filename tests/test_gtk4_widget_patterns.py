@@ -818,7 +818,7 @@ def test_file_dialog_is_configured_like_the_request(tmp_path):
             assert dialog.get_filters().get_n_items() == 1
             assert dialog.get_default_filter() is pngs
         finally:
-            _dismiss(handle, "Export PNG")
+            _dismiss(handle)
         assert _wait_for(lambda: results == [None]), results
 
 
