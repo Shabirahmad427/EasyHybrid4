@@ -9,7 +9,9 @@ callback, on Linux, Windows and macOS.
 
 File results are local paths (``str``); multi-selection modes return a list
 of paths, empty when cancelled. GTK4 always asks before overwriting in save
-mode, so callers do not need to request it.
+mode, so callers do not need to request it. On Windows, use the GTK chooser
+widgets rather than GTK's async native COM dialogs: canceling those COM
+dialogs disconnects their apartment on several supported GTK releases.
 """
 
 import os
@@ -149,7 +151,6 @@ class ChooserHandle:
 
     def __init__(self, dialog, uses_new_api, cancellable=None):
         self.dialog = dialog
-        self._completed_dialog = None
         self.uses_new_api = uses_new_api
         self.cancellable = cancellable
         self.done = False
@@ -175,7 +176,12 @@ def choose_file(parent, callback, *, mode=OPEN, title=None, initial_path=None,
     if mode not in _FILE_DIALOG_METHODS:
         raise ValueError("unknown file chooser mode: %r" % (mode,))
     if use_file_dialog is None:
-        use_file_dialog = has_file_dialog(gtk)
+        # Gtk.FileDialog uses a native COM dialog on Windows. Its GTK 4.10+
+        # cancellation callback can raise RPC_E_DISCONNECTED (0x80010108),
+        # including when Gio.Cancellable is used by the application's handle.
+        # The GTK chooser widget is available across the supported GTK4 range
+        # and provides the same result/callback contract without that COM path.
+        use_file_dialog = has_file_dialog(gtk) and sys.platform != "win32"
     title = title or _DEFAULT_TITLES[mode]
     accept_label = accept_label or _DEFAULT_ACCEPT_LABELS[mode]
     folder, name = split_initial_path(initial_path, mode)
@@ -197,24 +203,11 @@ def _report(handle, callback, mode, paths):
     if handle.done:
         return
     handle.done = True
-    _defer_windows_dialog_release(handle)
     handle.dialog = None
     if mode in MULTIPLE_MODES:
         callback(paths)
     else:
         callback(paths[0] if paths else None)
-
-
-def _release_completed_dialog(handle):
-    handle._completed_dialog = None
-    return GLib.SOURCE_REMOVE
-
-
-def _defer_windows_dialog_release(handle):
-    """Keep async native chooser wrappers alive while Windows COM unwinds."""
-    if sys.platform == "win32" and handle.cancellable is not None:
-        handle._completed_dialog = handle.dialog
-        GLib.timeout_add_seconds(5, _release_completed_dialog, handle)
 
 
 def _choose_with_file_dialog(gtk, window, callback, mode, title, accept_label,
@@ -330,9 +323,11 @@ def choose_color(parent, callback, *, title="Choose color", initial=None,
     ``with_alpha`` offers an opacity control (on by default, as in GTK).
     """
     if use_color_dialog is None:
-        use_color_dialog = has_color_dialog(gtk)
+        # Gtk.ColorDialog may also dispatch through native Windows dialog
+        # infrastructure. Keep Windows on the GTK4 widget fallback there.
+        use_color_dialog = has_color_dialog(gtk) and sys.platform != "win32"
     window = _parent_window(parent) if parent is not None else None
-    # Gtk.ColorDialog shows the GTK colour chooser widget on every platform.
+    # The GTK widget fallback avoids platform-native dialog cancellation bugs.
     if not gsettings_schema_installed(COLOR_CHOOSER_SCHEMA):
         _report_missing_schema(window, COLOR_CHOOSER_SCHEMA)
         handle = ChooserHandle(None, use_color_dialog)
@@ -354,14 +349,13 @@ def choose_color(parent, callback, *, title="Choose color", initial=None,
                 rgba = None
             if not handle.done:
                 handle.done = True
-                _defer_windows_dialog_release(handle)
                 handle.dialog = None
                 callback(rgba)
 
         dialog.choose_rgba(window, initial, cancellable, on_finish)
         return handle
 
-    # GTK 4.8 path: Gtk.ColorDialog does not exist there.
+    # GTK widget path: used on GTK 4.8 and as the Windows fallback.
     dialog = gtk.ColorChooserDialog(title=title, modal=True, use_alpha=with_alpha)
     if window is not None:
         dialog.set_transient_for(window)

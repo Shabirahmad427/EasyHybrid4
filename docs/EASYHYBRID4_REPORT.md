@@ -47,20 +47,18 @@ the PowerShell `AutomationElement.FindFirst` query hung and Python raised
 from matrix `39158650884` show this same helper timeout on multiple GTK 4.10+
 cells; they do not demonstrate an application-side failure. Removed the UIA
 helper. The regression now cancels the real `Gtk.FileDialog` through the
-application's `ChooserHandle.cancel()` / `Gio.Cancellable` path. This must
-still be validated on native Windows, including checking for the previously
-observed `0x80010108` trace. Matrix `39160656186` then exercised Gio
-cancellation and confirmed that `0x80010108` remains in Windows GTK 4.10; it
-also exposed one stale helper call in a Linux chooser-configuration test
-(`TypeError: _dismiss() takes 1 positional argument but 2 were given`). Added
-a Windows-only five-second strong-reference hold for the completed
-`Gtk.FileDialog`, so GTK can finish unwinding its native COM cancellation
-before the wrapper is released; corrected the stale call. Matrix
-`39160887195` showed the file chooser test passing, but still logged
-`0x80010108` during GTK 4.10+ colour chooser cancellation. The same deferred
-reference hold is now being applied to async `Gtk.ColorDialog` completion.
-That matrix was canceled after saving failed Windows artifacts; neither
-lifetime change is yet validated on Windows.
+application's `ChooserHandle.cancel()` / `Gio.Cancellable` path. Matrix
+`39160656186` exposed a stale helper call in Linux chooser configuration
+(`TypeError: _dismiss() takes 1 positional argument but 2 were given`) and
+the existing COM disconnection in Windows GTK 4.10. A five-second wrapper
+lifetime delay did not fix it: matrix `39161457858` still logged
+`0x80010108` during the color cancellation test, and GTK 4.14/4.24 Windows
+failed the fatal-log guard. Reverted the unproven lifetime workaround.
+Application policy now uses GTK's in-process file and color chooser widgets
+by default on Windows, avoiding the unstable async COM dialog path; Linux and
+macOS continue to use `Gtk.FileDialog`/`Gtk.ColorDialog` when available. The
+Windows widget path across GTK 4.10+ remains unverified; matrix
+`39161457858` was canceled after preserving the failed Windows artifacts.
 
 **Recurring Windows chooser crash (2026-10-18):** Matrix `39154336539`
 reproduced `0x80010108` in `test_file_chooser_cancel_reports_nothing_once` on

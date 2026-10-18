@@ -699,14 +699,16 @@ def _file_modes():
 def _chooser_paths(use_new_api):
     """Run each real file chooser where the app uses it.
 
-    The app opens Gtk.FileDialog wherever it exists (GTK 4.10+: the native
-    dialog on Windows/macOS, a portal or GTK's own handling on Linux) and
-    the GTK 4.8 Gtk.FileChooserDialog only where it does not. GTK's
-    deprecated chooser is crash- and race-prone on 4.10+ Windows/macOS
-    runners, a configuration the app never runs.
+    Windows uses Gtk.FileChooserDialog on all GTK4 minors to avoid the native
+    COM dialog cancellation failure. Other platforms use Gtk.FileDialog when
+    available and the GTK 4.8 fallback below that.
     """
     from gui import file_dialogs as fd
     version = "GTK %d.%d" % (Gtk.get_major_version(), Gtk.get_minor_version())
+    if sys.platform == "win32":
+        if use_new_api:
+            pytest.skip("Windows uses the GTK chooser widget to avoid GTK COM cancellation failure")
+        return
     if use_new_api and not fd.has_file_dialog():
         pytest.skip("Gtk.FileDialog needs GTK 4.10+; %s uses the GTK 4.8 chooser (tested)" % version)
     if not use_new_api and fd.has_file_dialog():
@@ -728,13 +730,7 @@ def test_file_chooser_cancel_reports_nothing_once(tmp_path, use_new_api):
     window = Gtk.Window(title="parent")
     window.present()
     try:
-        # On Windows, each Gtk.FileDialog launches a native COM dialog. A
-        # rapid sequence of native cancellations can leave GTK's COM callback
-        # apartment disconnected (0x80010108) while GLib iterates. Exercise
-        # one real native cancel here. The other mode mappings and callback
-        # result shapes are checked without launching native dialogs below.
-        modes = (fd.OPEN,) if sys.platform == "win32" and use_new_api else _file_modes()
-        for mode in modes:
+        for mode in _file_modes():
             results = []
             handle = fd.choose_file(
                 window, results.append, mode=mode, title="Pick %s" % mode,
@@ -759,7 +755,8 @@ def test_file_chooser_cancel_reports_nothing_once(tmp_path, use_new_api):
 def test_file_dialog_is_configured_like_the_request(tmp_path):
     from gui import file_dialogs as fd
 
-    _chooser_paths(True)
+    if not fd.has_file_dialog():
+        pytest.skip("Gtk.FileDialog needs GTK 4.10+")
     pngs = fd.file_filter("PNG image (*.png)", "*.png")
     results = []
     gtk_api = Gtk
@@ -951,6 +948,8 @@ def test_gtk48_file_chooser_path_returns_selected_paths(tmp_path, mode_name):
 def test_color_chooser_cancel_reports_none_once(use_new_api):
     from gui import file_dialogs as fd
 
+    if use_new_api and sys.platform == "win32":
+        pytest.skip("Windows uses the GTK color chooser widget to avoid native dialog cancellation failure")
     if use_new_api and not fd.has_color_dialog():
         pytest.skip("Gtk.ColorDialog needs GTK 4.10+; GTK %d.%d uses the tested fallback"
                     % (Gtk.get_major_version(), Gtk.get_minor_version()))
