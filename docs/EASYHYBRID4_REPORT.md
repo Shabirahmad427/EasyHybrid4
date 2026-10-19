@@ -18,7 +18,7 @@ passed generic GTK/widget checks in 30/30 cells; its added full-app scene step
 failed on Linux, Windows and macOS GTK 4.24 because hosted runners do not have
 pDynamo3 (`ModuleNotFoundError: pBabel`). The workflow now builds the graphics
 extensions and runs a pDynamo-independent EasyHybrid menu/VisMol scene smoke
-in every GTK/OS cell. Matrix run
+in every GTK/OS cell. Corrected matrix run
 [`39264038822`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39264038822)
 completed **FAILED** on commit `1100afa`: generic GTK/widget checks passed in
 30/30 cells, while the added scene/build checks exposed missing setuptools,
@@ -30,16 +30,24 @@ macOS arm64 GTK 4.8–4.24. Eight Linux X11 scene jobs failed because startup
 selected EGL while the VisMol renderer's PyOpenGL context lookup could not see
 GTK's context on hosted runners. Five GTK 4.8/4.10 jobs failed environment
 solving because adding Pillow to the conda solve conflicted with the legacy
-`jpeg=9e` GTK pin. The pending workflow fix installs Python graphics
-dependencies with pip after the pinned GTK environment is created; it does
-not rerun the GTK solver. The pending app fix selects GLX for Linux X11 and
-keeps EGL for Wayland, setting GTK and PyOpenGL to the same backend. Locally,
+`jpeg=9e` GTK pin. The 3ece343 attempt moved graphics-only Python dependencies
+out of the pinned GTK solve and selected GLX for X11. Locally,
 the production menu/VisMol smoke passed twice with GTK 4.14.5, Python 3.12.3,
 PyGObject 3.48.2, GLib 2.80.0 and NVIDIA RTX 4060 Ti (22 representation
 draws per cycle; clean close); startup/platform regression tests passed **33**.
-The corrected full matrix is pending. pDynamo3 scientific/runtime tests are
-tracked separately against pDynamo3; EH4-201 remains unchecked until the full
-matrix passes.
+The next matrix, [`39267210110`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39267210110)
+on `0ebd3ef`, completed **27/30 PASS**. All 30 GTK/widget suites and all
+Windows/macOS scene runs passed. Three Linux distro GTK 4.16/4.18 scene runs
+failed: those builds reject `GDK_DEBUG=gl-glx` and fall back to EGL. On Debian
+and Ubuntu, forcing PyOpenGL to GLX then failed to find GTK's current context;
+Fedora also exposed an ABI mismatch between its optional
+`OpenGL_accelerate` extension and user-site NumPy. Startup now selects EGL for
+Linux X11 GTK 4.16/4.18; the distro scene step uses PyOpenGL's supported
+ctypes path to avoid the incompatible optional extension. Startup regressions pass **35 tests**. The
+native Linux X11/NVIDIA scene test passed both open/render/close cycles with
+22 draws per cycle on GTK 4.14.5. The next full matrix is pending. pDynamo3
+scientific/runtime tests are tracked separately against pDynamo3; EH4-201
+remains unchecked until the full matrix passes.
 
 EH4-200's graphics provenance audit
 found the declared `casebor/graphics_engine` URL redirects to public

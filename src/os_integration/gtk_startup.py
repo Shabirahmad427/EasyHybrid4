@@ -101,8 +101,10 @@ def configure_gl_context_environment(*, platform=None, environ=None,
     EasyHybrid shaders require desktop OpenGL. GTK 4.14 changed its default
     GDK context preference to GLES; GTK 4.14+ therefore needs the portable
     GDK preference flag. On Linux X11, GTK and PyOpenGL use GLX so PyOpenGL
-    can recognize the Gtk.GLArea context on Mesa and native drivers. Wayland
-    uses EGL. Other platforms retain PyOpenGL's native WGL/CGL selection.
+    can recognize the Gtk.GLArea context on Mesa and native drivers. GTK
+    4.16/4.18 builds that reject GDK's ``gl-glx`` flag use EGL for both.
+    Wayland uses EGL. Other platforms retain PyOpenGL's native WGL/CGL
+    selection.
     """
     platform = sys.platform if platform is None else platform
     environ = os.environ if environ is None else environ
@@ -133,11 +135,17 @@ def configure_gl_context_environment(*, platform=None, environ=None,
         if environ.get("WAYLAND_DISPLAY") and not environ.get("DISPLAY"):
             environ.setdefault("PYOPENGL_PLATFORM", "egl")
         elif environ.get("DISPLAY"):
-            environ.setdefault("PYOPENGL_PLATFORM", "glx")
-            flags = environ.get("GDK_DEBUG", "").replace(",", ":").split(":")
-            if "gl-glx" not in flags:
-                flags.append("gl-glx")
-            environ["GDK_DEBUG"] = ":".join(flag for flag in flags if flag)
+            # Some distro GTK 4.16/4.18 builds reject ``gl-glx`` and fall
+            # back to EGL. Keep PyOpenGL on GTK's backend there; forcing GLX
+            # gives PyOpenGL a wrapper with no current context.
+            if version is not None and (4, 16) <= tuple(version[:2]) < (4, 20):
+                environ.setdefault("PYOPENGL_PLATFORM", "egl")
+            else:
+                environ.setdefault("PYOPENGL_PLATFORM", "glx")
+                flags = environ.get("GDK_DEBUG", "").replace(",", ":").split(":")
+                if "gl-glx" not in flags:
+                    flags.append("gl-glx")
+                environ["GDK_DEBUG"] = ":".join(flag for flag in flags if flag)
         else:
             environ.setdefault("PYOPENGL_PLATFORM", "egl")
 

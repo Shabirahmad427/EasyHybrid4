@@ -321,6 +321,10 @@ jobs:
       - name: Render an EasyHybrid molecular scene and close the UI twice
         env:
           EASYHYBRID_RUN_GRAPHICS_TESTS: "1"
+          # The distro's optional Cython accelerator was built against its
+          # packaged NumPy; the user-site NumPy needed by the renderer can
+          # have a different C ABI. PyOpenGL's ctypes path is fully capable.
+          PYOPENGL_USE_ACCELERATE: "0"
         run: |
           set -o pipefail
           LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" python3 -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_and_molecular_renderer_open_and_close_cleanly 2>&1 | tee -a platform-results.txt

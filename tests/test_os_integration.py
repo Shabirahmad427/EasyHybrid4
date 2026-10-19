@@ -1,6 +1,7 @@
 """Regression coverage for display-independent startup OS integration."""
 
 import json
+import pytest
 
 from src.os_integration.gtk_startup import (
     configure_vblank_mode,
@@ -131,6 +132,20 @@ def test_gtk48_uses_the_default_desktop_gl_backend_on_linux_x11():
         "PYOPENGL_PLATFORM": "glx",
         "GDK_DEBUG": "gl-glx",
     }
+
+
+@pytest.mark.parametrize("runtime_version", [(4, 16), (4, 18)])
+def test_gtk416_and_418_use_egl_on_linux_x11(runtime_version):
+    environment = {"DISPLAY": ":99"}
+
+    configure_gl_context_environment(
+        platform="linux",
+        environ=environment,
+        runtime_version=runtime_version,
+    )
+
+    assert environment["PYOPENGL_PLATFORM"] == "egl"
+    assert "gl-glx" not in environment.get("GDK_DEBUG", "").split(":")
 
 
 def test_wayland_uses_egl_and_newer_gtk_prefers_desktop_gl():
