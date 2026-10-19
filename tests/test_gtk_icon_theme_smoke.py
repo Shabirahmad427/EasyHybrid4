@@ -326,12 +326,15 @@ _EASYHYBRID_GRAPHICS_SMOKE = textwrap.dedent(
             if state["scene_draws"] == 0:
                 return GLib.SOURCE_CONTINUE
 
-            if os.environ.get("EASYHYBRID_TEST_HIDPI_PICKING") == "1":
+            if os.environ.get("EASYHYBRID_TEST_COORDINATE_PICKING") == "1":
                 if not state.get("hidpi_pick_started"):
                     widget_width = vm_widget.get_width()
                     widget_height = vm_widget.get_height()
                     core = state["vm_session"].vm_glcore
-                    if core.width <= widget_width or core.height <= widget_height:
+                    if (
+                        os.environ.get("EASYHYBRID_REQUIRE_HIDPI_PICKING") == "1"
+                        and (core.width <= widget_width or core.height <= widget_height)
+                    ):
                         raise RuntimeError(
                             "GDK_SCALE=2 did not produce a larger GL framebuffer: "
                             "widget=%sx%s framebuffer=%sx%s"
@@ -484,10 +487,12 @@ def test_missing_display_is_reported_before_gapplication_registration():
     reason="requires bundled graphics extensions and a native GTK display",
 )
 def test_easyhybrid_menu_and_molecular_renderer_open_and_close_cleanly():
-    """Exercise the EasyHybrid menu and bundled molecule renderer twice."""
+    """Exercise fresh EasyHybrid scene lifecycles with native GTK events."""
     environment = os.environ.copy()
     environment["G_DEBUG"] = "fatal-criticals"
-    for cycle in range(1, 3):
+    cycles = int(environment.get("EASYHYBRID_GRAPHICS_SMOKE_CYCLES", "2"))
+    assert cycles >= 1
+    for cycle in range(1, cycles + 1):
         result = subprocess.run(
             [sys.executable, "-c", _EASYHYBRID_GRAPHICS_SMOKE],
             cwd=os.path.dirname(os.path.dirname(__file__)),
@@ -506,7 +511,7 @@ def test_easyhybrid_menu_and_molecular_renderer_open_and_close_cleanly():
         assert "EASYHYBRID_MOLECULE_ATOMS=3" in result.stdout
         assert "EASYHYBRID_MOLECULE_BONDS=2" in result.stdout
         assert "EASYHYBRID_MOLECULE_DRAW_CALLS=" in result.stdout
-        if environment.get("EASYHYBRID_TEST_HIDPI_PICKING") == "1":
+        if environment.get("EASYHYBRID_TEST_COORDINATE_PICKING") == "1":
             assert "EASYHYBRID_HIDPI_PICK=O:" in result.stdout
         assert "CLOSED=True" in result.stdout
         assert "Traceback" not in result.stderr

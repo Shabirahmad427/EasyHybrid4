@@ -11,10 +11,16 @@ pointer events arrive in widget-local logical units, while VisMol pick reads
 use framebuffer pixels. `widget_to_framebuffer_coordinates()` now converts
 press/release/motion input using the live widget and GL framebuffer dimensions.
 Native Linux X11/NVIDIA testing at GTK 4.14.5, Python 3.12.3, PyGObject 3.48.2,
-GLib 2.80.0 and `GDK_SCALE=2` picked the projected oxygen atom in both of two
+GLib 2.80.0 and `GDK_SCALE=2` picked the projected oxygen atom in **20/20**
 fresh EasyHybrid/VisMol open/render/close cycles. The focused GTK compatibility
-tests pass **7/7**. The full 30-cell native matrix after this change is pending;
-EH4-202 remains unchecked until it passes.
+tests pass **7/7**. The matrix workflow now exercises the same projected-oxygen
+GTK event in **20 cycles per cell**. Full matrix run
+[`39305083176`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39305083176)
+passed **30/30** after the coordinate conversion was first added, confirming
+exact GTK patch runtimes and two scene render/close cycles per cell. Artifact
+review found that the old smoke did not invoke picking on hosted platforms.
+The expanded 20-cycle per cell pick/render/close matrix is pending. EH4-202
+remains unchecked until it passes.
 
 **EH4-201 acceptance evidence:** Its GTK smoke creates a real
 GTK window with EasyHybrid's production menu and bundled VisMol widget. It

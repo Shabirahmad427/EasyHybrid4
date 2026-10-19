@@ -191,9 +191,11 @@ jobs:
         run: micromamba run -n easyhybrid-gtk python setup.py build_ext --inplace
         working-directory: src/graphics_engine
 
-      - name: Render an EasyHybrid molecular scene and close the UI twice
+      - name: Run 20 EasyHybrid molecular scene pick and close cycles
         env:
           EASYHYBRID_RUN_GRAPHICS_TESTS: "1"
+          EASYHYBRID_TEST_COORDINATE_PICKING: "1"
+          EASYHYBRID_GRAPHICS_SMOKE_CYCLES: "20"
           PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
         run: |
           set -o pipefail
@@ -325,9 +327,11 @@ jobs:
           set -o pipefail
           LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" python3 -m pytest -q -p no:cacheprovider --noconftest -rs tests/test_gtk4_widget_patterns.py 2>&1 | tee -a platform-results.txt
 
-      - name: Render an EasyHybrid molecular scene and close the UI twice
+      - name: Run 20 EasyHybrid molecular scene pick and close cycles
         env:
           EASYHYBRID_RUN_GRAPHICS_TESTS: "1"
+          EASYHYBRID_TEST_COORDINATE_PICKING: "1"
+          EASYHYBRID_GRAPHICS_SMOKE_CYCLES: "20"
           # The distro's optional Cython accelerator was built against its
           # packaged NumPy; the user-site NumPy needed by the renderer can
           # have a different C ABI. PyOpenGL's ctypes path is fully capable.
@@ -455,9 +459,11 @@ jobs:
         run: python setup.py build_ext --inplace
         working-directory: src/graphics_engine
 
-      - name: Render an EasyHybrid molecular scene and close the UI twice
+      - name: Run 20 EasyHybrid molecular scene pick and close cycles
         env:
           EASYHYBRID_RUN_GRAPHICS_TESTS: "1"
+          EASYHYBRID_TEST_COORDINATE_PICKING: "1"
+          EASYHYBRID_GRAPHICS_SMOKE_CYCLES: "20"
         run: |
           set -o pipefail
           GALLIUM_DRIVER=llvmpipe python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_and_molecular_renderer_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
@@ -618,9 +624,11 @@ jobs:
         run: micromamba run -n easyhybrid-gtk-src python setup.py build_ext --inplace
         working-directory: src/graphics_engine
 
-      - name: Render an EasyHybrid molecular scene and close the UI twice
+      - name: Run 20 EasyHybrid molecular scene pick and close cycles
         env:
           EASYHYBRID_RUN_GRAPHICS_TESTS: "1"
+          EASYHYBRID_TEST_COORDINATE_PICKING: "1"
+          EASYHYBRID_GRAPHICS_SMOKE_CYCLES: "20"
         run: >-
           micromamba run -n easyhybrid-gtk-src python -m pytest -q -s
           -p no:cacheprovider

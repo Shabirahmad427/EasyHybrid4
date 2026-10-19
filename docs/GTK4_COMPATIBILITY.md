@@ -224,10 +224,11 @@ and drag paths operate in GL framebuffer pixels. The GTK widget now converts
 press, release and motion coordinates using its allocated logical dimensions
 and the live framebuffer dimensions. Unit tests cover 1x, 1.5x, 2x and the
 pre-allocation fallback. Native Linux X11/NVIDIA testing at GTK 4.14.5 with
-`GDK_SCALE=2` passed two real oxygen-atom picks through the GTK event handlers,
-with a scene render and clean close on each cycle. The post-change 30-cell
-matrix is pending; Windows/macOS and other GTK minor scaling behavior remain
-**NOT TESTED** until that run completes.
+`GDK_SCALE=2` passed **20 independent open/pick/render/close cycles**, each
+making a real oxygen-atom pick through the GTK event handlers. The matrix
+workflow now performs the same 20 cycles in every cell; that expanded run is
+pending. Windows/macOS and other GTK minor scaling behavior remain **NOT
+TESTED** until that run completes.
 
 ### GTK defects found and handled
 
