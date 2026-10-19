@@ -92,13 +92,6 @@ jobs:
             pycairo
             pytest
             pyopengl
-            setuptools
-            numpy
-            cython
-            pillow
-            freetype-py
-            pyyaml
-            ${{ matrix.gtk == '4.24' && 'scipy psutil' || '' }}
 
       - name: Compile GSettings schemas
         # GTK's file/colour choosers abort without a compiled schema cache.
@@ -137,6 +130,13 @@ jobs:
           $pythonExe = (micromamba run -n easyhybrid-gtk python -c 'import sys; print(sys.executable)' |
             Select-Object -Last 1).Trim()
           & .github/scripts/install_mesa_wgl.ps1 -PythonExe $pythonExe
+
+      - name: Install graphics scene Python dependencies without changing GTK
+        run: micromamba run -n easyhybrid-gtk python -m pip install --disable-pip-version-check numpy cython pillow freetype-py pyyaml setuptools
+
+      - name: Install additional full-suite dependencies
+        if: matrix.gtk == '4.24'
+        run: micromamba run -n easyhybrid-gtk python -m pip install --disable-pip-version-check scipy psutil
 
       - name: Record actual runtime and host
         run: |
@@ -532,7 +532,6 @@ jobs:
           post-cleanup: none
           create-args: >-
             python=3.12
-            setuptools
             numpy
             cython
             pillow

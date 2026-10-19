@@ -20,18 +20,26 @@ pDynamo3 (`ModuleNotFoundError: pBabel`). The workflow now builds the graphics
 extensions and runs a pDynamo-independent EasyHybrid menu/VisMol scene smoke
 in every GTK/OS cell. Matrix run
 [`39264038822`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39264038822)
-completed **FAILED** on commit `1100afa`: the generic GTK/widget checks passed
-in 30/30 cells, while the added scene/build checks exposed workflow setup
-issues. Linux distro builds lacked `setuptools`; six GTK 4.8/4.10 jobs resolved
-GTK 4.12.1 after dependencies were installed in a separate solver transaction;
-and five Linux renderer runs forced GLX although GTK selected EGL. The workflow
-candidate now resolves renderer dependencies with the pinned GTK environment,
-installs setuptools in distro/source builds, and leaves Linux's native EGL
-selection intact. The real two-cycle scene test passed locally on Linux X11,
-GTK 4.14.5, Python 3.12.3, PyGObject 3.48.2, GLib 2.80.0 and NVIDIA RTX 4060
-Ti (22 and 24 draw calls, clean close). The corrected complete native matrix
-is pending. pDynamo3 scientific/runtime tests are tracked separately against
-pDynamo3; EH4-201 remains unchecked until the corrected matrix passes.
+completed **FAILED** on commit `1100afa`: generic GTK/widget checks passed in
+30/30 cells, while the added scene/build checks exposed missing setuptools,
+GTK runtime drift and a Linux GL backend mismatch. The follow-up run
+[`39265658429`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39265658429)
+on `3ece343` completed **17/30 PASS, 13/30 FAIL**. Every non-Linux GTK scene
+and widget job passed, including GTK 4.16/4.18 Windows source builds and
+macOS arm64 GTK 4.8–4.24. Eight Linux X11 scene jobs failed because startup
+selected EGL while the VisMol renderer's PyOpenGL context lookup could not see
+GTK's context on hosted runners. Five GTK 4.8/4.10 jobs failed environment
+solving because adding Pillow to the conda solve conflicted with the legacy
+`jpeg=9e` GTK pin. The pending workflow fix installs Python graphics
+dependencies with pip after the pinned GTK environment is created; it does
+not rerun the GTK solver. The pending app fix selects GLX for Linux X11 and
+keeps EGL for Wayland, setting GTK and PyOpenGL to the same backend. Locally,
+the production menu/VisMol smoke passed twice with GTK 4.14.5, Python 3.12.3,
+PyGObject 3.48.2, GLib 2.80.0 and NVIDIA RTX 4060 Ti (22 representation
+draws per cycle; clean close); startup/platform regression tests passed **33**.
+The corrected full matrix is pending. pDynamo3 scientific/runtime tests are
+tracked separately against pDynamo3; EH4-201 remains unchecked until the full
+matrix passes.
 
 EH4-200's graphics provenance audit
 found the declared `casebor/graphics_engine` URL redirects to public

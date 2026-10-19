@@ -104,7 +104,7 @@ def test_malformed_gpu_vendor_path_is_ignored(tmp_path):
     assert environment == {}
 
 
-def test_linux_gtk_gl_environment_aligns_egl_and_desktop_gl():
+def test_linux_x11_gtk_gl_environment_aligns_glx_and_desktop_gl():
     environment = {"DISPLAY": ":99", "GDK_DEBUG": "portals"}
 
     configure_gl_context_environment(
@@ -113,11 +113,11 @@ def test_linux_gtk_gl_environment_aligns_egl_and_desktop_gl():
         runtime_version=(4, 14),
     )
 
-    assert environment["GDK_DEBUG"] == "portals:gl-prefer-gl"
-    assert environment["PYOPENGL_PLATFORM"] == "egl"
+    assert environment["GDK_DEBUG"] == "portals:gl-prefer-gl:gl-glx"
+    assert environment["PYOPENGL_PLATFORM"] == "glx"
 
 
-def test_gtk48_keeps_its_desktop_gl_default_but_selects_egl_on_linux():
+def test_gtk48_uses_the_default_desktop_gl_backend_on_linux_x11():
     environment = {"DISPLAY": ":99"}
 
     configure_gl_context_environment(
@@ -126,7 +126,11 @@ def test_gtk48_keeps_its_desktop_gl_default_but_selects_egl_on_linux():
         runtime_version=(4, 8),
     )
 
-    assert environment == {"DISPLAY": ":99", "PYOPENGL_PLATFORM": "egl"}
+    assert environment == {
+        "DISPLAY": ":99",
+        "PYOPENGL_PLATFORM": "glx",
+        "GDK_DEBUG": "gl-glx",
+    }
 
 
 def test_wayland_uses_egl_and_newer_gtk_prefers_desktop_gl():
@@ -165,6 +169,7 @@ def test_user_selected_opengl_platform_is_preserved():
     )
 
     assert environment["PYOPENGL_PLATFORM"] == "glx"
+    assert environment["GDK_DEBUG"] == "gl-prefer-gl:gl-glx"
 
 
 def test_user_paths_follow_platform_conventions_and_unicode(tmp_path):
