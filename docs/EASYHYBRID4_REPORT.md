@@ -18,9 +18,20 @@ passed generic GTK/widget checks in 30/30 cells; its added full-app scene step
 failed on Linux, Windows and macOS GTK 4.24 because hosted runners do not have
 pDynamo3 (`ModuleNotFoundError: pBabel`). The workflow now builds the graphics
 extensions and runs a pDynamo-independent EasyHybrid menu/VisMol scene smoke
-in every GTK/OS cell. That corrected full matrix is pending. pDynamo3
-scientific/runtime tests are tracked separately against pDynamo3; EH4-201
-remains unchecked until the corrected matrix passes.
+in every GTK/OS cell. Matrix run
+[`39264038822`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39264038822)
+completed **FAILED** on commit `1100afa`: the generic GTK/widget checks passed
+in 30/30 cells, while the added scene/build checks exposed workflow setup
+issues. Linux distro builds lacked `setuptools`; six GTK 4.8/4.10 jobs resolved
+GTK 4.12.1 after dependencies were installed in a separate solver transaction;
+and five Linux renderer runs forced GLX although GTK selected EGL. The workflow
+candidate now resolves renderer dependencies with the pinned GTK environment,
+installs setuptools in distro/source builds, and leaves Linux's native EGL
+selection intact. The real two-cycle scene test passed locally on Linux X11,
+GTK 4.14.5, Python 3.12.3, PyGObject 3.48.2, GLib 2.80.0 and NVIDIA RTX 4060
+Ti (22 and 24 draw calls, clean close). The corrected complete native matrix
+is pending. pDynamo3 scientific/runtime tests are tracked separately against
+pDynamo3; EH4-201 remains unchecked until the corrected matrix passes.
 
 EH4-200's graphics provenance audit
 found the declared `casebor/graphics_engine` URL redirects to public

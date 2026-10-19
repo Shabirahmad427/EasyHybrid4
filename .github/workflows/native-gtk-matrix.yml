@@ -92,6 +92,13 @@ jobs:
             pycairo
             pytest
             pyopengl
+            setuptools
+            numpy
+            cython
+            pillow
+            freetype-py
+            pyyaml
+            ${{ matrix.gtk == '4.24' && 'scipy psutil' || '' }}
 
       - name: Compile GSettings schemas
         # GTK's file/colour choosers abort without a compiled schema cache.
@@ -130,17 +137,6 @@ jobs:
           $pythonExe = (micromamba run -n easyhybrid-gtk python -c 'import sys; print(sys.executable)' |
             Select-Object -Last 1).Trim()
           & .github/scripts/install_mesa_wgl.ps1 -PythonExe $pythonExe
-
-      - name: Install graphics scene build dependencies
-        run: >-
-          micromamba install --yes -n easyhybrid-gtk --channel conda-forge
-          numpy cython pillow freetype-py pyyaml
-
-      - name: Install additional full-suite dependencies
-        if: matrix.gtk == '4.24'
-        run: >-
-          micromamba install --yes -n easyhybrid-gtk --channel conda-forge
-          scipy psutil
 
       - name: Record actual runtime and host
         run: |
@@ -195,7 +191,7 @@ jobs:
         run: |
           set -o pipefail
           if [[ "$RUNNER_OS" == "Linux" ]]; then
-            LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_and_molecular_renderer_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
+          LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_and_molecular_renderer_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
           elif [[ "$RUNNER_OS" == "Windows" ]]; then
             GALLIUM_DRIVER=llvmpipe micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_and_molecular_renderer_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
           else
@@ -292,7 +288,7 @@ jobs:
             libgl1 libgl1-mesa-dri libegl1 libegl-mesa0
 
       - name: Install graphics engine Python dependencies
-        run: python3 -m pip install --user --break-system-packages numpy cython pillow freetype-py pyyaml
+        run: python3 -m pip install --user --break-system-packages setuptools numpy cython pillow freetype-py pyyaml scipy psutil
 
       - uses: actions/checkout@v5
 
@@ -536,6 +532,7 @@ jobs:
           post-cleanup: none
           create-args: >-
             python=3.12
+            setuptools
             numpy
             cython
             pillow
