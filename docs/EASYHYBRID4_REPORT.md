@@ -57,6 +57,15 @@ which also passed **30/30 cells**; exact per-cell runtime versions are in the
 uploaded artifacts. The next eligible graphics task is EH4-202. pDynamo3
 scientific/runtime tests remain separate and must run in pDynamo3 itself.
 
+**CI provisioning follow-up:** Exact GTK patch pinning and validation are being
+added on branch `ci/gtk-exact-runtime-guard`. Its first workflow run
+(`39277240441`) failed one GTK 4.24 Linux cell before environment creation:
+`setup-micromamba@v3.2.1` could not find the unpinned latest micromamba
+`2.9.0-0` Linux binary. The subsequent “Unexpected end of JSON input” was a
+cleanup error. This cell did not run GTK tests. The workflow now pins
+micromamba `2.8.1-1`; the full corrected matrix is pending. This is a test
+provisioning failure, not a GTK or EasyHybrid failure.
+
 EH4-200's graphics provenance audit
 found the declared `casebor/graphics_engine` URL redirects to public
 `casebor/Vismol`; the `vismol_easyhybrid` branch exists at
