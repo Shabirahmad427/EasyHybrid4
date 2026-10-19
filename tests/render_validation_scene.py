@@ -458,7 +458,8 @@ def main():
         return GLib.SOURCE_REMOVE
 
     GLib.timeout_add(50, tick)
-    GLib.timeout_add_seconds(90, timeout)
+    # Intel macOS runners render ~2.5x slower than Apple Silicon ones.
+    GLib.timeout_add_seconds(240, timeout)
     application.connect("activate", activate)
     application.hold()
     application.run(None)

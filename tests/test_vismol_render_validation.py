@@ -34,7 +34,7 @@ def run_scene(scale):
         cwd=str(ROOT),
         capture_output=True,
         text=True,
-        timeout=180,
+        timeout=300,
         env=environment,
         check=False,
     )

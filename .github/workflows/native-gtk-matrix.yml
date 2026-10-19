@@ -62,6 +62,17 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Keep the macOS display awake for GTK frame delivery
+        if: runner.os == 'macOS'
+        # GTK's macOS backend paints from the display's frame callback. On
+        # a headless hosted runner, display sleep / App Nap later stall or
+        # throttle those frames, so long jobs hang waiting for a render.
+        run: |
+          sudo pmset -a displaysleep 0 sleep 0 disksleep 0 || true
+          defaults write NSGlobalDomain NSAppSleepDisabled -bool YES
+          nohup caffeinate -dimsu >/dev/null 2>&1 &
+          pmset -g | tee macos-power.txt
+
       - name: Initialize per-platform test evidence
         run: |
           printf 'GTK_REQUESTED=%s OS=%s STATUS=SETUP_PENDING\n' \
@@ -575,6 +586,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+
+      - name: Keep the macOS display awake for GTK frame delivery
+        # GTK's macOS backend paints from the display's frame callback. On
+        # a headless hosted runner, display sleep / App Nap later stall or
+        # throttle those frames, so long jobs hang waiting for a render.
+        run: |
+          sudo pmset -a displaysleep 0 sleep 0 disksleep 0 || true
+          defaults write NSGlobalDomain NSAppSleepDisabled -bool YES
+          nohup caffeinate -dimsu >/dev/null 2>&1 &
+          pmset -g | tee macos-power.txt
 
       - name: Create GTK build dependencies
         uses: mamba-org/setup-micromamba@v3.2.1
