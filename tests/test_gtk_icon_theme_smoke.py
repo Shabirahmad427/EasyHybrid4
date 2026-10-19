@@ -219,15 +219,25 @@ _EASYHYBRID_GRAPHICS_SMOKE = textwrap.dedent(
         "area_renders": 0,
     }
 
+    def fail_smoke(message):
+        state["smoke_error"] = message
+        print("EASYHYBRID_SMOKE_ERROR=" + message, flush=True)
+        application.quit()
+        return GLib.SOURCE_REMOVE
+
     def activate(app):
         vm_session = VismolSession("Gtk_4.0")
         vm_session.vm_widget.set_size_request(640, 420)
-        vm_session.vm_widget.connect(
-            "render",
-            lambda *_args: state.__setitem__(
-                "area_renders", state["area_renders"] + 1
-            ),
-        )
+        core_render = vm_session.vm_glcore.render
+
+        def count_area_render(*args, **kwargs):
+            state["area_renders"] += 1
+            return core_render(*args, **kwargs)
+
+        # The widget's connected render handler returns True, which stops
+        # further signal handlers. Count at the core render entry instead of
+        # attaching an unreachable later Gtk.GLArea::render observer.
+        vm_session.vm_glcore.render = count_area_render
         window = Gtk.ApplicationWindow(application=app)
         window.set_default_size(900, 650)
         class ActionProbe:
@@ -369,6 +379,10 @@ _EASYHYBRID_GRAPHICS_SMOKE = textwrap.dedent(
                         raise RuntimeError("oxygen is behind the view camera")
                     x = px * widget_width / core.width
                     y = py * widget_height / core.height
+                    state["pick_target"] = (px, py)
+                    state["pick_widget"] = (widget_width, widget_height)
+                    state["pick_framebuffer"] = (core.width, core.height)
+                    state["pick_dither_before"] = bool(GL.glIsEnabled(GL.GL_DITHER))
                     gesture = CenterClick(x, y)
                     vm_widget._on_mouse_pressed(gesture, 1, x, y)
                     vm_widget._on_mouse_released(gesture, 1, x, y)
@@ -380,14 +394,35 @@ _EASYHYBRID_GRAPHICS_SMOKE = textwrap.dedent(
                     return GLib.SOURCE_CONTINUE
                 picked = core.atom_picked
                 if picked is None:
-                    raise RuntimeError(
-                        "HiDPI center click did not pick a rendered atom"
+                    viewport = tuple(
+                        int(value) for value in GL.glGetIntegerv(GL.GL_VIEWPORT)
+                    )
+                    return fail_smoke(
+                        "oxygen pick missed: target=%r widget=%r framebuffer=%r "
+                        "pick=(%r,%r) viewport=%r dither_before=%r dither_after=%r"
+                        % (
+                            state.get("pick_target"),
+                            state.get("pick_widget"),
+                            state.get("pick_framebuffer"),
+                            core.picking_x,
+                            core.picking_y,
+                            viewport,
+                            state.get("pick_dither_before"),
+                            bool(GL.glIsEnabled(GL.GL_DITHER)),
+                        )
+                    )
+                dither_after = bool(GL.glIsEnabled(GL.GL_DITHER))
+                if dither_after != state.get("pick_dither_before"):
+                    return fail_smoke(
+                        "GL_DITHER state changed across picking: before=%r after=%r"
+                        % (state.get("pick_dither_before"), dither_after)
                     )
                 print(
                     "EASYHYBRID_HIDPI_PICK=%s:%s"
                     % (picked.symbol, picked.atom_id),
                     flush=True,
                 )
+                print("EASYHYBRID_PICK_DITHER_RESTORED=%s" % dither_after, flush=True)
                 state["hidpi_pick_checked"] = True
 
             vm_widget.make_current()
@@ -513,6 +548,7 @@ def test_easyhybrid_menu_and_molecular_renderer_open_and_close_cleanly():
         assert "EASYHYBRID_MOLECULE_DRAW_CALLS=" in result.stdout
         if environment.get("EASYHYBRID_TEST_COORDINATE_PICKING") == "1":
             assert "EASYHYBRID_HIDPI_PICK=O:" in result.stdout
+            assert "EASYHYBRID_PICK_DITHER_RESTORED=" in result.stdout
         assert "CLOSED=True" in result.stdout
         assert "Traceback" not in result.stderr
         assert "CRITICAL" not in result.stderr

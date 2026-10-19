@@ -14,13 +14,23 @@ Native Linux X11/NVIDIA testing at GTK 4.14.5, Python 3.12.3, PyGObject 3.48.2,
 GLib 2.80.0 and `GDK_SCALE=2` picked the projected oxygen atom in **20/20**
 fresh EasyHybrid/VisMol open/render/close cycles. The focused GTK compatibility
 tests pass **7/7**. The matrix workflow now exercises the same projected-oxygen
-GTK event in **20 cycles per cell**. Full matrix run
+GTK event in **20 cycles per cell**. First expanded run
+[`39307131433`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39307131433)
+completed **19/30 PASS**: every Linux and Windows cell passed; all 11 macOS
+cells rendered the scene but returned no atom ID through Apple Software
+Renderer. The pick pass uses exact RGB bytes as atom IDs, so VisMol now disables
+`GL_DITHER` only during that pass and restores the previous state. The failure
+path also reports the click and framebuffer geometry immediately. After the
+fix, local Linux X11/NVIDIA GTK 4.14.5 `GDK_SCALE=2` validation passed **20/20**
+fresh scene cycles; each picked `O:0`, confirmed dither state restoration,
+rendered and closed cleanly. The full matrix after this correction is pending.
+Earlier matrix run
 [`39305083176`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39305083176)
 passed **30/30** after the coordinate conversion was first added, confirming
 exact GTK patch runtimes and two scene render/close cycles per cell. Artifact
 review found that the old smoke did not invoke picking on hosted platforms.
-The expanded 20-cycle per cell pick/render/close matrix is pending. EH4-202
-remains unchecked until it passes.
+EH4-202 remains unchecked until the expanded 20-cycle per cell pick/render/close
+matrix passes.
 
 **EH4-201 acceptance evidence:** Its GTK smoke creates a real
 GTK window with EasyHybrid's production menu and bundled VisMol widget. It

@@ -2101,62 +2101,72 @@ class VismolGLCore:
         """
 
         BACKGROUND_ID = 16777215
+        # Atom IDs are encoded in exact RGB byte values. Dithering can alter
+        # those values by a byte on some drivers (notably Apple's software GL
+        # renderer), turning a valid pixel into an unknown atom ID. Disable it
+        # only for the ID-buffer pass and restore the caller's state below.
+        dither_enabled = GL.glIsEnabled(GL.GL_DITHER)
+        if dither_enabled:
+            GL.glDisable(GL.GL_DITHER)
 
-        # Clear buffers before rendering picking scene
-        GL.glClearColor(1, 1, 1, 1)
-        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
-        # O picking roda ANTES do update_camera_ubo() do render() principal,
-        # entao o UBO ainda teria as matrizes do frame anterior. Os shaders
-        # sel_* ja convertidos ao UBO leem daqui, logo atualizamos agora para
-        # garantir que a cena de picking use a camera ATUAL (corrige erro de
-        # selecao logo apos rotacao/zoom).
-        self.update_camera_ubo()
+        try:
+            # Clear buffers before rendering picking scene
+            GL.glClearColor(1, 1, 1, 1)
+            GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+            # O picking roda ANTES do update_camera_ubo() do render() principal,
+            # entao o UBO ainda teria as matrizes do frame anterior. Os shaders
+            # sel_* ja convertidos ao UBO leem daqui, logo atualizamos agora para
+            # garantir que a cena de picking use a camera ATUAL (corrige erro de
+            # selecao logo apos rotacao/zoom).
+            self.update_camera_ubo()
 
-        # Render selection representations
-        for vm_object in self.vm_session.vm_objects_dic.values():
-            if not vm_object.active:
-                continue
+            # Render selection representations
+            for vm_object in self.vm_session.vm_objects_dic.values():
+                if not vm_object.active:
+                    continue
 
-            for rep in vm_object.representations.values():
-                if rep and rep.active:
-                    rep.draw_background_sel_representation()
+                for rep in vm_object.representations.values():
+                    if rep and rep.active:
+                        rep.draw_background_sel_representation()
 
-        # Ensure tight packing
-        GL.glPixelStorei(GL.GL_PACK_ALIGNMENT, 1)
+            # Ensure tight packing
+            GL.glPixelStorei(GL.GL_PACK_ALIGNMENT, 1)
 
-        # Convert coordinates (GTK → OpenGL)
-        x = int(self.picking_x)
-        y = int(self.height - self.picking_y)
+            # Convert coordinates (GTK → OpenGL)
+            x = int(self.picking_x)
+            y = int(self.height - self.picking_y)
 
-        # Read single pixel
-        data = GL.glReadPixels(x, y, 1, 1, GL.GL_RGBA, GL.GL_UNSIGNED_BYTE)
+            # Read single pixel
+            data = GL.glReadPixels(x, y, 1, 1, GL.GL_RGBA, GL.GL_UNSIGNED_BYTE)
 
-        # Decode RGB → ID
-        pickedID = data[0] + data[1] * 256 + data[2] * 256 * 256
+            # Decode RGB → ID
+            pickedID = data[0] + data[1] * 256 + data[2] * 256 * 256
 
-        atom_dic = self.vm_session.atom_dic_id
+            atom_dic = self.vm_session.atom_dic_id
 
-        if pickedID == BACKGROUND_ID:
-            self.atom_picked = None
-
-            if self.button == 1:
-                self.vm_session._selection_function_set(None)
-                self.button = None
-        else:
-            atom = atom_dic.get(pickedID)
-
-            if atom is not None:
-                self.atom_picked = atom
+            if pickedID == BACKGROUND_ID:
+                self.atom_picked = None
 
                 if self.button == 1:
-                    dprint(atom)
-                    self.vm_session._selection_function_set({atom})
+                    self.vm_session._selection_function_set(None)
                     self.button = None
             else:
-                logger.debug(f"pickedID {pickedID} not found")
-                self.button = None
+                atom = atom_dic.get(pickedID)
 
-        self.picking = False
+                if atom is not None:
+                    self.atom_picked = atom
+
+                    if self.button == 1:
+                        dprint(atom)
+                        self.vm_session._selection_function_set({atom})
+                        self.button = None
+                else:
+                    logger.debug(f"pickedID {pickedID} not found")
+                    self.button = None
+        finally:
+            if dither_enabled:
+                GL.glEnable(GL.GL_DITHER)
+            self.picking = False
         return True
 
     def _pick_old(self):
