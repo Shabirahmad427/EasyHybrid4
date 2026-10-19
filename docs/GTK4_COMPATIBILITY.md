@@ -175,13 +175,13 @@ matrix below). Linux uses Xvfb and llvmpipe; Windows uses a pinned Mesa
 The current branch adds a guard that fails if the loaded GTK patch differs
 from the provider's selected version. Conda jobs pin the patch release; source
 builds use SHA-256-pinned GNOME tarballs; distro jobs check the packaged patch.
-The guard's full 30-cell validation is pending. Branch run `39278528559`
+Run `39292753361` validated the guard on all 30 cells; each artifact reports exactly its pinned patch. Before that, branch run `39278528559`
 passed 28/30; GTK 4.8/4.10 Windows failed before GTK installation because the
 pinned micromamba 2.8.1 rejects their `--skip-run-link-scripts` create flag.
 The workflow now pins micromamba 2.9.0-0.
 The latest complete matrix on `main` is run `39275185493`, whose exact runtime
 values are preserved in its artifacts. Do not merge the guard branch until all
-30 cells pass.
+30 cells pass (done: run `39292753361`).
 Every cell builds the graphics extensions and runs GTK widget/GL plus the
 EasyHybrid scene smoke. GTK 4.24 cells also run the remaining full regression
 suite.

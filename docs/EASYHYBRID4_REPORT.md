@@ -71,8 +71,12 @@ failed before GTK installation: micromamba 2.8.1 rejects the
 because its environment caches were restored without running `create`; the
 exact-version pins changed `create-args` and forced a fresh create. The
 workflow now pins micromamba `2.9.0-0`, which accepts the flag; a local
-`--platform win-64 --dry-run` solve of both cells succeeds with it. Exact-version
-validation remains pending; do not merge this branch until all 30 cells pass.
+`--platform win-64 --dry-run` solve of both cells succeeds with it. Full run
+[`39292753361`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39292753361)
+passed **30/30**. Every artifact reports exactly its pinned GTK patch, and
+every cell completed two scene open/render/close cycles. The macOS arm64
+source cells print their scene evidence only to the job log. The guard is
+merged to `main`.
 
 EH4-200's graphics provenance audit
 found the declared `casebor/graphics_engine` URL redirects to public
