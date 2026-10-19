@@ -383,16 +383,20 @@ def run_steps():
     detail = {"logical": [widget.get_width(), widget.get_height()],
               "framebuffer": [float(core.width), float(core.height)],
               "viewport": viewport, "aspect": round(aspect, 4)}
+    # The window manager decides the final size (Windows GTK 4.20+ keeps a
+    # mapped toplevel's height), so require a real change and that the
+    # viewport, framebuffer and projection follow whatever size resulted.
     check("resize_viewport",
           viewport[2:] == [int(core.width), int(core.height)]
           and abs(aspect - core.width / core.height) < 1e-3
           and abs(core.height / widget.get_height() - ratio) < 1e-3
-          and (widget.get_width(), widget.get_height()) == RESIZED, detail)
+          and (widget.get_width(), widget.get_height()) != WINDOW, detail)
     x, y, _ = projected(core, molecule, atoms["N"])
     ys, xs = np.nonzero(component_at(foreground(shot["image"], background), x, y))
-    sphere_aspect = (xs.ptp() + 1) / (ys.ptp() + 1)
-    check("resize_sphere_aspect", 0.92 <= sphere_aspect <= 1.08,
-          {"width": int(xs.ptp() + 1), "height": int(ys.ptp() + 1)})
+    # np.ptp: ndarray.ptp() was removed in NumPy 2.
+    blob_width, blob_height = int(np.ptp(xs)) + 1, int(np.ptp(ys)) + 1
+    check("resize_sphere_aspect", 0.92 <= blob_width / blob_height <= 1.08,
+          {"width": blob_width, "height": blob_height})
     result["pick_resized"] = yield from pick_all("resized", ("N",))
 
     state["window"].close()
