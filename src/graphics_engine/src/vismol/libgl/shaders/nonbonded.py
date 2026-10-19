@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 #
 
+from vismol.libgl.shaders.pick_lines import WIDE_SEGMENT_GLSL, FLAT_COLOR_FRAGMENT_SHADER
+
 vertex_shader_non_bonded = """
 #version 330
 
@@ -126,7 +128,7 @@ sel_geometry_shader_non_bonded = """
 const float xyz_offset = 0.3;
 
 layout (points) in;
-layout (line_strip, max_vertices = 6) out;
+layout (triangle_strip, max_vertices = 12) out;
 
 layout(std140) uniform CameraMatrices {
     mat4 view_mat;
@@ -134,59 +136,19 @@ layout(std140) uniform CameraMatrices {
 };
 uniform mat4 model_mat;
 
-
 in vec3 geom_color[];
 in vec4 geom_coord[];
-
-out vec3 frag_color;
-
+""" + WIDE_SEGMENT_GLSL + """
 void main(){
-    vec4 p1 = geom_coord[0];
-    vec4 p2 = geom_coord[0];
-    vec4 p3 = geom_coord[0];
-    vec4 p4 = geom_coord[0];
-    vec4 p5 = geom_coord[0];
-    vec4 p6 = geom_coord[0];
-    p1.x -= xyz_offset;
-    p2.x += xyz_offset;
-    p3.y -= xyz_offset;
-    p4.y += xyz_offset;
-    p5.z -= xyz_offset;
-    p6.z += xyz_offset;
-    
-    frag_color = geom_color[0];
-    gl_Position = proj_mat * view_mat * model_mat * p1;
-    EmitVertex();
-    frag_color = geom_color[0];
-    gl_Position = proj_mat * view_mat * model_mat * p2;
-    EmitVertex();
-    EndPrimitive();
-    
-    frag_color = geom_color[0];
-    gl_Position = proj_mat * view_mat * model_mat * p3;
-    EmitVertex();
-    frag_color = geom_color[0];
-    gl_Position = proj_mat * view_mat * model_mat * p4;
-    EmitVertex();
-    EndPrimitive();
-    
-    frag_color = geom_color[0];
-    gl_Position = proj_mat * view_mat * model_mat * p5;
-    EmitVertex();
-    frag_color = geom_color[0];
-    gl_Position = proj_mat * view_mat * model_mat * p6;
-    EmitVertex();
-    EndPrimitive();
+    mat4 mvp = proj_mat * view_mat * model_mat;
+    vec4 centre = geom_coord[0];
+    // The three axis-aligned arms of the nonbonded cross, all one atom.
+    for (int axis = 0; axis < 3; axis++) {
+        vec4 offset = vec4(0.0);
+        offset[axis] = xyz_offset;
+        emit_wide_segment(mvp * (centre - offset), mvp * (centre + offset),
+                          geom_color[0], true, true);
+    }
 }
 """
-sel_fragment_shader_non_bonded = """
-#version 330
-
-in vec3 frag_color;
-
-out vec4 final_color;
-
-void main(){
-    final_color = vec4(frag_color, 1.0);
-}
-"""
+sel_fragment_shader_non_bonded = FLAT_COLOR_FRAGMENT_SHADER

@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 #
 
+from vismol.libgl.shaders.pick_lines import WIDE_SEGMENT_GLSL, FLAT_COLOR_FRAGMENT_SHADER
+
 vertex_shader_dashed_lines = """
 #version 330
 precision highp float; 
@@ -242,7 +244,7 @@ sel_geometry_shader_dashed_lines = """
 #version 330
 
 layout (lines) in;
-layout (line_strip, max_vertices = 4) out;
+layout (triangle_strip, max_vertices = 8) out;
 
 layout(std140) uniform CameraMatrices {
     mat4 view_mat;
@@ -251,35 +253,14 @@ layout(std140) uniform CameraMatrices {
 
 in vec3 geom_color[];
 in vec4 geom_coord[];
-
-out vec3 frag_color;
-
+""" + WIDE_SEGMENT_GLSL + """
 void main(){
     vec4 mid_coord = vec4((geom_coord[0].xyz + geom_coord[1].xyz)/2, 1.0);
-    gl_Position = proj_mat * geom_coord[0];
-    frag_color = geom_color[0];
-    EmitVertex();
-    gl_Position = proj_mat * mid_coord;
-    frag_color = geom_color[0];
-    EmitVertex();
-    EndPrimitive();
-    gl_Position = proj_mat * mid_coord;
-    frag_color = geom_color[1];
-    EmitVertex();
-    gl_Position = proj_mat * geom_coord[1];
-    frag_color = geom_color[1];
-    EmitVertex();
-    EndPrimitive();
+    vec4 clip_mid = proj_mat * mid_coord;
+    // Each atom owns the half of the bond on its side, as before; the
+    // atom end gets a square cap, the bond midpoint does not.
+    emit_wide_segment(proj_mat * geom_coord[0], clip_mid, geom_color[0], true, false);
+    emit_wide_segment(clip_mid, proj_mat * geom_coord[1], geom_color[1], false, true);
 }
 """
-sel_fragment_shader_dashed_lines = """
-#version 330
-
-in vec3 frag_color;
-
-out vec4 final_color;
-
-void main(){
-    final_color = vec4(frag_color, 1.0);
-}
-"""
+sel_fragment_shader_dashed_lines = FLAT_COLOR_FRAGMENT_SHADER

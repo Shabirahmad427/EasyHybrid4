@@ -337,6 +337,15 @@ _EASYHYBRID_GRAPHICS_SMOKE = textwrap.dedent(
                 return GLib.SOURCE_CONTINUE
 
             if os.environ.get("EASYHYBRID_TEST_COORDINATE_PICKING") == "1":
+                # Click the oxygen's projected centre, then 8 points ~3
+                # framebuffer pixels away. The default lines view encodes
+                # atom IDs in selection lines, so these clicks prove the
+                # hit region is a real width on every driver. macOS clamps
+                # glLineWidth to 1 px, which only covered the exact centre.
+                pick_offsets = (
+                    (0, 0), (3, 0), (-3, 0), (0, 3), (0, -3),
+                    (2, 2), (2, -2), (-2, 2), (-2, -2),
+                )
                 pick_caps = (
                     GL.GL_BLEND,
                     GL.GL_DITHER,
@@ -383,6 +392,10 @@ _EASYHYBRID_GRAPHICS_SMOKE = textwrap.dedent(
                     )
                     if px is None:
                         raise RuntimeError("oxygen is behind the view camera")
+                    offset = pick_offsets[state.get("pick_index", 0)]
+                    px, py = px + offset[0], py + offset[1]
+                    state["pick_offset"] = offset
+                    state["pick_oxygen"] = oxygen
                     x = px * widget_width / core.width
                     y = py * widget_height / core.height
                     state["pick_target"] = (px, py)
@@ -503,18 +516,21 @@ _EASYHYBRID_GRAPHICS_SMOKE = textwrap.dedent(
                 if core.picking:
                     return GLib.SOURCE_CONTINUE
                 picked = core.atom_picked
-                if picked is None:
+                if picked is None or picked is not state["pick_oxygen"]:
                     viewport = tuple(
                         int(value) for value in GL.glGetIntegerv(GL.GL_VIEWPORT)
                     )
                     pixel = state.get("pick_pixel")
                     return fail_smoke(
-                        "oxygen pick missed: target=%r widget=%r framebuffer=%r "
+                        "oxygen pick missed at offset %r (picked %r): "
+                        "target=%r widget=%r framebuffer=%r "
                         "pick=(%r,%r) viewport=%r pixel=%r pixel_id=%r "
                         "expected_color=%r expected_id=%r "
                         "gl_state_before=%r gl_state_at_read=%r diagnostics=%r "
                         "selection_draws=%r gl_error=%r"
                         % (
+                            state.get("pick_offset"),
+                            getattr(picked, "name", None),
                             state.get("pick_target"),
                             state.get("pick_widget"),
                             state.get("pick_framebuffer"),
@@ -546,6 +562,15 @@ _EASYHYBRID_GRAPHICS_SMOKE = textwrap.dedent(
                         "color transforms remained enabled at pick readback: %r"
                         % state.get("pick_gl_state_at_read")
                     )
+                state["pick_index"] = state.get("pick_index", 0) + 1
+                if state["pick_index"] < len(pick_offsets):
+                    state["hidpi_pick_started"] = False
+                    return GLib.SOURCE_CONTINUE
+                print(
+                    "EASYHYBRID_PICK_HIT_REGION=%d/%d"
+                    % (state["pick_index"], len(pick_offsets)),
+                    flush=True,
+                )
                 print(
                     "EASYHYBRID_HIDPI_PICK=%s:%s"
                     % (picked.symbol, picked.atom_id),
@@ -681,6 +706,7 @@ def test_easyhybrid_menu_vismol_components_open_and_close_cleanly():
         assert "EASYHYBRID_MOLECULE_DRAW_CALLS=" in result.stdout
         if environment.get("EASYHYBRID_TEST_COORDINATE_PICKING") == "1":
             assert "EASYHYBRID_HIDPI_PICK=O:" in result.stdout
+            assert "EASYHYBRID_PICK_HIT_REGION=9/9" in result.stdout
             assert "EASYHYBRID_PICK_GL_STATE_RESTORED=True" in result.stdout
         assert "CLOSED=True" in result.stdout
         assert "Traceback" not in result.stderr

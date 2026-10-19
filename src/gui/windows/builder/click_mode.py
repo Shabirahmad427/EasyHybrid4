@@ -1742,8 +1742,10 @@ def draw_hover_highlight ( vm_glcore, atom, n_segments = 24, filled = True,
 
         program = vm_glcore.shader_programs["lines_sel"]
         GL.glUseProgram ( program )
-        GL.glLineWidth ( 2.0 )
         vm_glcore.load_matrices ( program, np.identity ( 4, dtype = np.float32 ) )
+        # lines_sel draws screen-space quads of this pixel width (see
+        # shaders/pick_lines.py); glLineWidth no longer applies to it.
+        vm_glcore.load_pick_line_uniforms ( program, 2.0 )
 
         vao = GL.glGenVertexArrays ( 1 )
         GL.glBindVertexArray ( vao )

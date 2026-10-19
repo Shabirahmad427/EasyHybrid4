@@ -716,9 +716,9 @@ class LinesRepresentation(Representation):
         self._disable_anti_alias_to_lines()
         line_width = self.vm_session.vm_config.gl_parameters["line_width_selection"]
         GL.glUseProgram(self.sel_shader_program)
-        GL.glLineWidth(line_width) # line_width_factor -> turn the lines thicker
         GL.glEnable(GL.GL_DEPTH_TEST)
         self.vm_glcore.load_matrices(self.sel_shader_program, self.vm_object.model_mat)
+        self.vm_glcore.load_pick_line_uniforms(self.sel_shader_program, line_width)
         GL.glBindVertexArray(self.sel_vao)
         
         if self.was_sel_coord_modified:
@@ -776,9 +776,9 @@ class NonBondedRepresentation(Representation):
         self._check_vao_and_vbos()
         self._disable_anti_alias_to_lines()
         GL.glUseProgram(self.sel_shader_program)
-        GL.glLineWidth(line_width_factor)
         GL.glEnable(GL.GL_DEPTH_TEST)
         self.vm_glcore.load_matrices(self.sel_shader_program, self.vm_object.model_mat)
+        self.vm_glcore.load_pick_line_uniforms(self.sel_shader_program, line_width_factor)
         GL.glBindVertexArray(self.sel_vao)
         
         if self.was_sel_coord_modified:
@@ -1405,9 +1405,9 @@ class DashedLinesRepresentation(Representation):
         self._disable_anti_alias_to_lines()
         line_width = self.vm_session.vm_config.gl_parameters["line_width_selection"]
         GL.glUseProgram(self.sel_shader_program)
-        GL.glLineWidth(line_width)
         GL.glEnable(GL.GL_DEPTH_TEST)
         self.vm_glcore.load_matrices(self.sel_shader_program, self.vm_object.model_mat)
+        self.vm_glcore.load_pick_line_uniforms(self.sel_shader_program, line_width)
         GL.glBindVertexArray(self.sel_vao)
         
         if self.was_sel_coord_modified:

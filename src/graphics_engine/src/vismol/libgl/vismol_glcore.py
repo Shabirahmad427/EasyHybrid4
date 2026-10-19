@@ -2224,6 +2224,17 @@ class VismolGLCore:
         self.picking = False
         return True
     
+    def load_pick_line_uniforms(self, program, width_px):
+        """ Set the uniforms of shaders built on shaders/pick_lines.py.
+
+            width_px is the full segment width in framebuffer pixels. It
+            replaces glLineWidth(), which macOS clamps to 1 pixel.
+        """
+        GL.glUniform2f(self._get_uniform_location(program, "u_viewport_size"),
+                       float(self.width), float(self.height))
+        GL.glUniform1f(self._get_uniform_location(program, "u_pick_line_width"),
+                       float(width_px))
+
     def _get_uniform_location(self, program, name):
         """ Cached wrapper around glGetUniformLocation.
 

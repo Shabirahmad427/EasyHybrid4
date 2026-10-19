@@ -632,10 +632,11 @@ jobs:
           EASYHYBRID_TEST_COORDINATE_PICKING: "1"
           EASYHYBRID_GRAPHICS_SMOKE_CYCLES: "20"
           EASYHYBRID_DEBUG_PICK: "1"
-        run: >-
-          micromamba run -n easyhybrid-gtk-src python -m pytest -q -s
-          -p no:cacheprovider
-          tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_vismol_components_open_and_close_cleanly
+        # Keep the scene/pick evidence in the uploaded artifact like the
+        # other providers; this step previously wrote only to the job log.
+        run: |
+          set -o pipefail
+          micromamba run -n easyhybrid-gtk-src python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_vismol_components_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
 
       - name: Show macOS native crash report
         if: failure() && runner.os == 'macOS'
