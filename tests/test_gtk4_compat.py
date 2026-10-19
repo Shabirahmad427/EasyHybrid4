@@ -10,6 +10,7 @@ from src.gtk4_compat import (
     set_picture_contain,
     supports_picture_content_fit,
     supports_scroll_unit,
+    widget_to_framebuffer_coordinates,
 )
 
 
@@ -159,3 +160,31 @@ def test_macos_legacy_gtk_requests_core_mappable_gl_version():
     assert gl_area_required_version(_FakeGtkVersion(12), platform="darwin") == (3, 3)
     assert gl_area_required_version(_FakeGtkVersion(8), platform="linux") == (3, 3)
     assert gl_area_required_version(_FakeGtkVersion(8), platform="win32") == (3, 3)
+
+
+def test_widget_input_coordinates_follow_measured_framebuffer_scale():
+    assert widget_to_framebuffer_coordinates(
+        120, 80,
+        widget_width=480, widget_height=360,
+        framebuffer_width=480, framebuffer_height=360,
+    ) == (120.0, 80.0)
+    assert widget_to_framebuffer_coordinates(
+        120, 80,
+        widget_width=480, widget_height=360,
+        framebuffer_width=960, framebuffer_height=720,
+    ) == (240.0, 160.0)
+    # Use the measured ratio instead of assuming GTK's scale factor is always
+    # an integer; fractional render-target scaling can occur on some displays.
+    assert widget_to_framebuffer_coordinates(
+        120, 80,
+        widget_width=480, widget_height=360,
+        framebuffer_width=720, framebuffer_height=540,
+    ) == (180.0, 120.0)
+
+
+def test_widget_coordinates_remain_unchanged_before_allocations_exist():
+    assert widget_to_framebuffer_coordinates(
+        12.5, 20.25,
+        widget_width=0, widget_height=0,
+        framebuffer_width=0, framebuffer_height=0,
+    ) == (12.5, 20.25)

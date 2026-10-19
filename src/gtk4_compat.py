@@ -71,6 +71,36 @@ def get_scroll_unit(controller):
     return getter() if callable(getter) else None
 
 
+def widget_to_framebuffer_coordinates(
+    x, y, *, widget_width, widget_height, framebuffer_width, framebuffer_height
+):
+    """Map GTK widget-local input coordinates to GL framebuffer pixels.
+
+    GTK input coordinates use logical widget units while Gtk.GLArea's resize
+    dimensions describe the render target. Their measured ratio accounts for
+    HiDPI scale and avoids assuming a fixed monitor scale factor.
+    """
+    try:
+        widget_width = float(widget_width)
+        widget_height = float(widget_height)
+        framebuffer_width = float(framebuffer_width)
+        framebuffer_height = float(framebuffer_height)
+        x = float(x)
+        y = float(y)
+    except (TypeError, ValueError):
+        return x, y
+
+    if widget_width <= 0 or widget_height <= 0:
+        return x, y
+    if framebuffer_width <= 0 or framebuffer_height <= 0:
+        return x, y
+
+    return (
+        x * framebuffer_width / widget_width,
+        y * framebuffer_height / widget_height,
+    )
+
+
 def scroll_delta_to_steps(delta, *, surface, remainder=0.0, pixels_per_step=30.0):
     """Convert GTK scroll deltas to wheel steps, preserving partial deltas."""
     try:

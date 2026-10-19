@@ -38,6 +38,7 @@ from src.gtk4_compat import (
     scroll_controller_flags,
     set_gl_area_allowed_apis,
     supports_scroll_unit,
+    widget_to_framebuffer_coordinates,
 )
 from gi.repository import GdkPixbuf
 
@@ -219,27 +220,30 @@ class VismolGTKWidget(_WidgetBase):
 
     def mouse_pressed(self, widget, event):
         """ Function doc """
+        x, y = self._framebuffer_coordinates(event.x, event.y)
         if _IS_MACOS:
-            self.vm_glcore.mouse_pressed(event.button, event.x, event.y, event.state)
+            self.vm_glcore.mouse_pressed(event.button, x, y, event.state)
         else:
-            self.vm_glcore.mouse_pressed(event.button, event.x, event.y)
+            self.vm_glcore.mouse_pressed(event.button, x, y)
     
     def mouse_released(self, widget, event):
         """ Function doc """
+        x, y = self._framebuffer_coordinates(event.x, event.y)
         if _IS_MACOS:
             self.vm_glcore.mouse_released(
-                event.button, event.x, event.y,
+                event.button, x, y,
                 button_state=event.state, event=event)
         else:
             self.vm_glcore.mouse_released(
-                event.button, event.x, event.y, event=event)
+                event.button, x, y, event=event)
     
     def mouse_motion(self, widget, event):
         """ Function doc """
+        x, y = self._framebuffer_coordinates(event.x, event.y)
         if _IS_MACOS:
-            self.vm_glcore.mouse_motion(event.x, event.y, event.state)
+            self.vm_glcore.mouse_motion(x, y, event.state)
         else:
-            self.vm_glcore.mouse_motion(event.x, event.y)
+            self.vm_glcore.mouse_motion(x, y)
     
     def mouse_scroll(self, widget, event):
         """ Function doc
@@ -252,6 +256,7 @@ class VismolGTKWidget(_WidgetBase):
     def _on_mouse_pressed(self, gesture, _press_count, x, y):
         button = gesture.get_current_button()
         state = gesture.get_current_event_state()
+        x, y = self._framebuffer_coordinates(x, y)
         self.vm_glcore.mouse_pressed(button, x, y, state)
 
     def _on_mouse_released(self, gesture, _press_count, x, y):
@@ -259,10 +264,23 @@ class VismolGTKWidget(_WidgetBase):
         state = gesture.get_current_event_state()
         event = gesture.get_current_event()
         self._menu_x, self._menu_y = int(x), int(y)
+        x, y = self._framebuffer_coordinates(x, y)
         self.vm_glcore.mouse_released(button, x, y, button_state=state, event=event)
 
     def _on_mouse_motion(self, controller, x, y):
+        x, y = self._framebuffer_coordinates(x, y)
         self.vm_glcore.mouse_motion(x, y, controller.get_current_event_state())
+
+    def _framebuffer_coordinates(self, x, y):
+        """Convert GTK logical pointer positions for VisMol's GL pixel space."""
+        return widget_to_framebuffer_coordinates(
+            x,
+            y,
+            widget_width=self.get_width(),
+            widget_height=self.get_height(),
+            framebuffer_width=self.vm_glcore.width,
+            framebuffer_height=self.vm_glcore.height,
+        )
 
     def _on_mouse_scroll(self, controller, _dx, dy):
         if not np.isfinite(dy):

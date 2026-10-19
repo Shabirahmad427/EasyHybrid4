@@ -326,6 +326,67 @@ _EASYHYBRID_GRAPHICS_SMOKE = textwrap.dedent(
             if state["scene_draws"] == 0:
                 return GLib.SOURCE_CONTINUE
 
+            if os.environ.get("EASYHYBRID_TEST_HIDPI_PICKING") == "1":
+                if not state.get("hidpi_pick_started"):
+                    widget_width = vm_widget.get_width()
+                    widget_height = vm_widget.get_height()
+                    core = state["vm_session"].vm_glcore
+                    if core.width <= widget_width or core.height <= widget_height:
+                        raise RuntimeError(
+                            "GDK_SCALE=2 did not produce a larger GL framebuffer: "
+                            "widget=%sx%s framebuffer=%sx%s"
+                            % (widget_width, widget_height, core.width, core.height)
+                        )
+
+                    class CenterClick:
+                        def __init__(self, x, y):
+                            self.x, self.y = x, y
+
+                        def get_current_button(self):
+                            return 1
+
+                        def get_current_event_state(self):
+                            return Gdk.ModifierType(0)
+
+                        def get_current_event(self):
+                            return None
+
+                    from gui.windows.builder.click_mode import (
+                        _project_local_point_to_pixel,
+                    )
+                    oxygen = next(
+                        atom for atom in state["molecule"].atoms.values()
+                        if atom.symbol == "O"
+                    )
+                    frame = state["vm_session"].frame
+                    px, py, _view_z = _project_local_point_to_pixel(
+                        core, state["molecule"], oxygen.coords(frame)
+                    )
+                    if px is None:
+                        raise RuntimeError("oxygen is behind the view camera")
+                    x = px * widget_width / core.width
+                    y = py * widget_height / core.height
+                    gesture = CenterClick(x, y)
+                    vm_widget._on_mouse_pressed(gesture, 1, x, y)
+                    vm_widget._on_mouse_released(gesture, 1, x, y)
+                    state["hidpi_pick_started"] = True
+                    return GLib.SOURCE_CONTINUE
+
+                core = state["vm_session"].vm_glcore
+                if core.picking:
+                    return GLib.SOURCE_CONTINUE
+                picked = core.atom_picked
+                if picked is None:
+                    raise RuntimeError(
+                        "HiDPI center click did not pick a rendered atom"
+                    )
+                print(
+                    "EASYHYBRID_HIDPI_PICK=%s:%s"
+                    % (picked.symbol, picked.atom_id),
+                    flush=True,
+                )
+                state["hidpi_pick_checked"] = True
+
             vm_widget.make_current()
             gl_error = GL.glGetError()
             if gl_error != GL.GL_NO_ERROR:
@@ -445,6 +506,8 @@ def test_easyhybrid_menu_and_molecular_renderer_open_and_close_cleanly():
         assert "EASYHYBRID_MOLECULE_ATOMS=3" in result.stdout
         assert "EASYHYBRID_MOLECULE_BONDS=2" in result.stdout
         assert "EASYHYBRID_MOLECULE_DRAW_CALLS=" in result.stdout
+        if environment.get("EASYHYBRID_TEST_HIDPI_PICKING") == "1":
+            assert "EASYHYBRID_HIDPI_PICK=O:" in result.stdout
         assert "CLOSED=True" in result.stdout
         assert "Traceback" not in result.stderr
         assert "CRITICAL" not in result.stderr

@@ -6,7 +6,17 @@
 GTK/Python compatibility, parity, platform, testing, and known-limitation
 status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).
 
-**Current roadmap work (2026-10-19):** EH4-201's GTK smoke creates a real
+**Current roadmap work (2026-10-19): EH4-202 HiDPI picking correction.** GTK
+pointer events arrive in widget-local logical units, while VisMol pick reads
+use framebuffer pixels. `widget_to_framebuffer_coordinates()` now converts
+press/release/motion input using the live widget and GL framebuffer dimensions.
+Native Linux X11/NVIDIA testing at GTK 4.14.5, Python 3.12.3, PyGObject 3.48.2,
+GLib 2.80.0 and `GDK_SCALE=2` picked the projected oxygen atom in both of two
+fresh EasyHybrid/VisMol open/render/close cycles. The focused GTK compatibility
+tests pass **7/7**. The full 30-cell native matrix after this change is pending;
+EH4-202 remains unchecked until it passes.
+
+**EH4-201 acceptance evidence:** Its GTK smoke creates a real
 GTK window with EasyHybrid's production menu and bundled VisMol widget. It
 loads a generated three-atom water PDB, verifies two bonds, active
 representations and actual draw calls, checks the GL error state, then closes
@@ -54,7 +64,10 @@ close checks. EH4-201 is complete for its stated acceptance. The merged `main`
 commit `88b5eb5` was revalidated by run
 [`39275185493`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39275185493),
 which also passed **30/30 cells**; exact per-cell runtime versions are in the
-uploaded artifacts. The next eligible graphics task is EH4-202. pDynamo3
+uploaded artifacts. The exact runtime guard follow-up run
+[`39292753361`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39292753361)
+also passed **30/30**, including the GTK 4.8/4.10 Windows environment creates.
+pDynamo3
 scientific/runtime tests remain separate and must run in pDynamo3 itself.
 
 **CI provisioning follow-up:** Exact GTK patch pinning and validation are being

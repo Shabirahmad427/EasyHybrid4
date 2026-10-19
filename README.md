@@ -21,6 +21,12 @@ for compatibility, parity, and testing status.
 > EasyHybrid3 remains unchanged and usable. The migration summary and GTK
 > rules are in the consolidated report.
 
+**HiDPI input follow-up:** GTK event positions use logical widget coordinates,
+while VisMol picking uses GL framebuffer pixels. A shared measured-scale
+conversion now handles pointer input. The oxygen atom was picked through the
+real GTK event path twice at GTK 4.14.5 on Linux X11/NVIDIA with `GDK_SCALE=2`;
+this change still needs the full GTK/OS matrix before it is accepted.
+
 EasyHybrid is developed using Python, Cython, GTK, and modern OpenGL. It
 allows users to run common pDynamo routines in a graphical interface and to
 inspect, edit, and export pDynamo systems for simulations using Python scripts.

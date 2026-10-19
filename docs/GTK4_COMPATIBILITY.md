@@ -172,16 +172,15 @@ Intel macOS for GTK 4.8/4.10 (30 cells). conda-forge provides most cells.
 Where it has no build, the workflow uses another native provider (see the
 matrix below). Linux uses Xvfb and llvmpipe; Windows uses a pinned Mesa
 26.2.4 llvmpipe WGL runtime; macOS uses the runner's native Apple OpenGL.
-The current branch adds a guard that fails if the loaded GTK patch differs
-from the provider's selected version. Conda jobs pin the patch release; source
+The merged exact-version guard fails if the loaded GTK patch differs from the
+provider's selected version. Conda jobs pin the patch release; source
 builds use SHA-256-pinned GNOME tarballs; distro jobs check the packaged patch.
 Run `39292753361` validated the guard on all 30 cells; each artifact reports exactly its pinned patch. Before that, branch run `39278528559`
 passed 28/30; GTK 4.8/4.10 Windows failed before GTK installation because the
 pinned micromamba 2.8.1 rejects their `--skip-run-link-scripts` create flag.
 The workflow now pins micromamba 2.9.0-0.
-The latest complete matrix on `main` is run `39275185493`, whose exact runtime
-values are preserved in its artifacts. Do not merge the guard branch until all
-30 cells pass (done: run `39292753361`).
+The latest complete exact-version matrix on `main` is run `39292753361`, whose
+exact runtime values are preserved in its artifacts. All 30 cells passed.
 Every cell builds the graphics extensions and runs GTK widget/GL plus the
 EasyHybrid scene smoke. GTK 4.24 cells also run the remaining full regression
 suite.
@@ -190,7 +189,7 @@ desktop behavior require separate testing.
 
 ## Full GTK4 minor matrix (2026-10-19)
 
-Workflow `39275185493`, main commit `88b5eb5`: **30/30 PASS**. Each cell
+Workflow [`39292753361`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39292753361): **30/30 PASS**. Each cell
 opened a real GTK4 window, dispatched Gio menu actions, rendered a
 `Gtk.GLArea` with an OpenGL 3.3+ context, ran the EasyHybrid production menu
 and bundled VisMol renderer through two fresh open/render/close cycles, and
@@ -217,6 +216,18 @@ MSYS2: Python 3.14.8, PyGObject 3.58.1, GLib 2.90.1. macOS source builds:
 Python 3.12.15, PyGObject 3.58.1, GLib 2.90.0. Source builds use
 SHA-256-pinned `download.gnome.org` tarballs. All Linux and Windows results
 use software OpenGL; all macOS results use hosted-runner Apple OpenGL.
+
+### HiDPI pointer coordinate correction (EH4-202, in progress)
+
+GTK pointer positions are logical widget coordinates; VisMol picking, selection
+and drag paths operate in GL framebuffer pixels. The GTK widget now converts
+press, release and motion coordinates using its allocated logical dimensions
+and the live framebuffer dimensions. Unit tests cover 1x, 1.5x, 2x and the
+pre-allocation fallback. Native Linux X11/NVIDIA testing at GTK 4.14.5 with
+`GDK_SCALE=2` passed two real oxygen-atom picks through the GTK event handlers,
+with a scene render and clean close on each cycle. The post-change 30-cell
+matrix is pending; Windows/macOS and other GTK minor scaling behavior remain
+**NOT TESTED** until that run completes.
 
 ### GTK defects found and handled
 
