@@ -7,13 +7,16 @@ APIs. See the [consolidated development report](docs/EASYHYBRID4_REPORT.md)
 for compatibility, parity, and testing status.
 
 > **Development status:** EasyHybrid4 requests the GTK 4.0 introspection
-> namespace and has a GTK 4.8 runtime minimum. Native Linux X11 tests have
-> exercised GTK 4.8.2, 4.14.5, and 4.24.1, including full application/GL
-> open-close checks at all three versions using Python 3.12 environments.
-> Windows, macOS, Linux Wayland, and intermediate GTK4 minor releases remain
-> untested. This is not a claim of compatibility with every GTK4 release. See
+> namespace and has a GTK 4.8 runtime minimum. The full native GTK matrix passed
+> on 2026-10-19 (30/30 cells): Linux x86_64, Windows x86_64, and macOS arm64
+> across GTK 4.8–4.24, plus provisioned Intel macOS GTK 4.8/4.10. Each cell
+> opened the EasyHybrid production menu and VisMol molecular scene, rendered
+> twice, and closed cleanly. Linux uses Xvfb/llvmpipe, Windows uses Mesa WGL,
+> and macOS uses the hosted Apple OpenGL runtime. Physical GPU coverage,
+> Wayland, Retina/trackpad behavior, packaging, and pDynamo3 scientific
+> validation on Windows/macOS remain separate checks. See the
 > [consolidated report](docs/EASYHYBRID4_REPORT.md#3-gtk4-python-and-dependency-compatibility)
-> for the tested range.
+> and [exact GTK matrix evidence](docs/GTK4_COMPATIBILITY.md#full-gtk4-minor-matrix-2026-10-19).
 > Full GUI verification needs a graphical desktop session.
 > EasyHybrid3 remains unchanged and usable. The migration summary and GTK
 > rules are in the consolidated report.

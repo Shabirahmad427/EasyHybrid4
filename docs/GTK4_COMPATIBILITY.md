@@ -158,7 +158,7 @@ for another OS or backend.
 | GTK 4.14.5, Linux x86_64 / X11, Python 3.12.3, PyGObject 3.48.2, GLib 2.80.0 | Full suite: **54 passed, 5 skipped**. Native real-display UI/menu action smoke: **PASS**. Full application lifecycle: **PASS**, fatal GTK criticals enabled, actual GL context OpenGL 4.6.0, NVIDIA GeForce RTX 4060 Ti; application-selected EGL and `gl-prefer-gl`; orderly close **PASS**. GtkBuilder loads 53/53 resources without GTK criticals. |
 | GTK 4.24.1, Linux x86_64 / X11, Python 3.12.15, PyGObject 3.58.1, GLib 2.90.0 | Full suite: **54 passed, 5 skipped**. Native real-display UI/menu action smoke: **PASS**. Full application lifecycle: **PASS**, fatal GTK criticals enabled, actual GL context OpenGL 4.6.0, NVIDIA GeForce RTX 4060 Ti; application-selected EGL and `gl-prefer-gl`; orderly close **PASS**. GtkBuilder loads 53/53 resources without GTK criticals; GTK emits a nonfatal missing-ibus-module warning in this shell. |
 | GTK 4.8.2, Xvfb default renderer | **EGL WARNING REPRODUCED**: Mesa reports `DRI3 error: Could not get DRI3 device`; this Xvfb server does not provide a DRI3 device. Mesa EGL and DRI packages were already installed. Re-running with `LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe` created the real GL context and emitted no EGL warning. This validates the virtual-display software path only; hardware acceleration and a native desktop display are **NOT TESTED**. For widget-only smoke tests, `GSK_RENDERER=cairo` also avoids the GL probe, but it must not be used for GL tests. |
-| GTK 4.8 through 4.24, Linux x86_64 / Windows x86_64 / macOS arm64 (+ macOS x86_64 for 4.8/4.10) | Native GTK window, Gio action, and real `Gtk.GLArea` render smoke: **PASS, 30/30 cells** in workflow `39071376507` at `38f2b6c`. Exact runtimes per cell are in [Full GTK4 minor matrix](#full-gtk4-minor-matrix-2026-10-17). Earlier Windows GTK 4.8/4.10 GL failures were fixed by the WGL pixel-format workaround; see the investigation below. |
+| GTK 4.8 through 4.24, Linux x86_64 / Windows x86_64 / macOS arm64 (+ macOS x86_64 for 4.8/4.10) | Native GTK window, Gio action, real `Gtk.GLArea` render and two-cycle EasyHybrid/VisMol molecular scene smoke: **PASS, 30/30 cells** on main commit `88b5eb5` in workflow [`39275185493`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39275185493). Exact runtime versions are recorded in each uploaded artifact. Earlier Windows GTK 4.8/4.10 GL failures were fixed by the WGL pixel-format workaround; see the investigation below. |
 | Linux Wayland | **NOT TESTED**. |
 | Windows GTK4 native runner smoke | **PASS** for GTK 4.8–4.24 on hosted Windows Server 2022 with pinned Mesa 26.2.4 llvmpipe. Physical Windows GPUs remain **NOT TESTED**. |
 | macOS arm64 native GTK4 runner smoke | **PASS** for GTK 4.8–4.24 (4.8/4.10/4.16/4.18 built from GNOME source). Physical GPU behavior beyond the hosted runner, Retina, and trackpad remain **NOT TESTED**. |
@@ -172,16 +172,22 @@ Intel macOS for GTK 4.8/4.10 (30 cells). conda-forge provides most cells.
 Where it has no build, the workflow uses another native provider (see the
 matrix below). Linux uses Xvfb and llvmpipe; Windows uses a pinned Mesa
 26.2.4 llvmpipe WGL runtime; macOS uses the runner's native Apple OpenGL.
-Every job fails if the loaded GTK minor differs from the requested one.
+Every job fails if the loaded GTK patch version differs from the exact version
+selected for that provider. The conda jobs pin the patch release; source builds
+use SHA-256-pinned GNOME tarballs, and distro jobs check their actual packaged
+patch version.
 Only GTK 4.24 runs the full test suite and graphics-extension build.
 Hardware GPUs, physical trackpad, Retina, Linux Wayland and real Linux
 desktop behavior require separate testing.
 
-## Full GTK4 minor matrix (2026-10-17)
+## Full GTK4 minor matrix (2026-10-19)
 
-Workflow `39071376507`, commit `38f2b6c`: **30/30 PASS**. Each cell opened a
-real GTK4 window, dispatched Gio menu actions, rendered a `Gtk.GLArea` with
-an OpenGL 3.3+ context, and closed with `G_DEBUG=fatal-criticals`.
+Workflow `39275185493`, main commit `88b5eb5`: **30/30 PASS**. Each cell
+opened a real GTK4 window, dispatched Gio menu actions, rendered a
+`Gtk.GLArea` with an OpenGL 3.3+ context, ran the EasyHybrid production menu
+and bundled VisMol renderer through two fresh open/render/close cycles, and
+closed with `G_DEBUG=fatal-criticals`. Earlier baseline matrix `39071376507`
+also passed its 30 cells; this latest main run includes the production scene.
 
 | GTK | Linux x86_64 | Windows x86_64 | macOS arm64 | macOS x86_64 |
 |---|---|---|---|---|

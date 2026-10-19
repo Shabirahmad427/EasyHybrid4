@@ -82,9 +82,12 @@ jobs:
           # GTK 4.8/4.10 on Windows need the matched, known-good GLib 2.78.4
           # h16e383f_0 / glib-tools h12be248_0 pair. Newer GTK cells use
           # newer GLib builds; do not apply this compatibility pin globally.
+          # Keep Pillow out of the conda solve: its libjpeg-turbo dependency
+          # conflicts with GTK 4.8's legacy jpeg=9e requirement. Install it
+          # after GTK has been resolved below.
           create-args: >-
             python=3.12
-            gtk4=${{ matrix.gtk }}.*
+            gtk4=${{ matrix.gtk == '4.8' && '4.8.2' || matrix.gtk == '4.10' && '4.10.1' || matrix.gtk == '4.12' && '4.12.1' || matrix.gtk == '4.14' && '4.14.1' || matrix.gtk == '4.20' && '4.20.3' || matrix.gtk == '4.22' && '4.22.5' || '4.24.1' }}
             ${{ matrix.gtk == '4.8' && 'jpeg=9e' || '' }}
             ${{ matrix.os == 'windows-x86_64' && (matrix.gtk == '4.8' || matrix.gtk == '4.10') && 'libglib=2.78.4=h16e383f_0 glib-tools=2.78.4=h12be248_0 libiconv=1.17 --skip-run-link-scripts' || '' }}
             glib-tools
@@ -141,7 +144,7 @@ jobs:
       - name: Record actual runtime and host
         run: |
           set -o pipefail
-          micromamba run -n easyhybrid-gtk python .github/scripts/record_runtime.py conda-forge '${{ matrix.gtk }}' | tee -a platform-results.txt
+          micromamba run -n easyhybrid-gtk python .github/scripts/record_runtime.py conda-forge '${{ matrix.gtk == '4.8' && '4.8.2' || matrix.gtk == '4.10' && '4.10.1' || matrix.gtk == '4.12' && '4.12.1' || matrix.gtk == '4.14' && '4.14.1' || matrix.gtk == '4.20' && '4.20.3' || matrix.gtk == '4.22' && '4.22.5' || '4.24.1' }}' | tee -a platform-results.txt
 
       - name: Run native GTK window, Gio action, and real GLArea smoke
         run: |
@@ -296,7 +299,7 @@ jobs:
         run: |
           set -o pipefail
           printf 'GTK_REQUESTED=%s OS=linux-x86_64 PROVIDER=%s\n' '${{ matrix.gtk }}' '${{ matrix.distro }}' > platform-results.txt
-          python3 .github/scripts/record_runtime.py '${{ matrix.distro }}' '${{ matrix.gtk }}' | tee -a platform-results.txt
+          python3 .github/scripts/record_runtime.py '${{ matrix.distro }}' '${{ matrix.gtk == '4.16' && matrix.distro == 'fedora-41' && '4.16.13' || matrix.gtk == '4.16' && '4.16.3' || '4.18.6' }}' | tee -a platform-results.txt
 
       - name: Build graphics engine extensions
         run: python3 setup.py build_ext --inplace
@@ -429,7 +432,7 @@ jobs:
         run: |
           set -o pipefail
           printf 'GTK_REQUESTED=%s OS=windows-x86_64 PROVIDER=msys2-source-%s\n' '${{ matrix.gtk }}' '${{ matrix.version }}' > platform-results.txt
-          python .github/scripts/record_runtime.py 'msys2-source-${{ matrix.version }}' '${{ matrix.gtk }}' | tee -a platform-results.txt
+          python .github/scripts/record_runtime.py 'msys2-source-${{ matrix.version }}' '${{ matrix.version }}' | tee -a platform-results.txt
 
       - name: Run native GTK window, Gio action, and real GLArea smoke
         run: |
@@ -591,7 +594,7 @@ jobs:
         run: |
           set -o pipefail
           printf 'GTK_REQUESTED=%s OS=macos-arm64 PROVIDER=source-%s\n' '${{ matrix.gtk }}' '${{ matrix.version }}' > platform-results.txt
-          micromamba run -n easyhybrid-gtk-src python .github/scripts/record_runtime.py 'source-${{ matrix.version }}' '${{ matrix.gtk }}' | tee -a platform-results.txt
+          micromamba run -n easyhybrid-gtk-src python .github/scripts/record_runtime.py 'source-${{ matrix.version }}' '${{ matrix.version }}' | tee -a platform-results.txt
 
       - name: Run native GTK window, Gio action, and real GLArea smoke
         run: |

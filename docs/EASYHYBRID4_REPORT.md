@@ -50,10 +50,12 @@ native Linux X11/NVIDIA scene test passed both open/render/close cycles with
 on `467e620` passed **30/30 cells** across Linux, Windows, macOS arm64 and
 provisioned Intel macOS for the workflow's GTK 4.8–4.24 coverage. Every cell
 passed its GTK/widget smoke and two-cycle EasyHybrid/VisMol scene render and
-close checks. EH4-201 is complete for its stated acceptance; exact per-cell
-runtime versions are in the run artifacts. The next eligible graphics task is
-EH4-202. pDynamo3 scientific/runtime tests remain separate and must run in
-pDynamo3 itself.
+close checks. EH4-201 is complete for its stated acceptance. The merged `main`
+commit `88b5eb5` was revalidated by run
+[`39275185493`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39275185493),
+which also passed **30/30 cells**; exact per-cell runtime versions are in the
+uploaded artifacts. The next eligible graphics task is EH4-202. pDynamo3
+scientific/runtime tests remain separate and must run in pDynamo3 itself.
 
 EH4-200's graphics provenance audit
 found the declared `casebor/graphics_engine` URL redirects to public
@@ -832,13 +834,13 @@ does not prove native behavior.
 | Linux x86_64, GTK 4.24.1 / GLib 2.90.0 / PyGObject 3.58.1 / Python 3.12.15 | Full suite **54 passed, 5 skipped**. Updated standalone window/menu-action/GLArea smoke: **PASS** with fatal criticals, OpenGL 4.6.0 on NVIDIA RTX 4060 Ti. Full EasyHybrid open/close **PASS** with fatal criticals. Startup selected EGL and `gl-prefer-gl`; no external overrides. |
 | Linux GTK no-display diagnostic | **REPRODUCED / CLASSIFIED** on GTK 4.8.2 and 4.14.5 with `G_DEBUG=fatal-criticals`; standalone GTK app and GDB stack identify missing display at GTK/GIO registration. Not an EasyHybrid icon/resource defect. |
 | GTK 4.24.1 current stable | **PASS** on native Linux X11 as listed above |
-| GTK 4.10, 4.12, 4.20, 4.22 | Native matrix smoke **PASS** on Linux; 4.12/4.20/4.22 also **PASS** on Windows and macOS arm64. Windows GTK 4.10 GL context smoke **FAIL**. |
-| GTK 4.16 and 4.18 | **PASS** on Linux (Ubuntu 24.10, Fedora 41, Debian 13), Windows (MSYS2 source) and macOS arm64 (GNOME source), run `39071376507`. |
-| Linux x86_64 / X11 live UI and GL | **PASS** at GTK 4.8.2, 4.14.5, and 4.24.1 only; this is not all-minor or all-platform coverage |
+| GTK 4.8–4.24 native GTK/widget and EasyHybrid scene matrix | **PASS, 30/30 cells** in main run `39275185493`, including Windows GTK 4.8/4.10 WGL fix and two molecular-scene render/close cycles per cell. Exact runtimes are listed in `docs/GTK4_COMPATIBILITY.md`. |
+| GTK 4.16 and 4.18 | **PASS** on Linux (Ubuntu 24.10, Fedora 41, Debian 13), Windows (MSYS2 source) and macOS arm64 (GNOME source), run `39275185493`. Linux distro scene uses EGL; Fedora uses PyOpenGL ctypes due optional accelerator ABI mismatch. |
+| Linux x86_64 / X11 live UI and GL | Local NVIDIA scene lifecycle **PASS** at GTK 4.8.2, 4.14.5, and 4.24.1; all GTK 4.8–4.24 minors also pass hosted Xvfb/llvmpipe scene and widget coverage in the native matrix. |
 | Linux Wayland UI/GL/input/scaling | **NOT TESTED** |
-| Windows GTK4/Python/GL smoke | **PASS** for GTK 4.8–4.24 on hosted software WGL (run `39071376507`). Physical GPUs and packaging **NOT TESTED**. |
-| macOS arm64 GTK4/Python/GL smoke | **PASS** for GTK 4.8–4.24 (4.8/4.10/4.16/4.18 built from GNOME source), run `39071376507`. Trackpad/Retina/hardware-driver coverage **NOT TESTED**. |
-| macOS x86_64 GTK4/Python/GL | **PASS** for GTK 4.8.2/4.10.1 (run `39071376507`); other minors **NOT TESTED** |
+| Windows GTK4/Python/GL and EasyHybrid scene | **PASS** for GTK 4.8–4.24 on hosted software WGL (run `39275185493`). Physical GPUs and packaging **NOT TESTED**. |
+| macOS arm64 GTK4/Python/GL and EasyHybrid scene | **PASS** for GTK 4.8–4.24 (4.8/4.10/4.16/4.18 built from GNOME source), run `39275185493`. Trackpad/Retina/hardware-driver coverage **NOT TESTED**. |
+| macOS x86_64 GTK4/Python/GL | **PASS** for GTK 4.8.2/4.10.1 (run `39275185493`); other minors **NOT TESTED** |
 
 No Linux pass is evidence of Windows/macOS or GTK-minimum compatibility.
 Update this consolidated report and the task evidence in `ROADMAP.md` as new
