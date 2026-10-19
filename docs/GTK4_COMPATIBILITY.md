@@ -229,13 +229,16 @@ making a real oxygen-atom pick through the GTK event handlers. The matrix
 workflow now performs the same 20 cycles in every cell; that expanded run is
 pending. Its first run `39307131433` passed all 19 Linux/Windows cells but all
 11 macOS Apple Software Renderer cells returned no atom ID from the color
-buffer. VisMol now disables GL dithering only during the exact RGB ID pass and
-restores the prior state. After the fix, local GTK 4.14.5 / Python 3.12.3 /
-PyGObject 3.48.2 / GLib 2.80.0 / OpenGL 4.6.0 NVIDIA RTX 4060 Ti passed 20/20
-independent native X11 scale-2 scene cycles, including pick, render, dither
-state restoration and clean close. The corrected matrix is pending;
-Windows/macOS and other GTK minor scaling behavior remain **NOT TESTED** until
-that run completes.
+buffer. A dither-only correction failed in all 11 macOS cells of matrix run
+`39309838872`, while all 19 Linux/Windows cells passed; click and framebuffer
+coordinates matched. The pick pass now disables blending, dithering, framebuffer
+sRGB conversion and multisampling for exact RGB ID rendering, then restores all
+four GL states. Failure diagnostics include the raw pixel, decoded ID and GL
+state. Local GTK 4.14.5 / Python 3.12.3 / PyGObject 3.48.2 / GLib 2.80.0 /
+OpenGL 4.6.0 NVIDIA RTX 4060 Ti passed 20/20 independent native X11 scale-2
+scene cycles, including pick, render, GL state restoration and clean close.
+Full matrix verification is pending; Windows/macOS and other GTK minor scaling
+behavior remain **NOT TESTED** until that run completes.
 
 ### GTK defects found and handled
 

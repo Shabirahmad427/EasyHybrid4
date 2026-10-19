@@ -337,6 +337,12 @@ _EASYHYBRID_GRAPHICS_SMOKE = textwrap.dedent(
                 return GLib.SOURCE_CONTINUE
 
             if os.environ.get("EASYHYBRID_TEST_COORDINATE_PICKING") == "1":
+                pick_caps = (
+                    GL.GL_BLEND,
+                    GL.GL_DITHER,
+                    GL.GL_FRAMEBUFFER_SRGB,
+                    GL.GL_MULTISAMPLE,
+                )
                 if not state.get("hidpi_pick_started"):
                     widget_width = vm_widget.get_width()
                     widget_height = vm_widget.get_height()
@@ -382,7 +388,27 @@ _EASYHYBRID_GRAPHICS_SMOKE = textwrap.dedent(
                     state["pick_target"] = (px, py)
                     state["pick_widget"] = (widget_width, widget_height)
                     state["pick_framebuffer"] = (core.width, core.height)
-                    state["pick_dither_before"] = bool(GL.glIsEnabled(GL.GL_DITHER))
+                    state["pick_expected_color"] = tuple(
+                        int(round(float(channel) * 255.0))
+                        for channel in oxygen.color_id
+                    )
+                    state["pick_expected_id"] = int(oxygen.unique_id)
+                    state["pick_gl_state_before"] = {
+                        int(cap): bool(GL.glIsEnabled(cap)) for cap in pick_caps
+                    }
+                    original_read_pixels = GL.glReadPixels
+
+                    def capture_pick_pixel(*args, **kwargs):
+                        pixels = original_read_pixels(*args, **kwargs)
+                        if core.picking and len(args) >= 4 and args[2] == args[3] == 1:
+                            state["pick_pixel"] = tuple(bytes(pixels)[:4])
+                            state["pick_gl_state_at_read"] = {
+                                int(cap): bool(GL.glIsEnabled(cap)) for cap in pick_caps
+                            }
+                            GL.glReadPixels = original_read_pixels
+                        return pixels
+
+                    GL.glReadPixels = capture_pick_pixel
                     gesture = CenterClick(x, y)
                     vm_widget._on_mouse_pressed(gesture, 1, x, y)
                     vm_widget._on_mouse_released(gesture, 1, x, y)
@@ -397,9 +423,12 @@ _EASYHYBRID_GRAPHICS_SMOKE = textwrap.dedent(
                     viewport = tuple(
                         int(value) for value in GL.glGetIntegerv(GL.GL_VIEWPORT)
                     )
+                    pixel = state.get("pick_pixel")
                     return fail_smoke(
                         "oxygen pick missed: target=%r widget=%r framebuffer=%r "
-                        "pick=(%r,%r) viewport=%r dither_before=%r dither_after=%r"
+                        "pick=(%r,%r) viewport=%r pixel=%r pixel_id=%r "
+                        "expected_color=%r expected_id=%r "
+                        "gl_state_before=%r gl_state_at_read=%r gl_error=%r"
                         % (
                             state.get("pick_target"),
                             state.get("pick_widget"),
@@ -407,22 +436,35 @@ _EASYHYBRID_GRAPHICS_SMOKE = textwrap.dedent(
                             core.picking_x,
                             core.picking_y,
                             viewport,
-                            state.get("pick_dither_before"),
-                            bool(GL.glIsEnabled(GL.GL_DITHER)),
+                            pixel,
+                            (pixel[0] + pixel[1] * 256 + pixel[2] * 65536)
+                            if pixel else None,
+                            state.get("pick_expected_color"),
+                            state.get("pick_expected_id"),
+                            state.get("pick_gl_state_before"),
+                            state.get("pick_gl_state_at_read"),
+                            int(GL.glGetError()),
                         )
                     )
-                dither_after = bool(GL.glIsEnabled(GL.GL_DITHER))
-                if dither_after != state.get("pick_dither_before"):
+                pick_gl_state_after = {
+                    int(cap): bool(GL.glIsEnabled(cap)) for cap in pick_caps
+                }
+                if pick_gl_state_after != state.get("pick_gl_state_before"):
                     return fail_smoke(
-                        "GL_DITHER state changed across picking: before=%r after=%r"
-                        % (state.get("pick_dither_before"), dither_after)
+                        "GL pick state changed: before=%r after=%r"
+                        % (state.get("pick_gl_state_before"), pick_gl_state_after)
+                    )
+                if any(state.get("pick_gl_state_at_read", {}).values()):
+                    return fail_smoke(
+                        "color transforms remained enabled at pick readback: %r"
+                        % state.get("pick_gl_state_at_read")
                     )
                 print(
                     "EASYHYBRID_HIDPI_PICK=%s:%s"
                     % (picked.symbol, picked.atom_id),
                     flush=True,
                 )
-                print("EASYHYBRID_PICK_DITHER_RESTORED=%s" % dither_after, flush=True)
+                print("EASYHYBRID_PICK_GL_STATE_RESTORED=True", flush=True)
                 state["hidpi_pick_checked"] = True
 
             vm_widget.make_current()
@@ -548,7 +590,7 @@ def test_easyhybrid_menu_and_molecular_renderer_open_and_close_cleanly():
         assert "EASYHYBRID_MOLECULE_DRAW_CALLS=" in result.stdout
         if environment.get("EASYHYBRID_TEST_COORDINATE_PICKING") == "1":
             assert "EASYHYBRID_HIDPI_PICK=O:" in result.stdout
-            assert "EASYHYBRID_PICK_DITHER_RESTORED=" in result.stdout
+            assert "EASYHYBRID_PICK_GL_STATE_RESTORED=True" in result.stdout
         assert "CLOSED=True" in result.stdout
         assert "Traceback" not in result.stderr
         assert "CRITICAL" not in result.stderr

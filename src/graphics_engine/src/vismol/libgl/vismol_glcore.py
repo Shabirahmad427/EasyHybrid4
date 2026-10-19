@@ -2101,13 +2101,22 @@ class VismolGLCore:
         """
 
         BACKGROUND_ID = 16777215
-        # Atom IDs are encoded in exact RGB byte values. Dithering can alter
-        # those values by a byte on some drivers (notably Apple's software GL
-        # renderer), turning a valid pixel into an unknown atom ID. Disable it
-        # only for the ID-buffer pass and restore the caller's state below.
-        dither_enabled = GL.glIsEnabled(GL.GL_DITHER)
-        if dither_enabled:
-            GL.glDisable(GL.GL_DITHER)
+        # Atom IDs are encoded in exact RGB byte values. Fixed-function color
+        # processing can change those bytes, so make the ID pass deterministic
+        # across drivers and restore the caller's state afterward.
+        pick_state_caps = (
+            GL.GL_BLEND,
+            GL.GL_DITHER,
+            GL.GL_FRAMEBUFFER_SRGB,
+            GL.GL_MULTISAMPLE,
+        )
+        pick_state = {
+            capability: bool(GL.glIsEnabled(capability))
+            for capability in pick_state_caps
+        }
+        for capability in pick_state_caps:
+            if pick_state[capability]:
+                GL.glDisable(capability)
 
         try:
             # Clear buffers before rendering picking scene
@@ -2164,8 +2173,11 @@ class VismolGLCore:
                     logger.debug(f"pickedID {pickedID} not found")
                     self.button = None
         finally:
-            if dither_enabled:
-                GL.glEnable(GL.GL_DITHER)
+            for capability, was_enabled in pick_state.items():
+                if was_enabled:
+                    GL.glEnable(capability)
+                else:
+                    GL.glDisable(capability)
             self.picking = False
         return True
 

@@ -18,12 +18,17 @@ GTK event in **20 cycles per cell**. First expanded run
 [`39307131433`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39307131433)
 completed **19/30 PASS**: every Linux and Windows cell passed; all 11 macOS
 cells rendered the scene but returned no atom ID through Apple Software
-Renderer. The pick pass uses exact RGB bytes as atom IDs, so VisMol now disables
-`GL_DITHER` only during that pass and restores the previous state. The failure
-path also reports the click and framebuffer geometry immediately. After the
-fix, local Linux X11/NVIDIA GTK 4.14.5 `GDK_SCALE=2` validation passed **20/20**
-fresh scene cycles; each picked `O:0`, confirmed dither state restoration,
-rendered and closed cleanly. The full matrix after this correction is pending.
+Renderer. A focused dither-only correction did not resolve it: expanded run
+[`39309838872`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39309838872)
+again passed all 19 Linux/Windows cells and failed all 11 macOS cells, despite
+matching click and framebuffer coordinates. The pick pass now disables
+blending, dithering, framebuffer sRGB conversion and multisampling for exact
+RGB ID rendering, then restores all four GL states. Diagnostics capture the
+returned pixel, decoded ID, GL states and GL error on failure. Local Linux
+X11/NVIDIA GTK 4.14.5 `GDK_SCALE=2` validation after this change passed
+**20/20** fresh scene cycles; each picked `O:0`, confirmed GL state restoration,
+rendered and closed cleanly. Full matrix verification of this correction is
+pending. Earlier matrix run
 Earlier matrix run
 [`39305083176`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39305083176)
 passed **30/30** after the coordinate conversion was first added, confirming
