@@ -48,6 +48,32 @@ def test_display_available_when_required():
         assert Gdk.Display.get_default() is not None, "no GTK display in a cell that requires one"
 
 
+def test_sphere_selection_vao_uses_selection_shader_attribute_locations():
+    """Selection VAO attributes must use the linked program that reads them."""
+    graphics_source = PROJECT_ROOT / "src/graphics_engine/src/vismol/libgl/representations.py"
+    tree = ast.parse(graphics_source.read_text(encoding="utf-8"))
+    sphere_class = next(
+        node for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "SpheresRepresentation"
+    )
+    setup = next(
+        node for node in sphere_class.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name == "_make_gl_sel_representation_vao_and_vbos"
+    )
+    attribute_programs = {}
+    for node in ast.walk(setup):
+        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+            continue
+        if node.func.attr in {"_make_gl_radius_buffer", "_make_gl_instance_buffer"}:
+            attribute_programs[node.func.attr] = ast.unparse(node.args[1])
+
+    assert attribute_programs == {
+        "_make_gl_radius_buffer": "self.sel_shader_program",
+        "_make_gl_instance_buffer": "self.sel_shader_program",
+    }
+
+
 def _iterate(milliseconds=200):
     loop = GLib.MainLoop()
     GLib.timeout_add(milliseconds, loop.quit)

@@ -1209,8 +1209,17 @@ class SpheresRepresentation(Representation):
         self.sel_ind_vbo = self._make_gl_index_buffer(self.sphere_indexes)
         self.sel_coord_vbo = self._make_gl_coord_buffer(self.sphere_vertices, self.sel_shader_program)
         self.sel_col_vbo = self._make_gl_color_buffer(np.zeros(3, dtype=np.float32), self.sel_shader_program, instances=True)
-        self.sel_rad_vbo = self._make_gl_radius_buffer(np.zeros(1, dtype=np.float32), self.shader_program, instances=True)
-        self.sel_insta_vbo = self._make_gl_instance_buffer(np.zeros(3, dtype=np.float32), self.shader_program)
+        # Attribute locations belong to a linked program. The selection VAO
+        # is consumed by sel_shader_program, whose attribute locations are
+        # not guaranteed to match the normal rendering program (notably on
+        # Apple's OpenGL implementation). Configure every selection attribute
+        # against the selection program that will read this VAO.
+        self.sel_rad_vbo = self._make_gl_radius_buffer(
+            np.zeros(1, dtype=np.float32), self.sel_shader_program, instances=True
+        )
+        self.sel_insta_vbo = self._make_gl_instance_buffer(
+            np.zeros(3, dtype=np.float32), self.sel_shader_program
+        )
     
     def _coords_colors_rads(self):
         """ Builds the per-instance coords/colors/rads arrays for the
