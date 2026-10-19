@@ -182,6 +182,7 @@ _EASYHYBRID_LIFECYCLE_SMOKE = textwrap.dedent(
     import easyhybrid
     import os
     import re
+    import tempfile
 
     import gi
 
@@ -204,7 +205,7 @@ _EASYHYBRID_LIFECYCLE_SMOKE = textwrap.dedent(
             self.pending_open_files = []
 
     application = ProbeApplication()
-    state = {"closed": False}
+    state = {"closed": False, "scene_started": False, "scene_draws": 0}
 
     def close_when_ready():
         main_window = getattr(application, "main_window", None)
@@ -224,6 +225,80 @@ _EASYHYBRID_LIFECYCLE_SMOKE = textwrap.dedent(
             version_match = re.search(r"(\\d+)\\.(\\d+)", version_text)
             if not version_match or tuple(map(int, version_match.groups())) < (3, 3):
                 raise RuntimeError("EasyHybrid requires OpenGL 3.3+, got %s" % version_text)
+
+            if not state["scene_started"]:
+                # A tiny synthetic water molecule exercises the bundled PDB
+                # parser, bond perception, representation setup, shader/VBO
+                # creation, and actual VisMol draw calls without checking in
+                # scientific or user-provided molecular data.
+                atom_lines = []
+                for serial, name, x, y, z, element in (
+                    (1, "O", 0.000, 0.000, 0.000, "O"),
+                    (2, "H1", 0.957, 0.000, 0.000, "H"),
+                    (3, "H2", -0.240, 0.927, 0.000, "H"),
+                ):
+                    atom_lines.append(
+                        "ATOM  %5d %-4s HOH A%4d    %8.3f%8.3f%8.3f%6.2f%6.2f          %2s  "
+                        % (serial, name, 1, x, y, z, 1.0, 0.0, element)
+                    )
+                with tempfile.TemporaryDirectory(prefix="easyhybrid-scene-") as fixture_dir:
+                    molecule_path = os.path.join(fixture_dir, "water.pdb")
+                    with open(molecule_path, "w", encoding="ascii") as fixture:
+                        fixture.write("\\n".join(atom_lines) + "\\nEND\\n")
+                    from vismol.core.vismol_session import VismolSession
+                    from vismol.utils import parser
+
+                    vm_session = main_window.vm_session
+                    molecule, show_molecule = parser.parse_file(
+                        vm_session, molecule_path
+                    )
+                    molecule._generate_color_vectors(vm_session.atom_id_counter)
+                    molecule.active = True
+                    # The full EasyHybrid session adds a pDynamo-system mapping
+                    # after loading user molecules. This fixture has no such
+                    # scientific-system record, so use VisMol's own insertion
+                    # path to exercise its production parser/scene/render code.
+                    VismolSession._add_vismol_object(
+                        vm_session, molecule, show_molecule=show_molecule
+                    )
+
+                molecule = next(iter(vm_session.vm_objects_dic.values()))
+                if len(molecule.atoms) != 3 or not molecule.bonds:
+                    raise RuntimeError(
+                        "VisMol did not load the three-atom water scene and its bonds"
+                    )
+                active_representations = [
+                    representation
+                    for representation in molecule.representations.values()
+                    if representation is not None and representation.active
+                ]
+                if not active_representations:
+                    raise RuntimeError("VisMol created no active molecule representation")
+                for representation in active_representations:
+                    draw = representation.draw_representation
+
+                    def counted_draw(draw=draw):
+                        draw()
+                        state["scene_draws"] += 1
+
+                    representation.draw_representation = counted_draw
+
+                state["molecule"] = molecule
+                state["scene_started"] = True
+                vm_widget.queue_draw()
+                return GLib.SOURCE_CONTINUE
+
+            if state["scene_draws"] == 0:
+                return GLib.SOURCE_CONTINUE
+
+            vm_widget.make_current()
+            gl_error = GL.glGetError()
+            if gl_error != GL.GL_NO_ERROR:
+                raise RuntimeError("VisMol scene render left OpenGL error 0x%x" % gl_error)
+            molecule = state["molecule"]
+            print("EASYHYBRID_MOLECULE_ATOMS=%d" % len(molecule.atoms), flush=True)
+            print("EASYHYBRID_MOLECULE_BONDS=%d" % len(molecule.bonds), flush=True)
+            print("EASYHYBRID_MOLECULE_DRAW_CALLS=%d" % state["scene_draws"], flush=True)
 
             print("EASYHYBRID_MAIN_WINDOW_OPENED", flush=True)
             print("EASYHYBRID_GL_VERSION=%s" % version_text, flush=True)
@@ -301,26 +376,31 @@ def test_missing_display_is_reported_before_gapplication_registration():
     reason="requires pDynamo, graphics extensions, and a native GTK display",
 )
 def test_easyhybrid_full_application_opens_and_closes_without_critical_warnings():
-    """Exercise actual EasyHybrid startup, GtkBuilder, GLArea, and close path."""
+    """Exercise two real EasyHybrid molecule render and close cycles."""
     environment = os.environ.copy()
     environment["G_DEBUG"] = "fatal-criticals"
-    result = subprocess.run(
-        [sys.executable, "-c", _EASYHYBRID_LIFECYCLE_SMOKE],
-        cwd=os.path.dirname(os.path.dirname(__file__)),
-        capture_output=True,
-        text=True,
-        timeout=45,
-        env=environment,
-        check=False,
-    )
-    print(result.stdout.strip())
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert "EASYHYBRID_MAIN_WINDOW_OPENED" in result.stdout
-    assert "EASYHYBRID_GL_VERSION=" in result.stdout
-    assert "EASYHYBRID_GL_RENDERER=" in result.stdout
-    assert "CLOSED=True" in result.stdout
-    assert "Traceback" not in result.stderr
-    assert "CRITICAL" not in result.stderr
+    for cycle in range(1, 3):
+        result = subprocess.run(
+            [sys.executable, "-c", _EASYHYBRID_LIFECYCLE_SMOKE],
+            cwd=os.path.dirname(os.path.dirname(__file__)),
+            capture_output=True,
+            text=True,
+            timeout=45,
+            env=environment,
+            check=False,
+        )
+        print("MOLECULAR_SCENE_CYCLE=%d" % cycle)
+        print(result.stdout.strip())
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert "EASYHYBRID_MAIN_WINDOW_OPENED" in result.stdout
+        assert "EASYHYBRID_GL_VERSION=" in result.stdout
+        assert "EASYHYBRID_GL_RENDERER=" in result.stdout
+        assert "EASYHYBRID_MOLECULE_ATOMS=3" in result.stdout
+        assert "EASYHYBRID_MOLECULE_BONDS=2" in result.stdout
+        assert "EASYHYBRID_MOLECULE_DRAW_CALLS=" in result.stdout
+        assert "CLOSED=True" in result.stdout
+        assert "Traceback" not in result.stderr
+        assert "CRITICAL" not in result.stderr
 
 
 if __name__ == "__main__":

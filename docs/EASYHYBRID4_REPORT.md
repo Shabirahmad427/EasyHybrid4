@@ -1,12 +1,26 @@
 # EasyHybrid4 Development and Compatibility Report
 
-**Report date:** 2026-10-18
+**Report date:** 2026-10-19
 
 **Purpose:** One consolidated source for repository, architecture, dependency,
 GTK/Python compatibility, parity, platform, testing, and known-limitation
 status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).
 
-**Current roadmap work (2026-10-18):** EH4-200's graphics provenance audit
+**Current roadmap work (2026-10-19):** EH4-201 now has a real molecular
+scene smoke: it loads a generated three-atom water PDB through the bundled
+VisMol parser, verifies two bonds, active representations and actual draw
+calls, checks the GL error state, and closes EasyHybrid twice. On this Linux
+host (GTK 4.14.5, X11, NVIDIA RTX 4060 Ti), two cycles passed three times with
+OpenGL 4.6.0. The test uses VisMol's base session insertion path because a
+synthetic fixture has no pDynamo `e_id` record; this keeps scientific-system
+mapping out of the renderer smoke. The workflow now runs it on GTK 4.24 Linux,
+Windows, and macOS runners after building the graphics extensions. A trial
+that forced PyOpenGL GLX failed because GTK had created an EGL context; the
+molecular-scene step now follows EasyHybrid's EGL startup selection. The full
+30-cell native matrix and those hosted molecular-scene runs are still pending;
+EH4-201 remains unchecked.
+
+EH4-200's graphics provenance audit
 found the declared `casebor/graphics_engine` URL redirects to public
 `casebor/Vismol`; the `vismol_easyhybrid` branch exists at
 `2df3cd96f0b4970d62bd2c4e652faded411549a2`. It is not established as the
@@ -2216,6 +2230,13 @@ temporary-copy command in [Section 6 of this report](#6-reproducible-test-baseli
   GApplication registration. Run it with
   `EASYHYBRID_RUN_GTK_GUI_TESTS=1` and, for the missing-display probe,
   `EASYHYBRID_RUN_GTK_ENV_DIAGNOSTIC=1`.
+- `test_easyhybrid_full_application_opens_and_closes_without_critical_warnings`
+  runs when `EASYHYBRID_RUN_FULL_APP_TESTS=1`. It launches EasyHybrid twice,
+  loads a generated three-atom water PDB through bundled VisMol, checks atom
+  and bond counts, observes active representation draw calls, checks the GL
+  error state, and closes each app. Native matrix CI runs this on GTK 4.24,
+  where the seven graphics extensions are built; other GTK minor cells still
+  test generic real GLArea rendering and teardown.
 - `test_dependency_boundaries.py`, `test_session_state.py`,
   `test_easyplot_boundaries.py`, and `test_os_integration.py` cover the
   EH4-100 import, state, plotting, and startup-policy boundaries.

@@ -184,6 +184,23 @@ jobs:
         run: micromamba run -n easyhybrid-gtk python setup.py build_ext --inplace
         working-directory: src/graphics_engine
 
+      - name: Render a real EasyHybrid molecular scene
+        if: matrix.gtk == '4.24'
+        env:
+          EASYHYBRID_RUN_FULL_APP_TESTS: "1"
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+        run: |
+          set -o pipefail
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            # EasyHybrid's startup selects PyOpenGL EGL to match GTK's GDK
+            # context; forcing GLX here makes PyOpenGL lose that context.
+            LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_full_application_opens_and_closes_without_critical_warnings 2>&1 | tee -a platform-results.txt
+          elif [[ "$RUNNER_OS" == "Windows" ]]; then
+            GALLIUM_DRIVER=llvmpipe micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_full_application_opens_and_closes_without_critical_warnings 2>&1 | tee -a platform-results.txt
+          else
+            micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_full_application_opens_and_closes_without_critical_warnings 2>&1 | tee -a platform-results.txt
+          fi
+
       - name: Run complete regression suite with real GTK smoke enabled
         if: matrix.gtk == '4.24'
         env:
