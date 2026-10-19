@@ -56,7 +56,10 @@ atom-end caps (`vismol/libgl/shaders/pick_lines.py`). Full matrix
 passed **30/30**: every cell ran 20 open/render/pick/close cycles, hit the
 oxygen at its centre and at 8 points 3 framebuffer pixels away (9/9), and
 loaded exactly its pinned GTK patch. The HiDPI coordinate conversion is
-accepted by the same run and both are merged to `main`.
+accepted by the same run and both are merged to `main`. The `spheres`
+selection VAO now binds its radius/instance attributes to the selection
+program (fix from the Codex session); run `39321285586` passed **30/30**
+with it. Only a static test covers it; a real-context spheres pick is pending.
 EH4-202 remains unchecked until image-difference, resize and capability
 evidence is added.
 
