@@ -217,7 +217,21 @@ Python 3.12.15, PyGObject 3.58.1, GLib 2.90.0. Source builds use
 SHA-256-pinned `download.gnome.org` tarballs. All Linux and Windows results
 use software OpenGL; all macOS results use hosted-runner Apple OpenGL.
 
-### HiDPI pointer coordinate correction (EH4-202, in progress)
+### Portable colour-ID picking (EH4-202, accepted 2026-10-19)
+
+macOS core-profile OpenGL clamps `glLineWidth` to 1 pixel
+(`GL_LINE_WIDTH_RANGE` = 0.1–1.0). VisMol's picking pass drew atom IDs as
+`glLineWidth`-widened lines, so on every macOS cell a click at an atom's centre
+read the background. The lines, nonbonded and dashed selection shaders now
+emit fixed-pixel-width quads with square caps at atom ends and flat ID colours
+(`vismol/libgl/shaders/pick_lines.py`). The scene smoke clicks the oxygen centre
+and 8 points 3 framebuffer pixels away; run `39317377076` passed **30/30 cells**,
+each with **20 open/render/pick/close cycles** hitting all **9/9** points, on
+exactly the pinned GTK patch of every provider. The old renderer also missed
+clicks just beyond an atom on Linux. The HiDPI coordinate conversion below is
+accepted by the same run.
+
+### HiDPI pointer coordinate correction (EH4-202, accepted)
 
 GTK pointer positions are logical widget coordinates; VisMol picking, selection
 and drag paths operate in GL framebuffer pixels. The GTK widget now converts

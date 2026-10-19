@@ -25,7 +25,8 @@ for compatibility, parity, and testing status.
 while VisMol picking uses GL framebuffer pixels. A shared measured-scale
 conversion now handles pointer input. The oxygen atom was picked through the
 real GTK event path twice at GTK 4.14.5 on Linux X11/NVIDIA with `GDK_SCALE=2`;
-this change still needs the full GTK/OS matrix before it is accepted.
+the full GTK/OS matrix (run `39317377076`, 30/30) accepted it together with
+the portable fixed-width picking fix for macOS.
 
 EasyHybrid is developed using Python, Cython, GTK, and modern OpenGL. It
 allows users to run common pDynamo routines in a graphical interface and to

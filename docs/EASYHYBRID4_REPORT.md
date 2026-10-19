@@ -48,8 +48,17 @@ Earlier matrix run
 passed **30/30** after the coordinate conversion was first added, confirming
 exact GTK patch runtimes and two scene render/close cycles per cell. Artifact
 review found that the old smoke did not invoke picking on hosted platforms.
-EH4-202 remains unchecked until the expanded 20-cycle per cell pick/render/close
-matrix passes.
+**Resolved (2026-10-19):** the macOS picking failure was the platform's
+1-pixel line-width limit (`GL_LINE_WIDTH_RANGE` 0.1–1.0), not colour processing
+or framebuffer binding. Selection lines are now fixed-pixel-width quads with
+atom-end caps (`vismol/libgl/shaders/pick_lines.py`). Full matrix
+[`39317377076`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39317377076)
+passed **30/30**: every cell ran 20 open/render/pick/close cycles, hit the
+oxygen at its centre and at 8 points 3 framebuffer pixels away (9/9), and
+loaded exactly its pinned GTK patch. The HiDPI coordinate conversion is
+accepted by the same run and both are merged to `main`.
+EH4-202 remains unchecked until image-difference, resize and capability
+evidence is added.
 
 **Full-interface coverage added locally (not yet in CI):** the opt-in
 `tests/test_easyhybrid_full_app_smoke.py` launches the actual
