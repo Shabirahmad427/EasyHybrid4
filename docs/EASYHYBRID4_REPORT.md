@@ -45,9 +45,15 @@ Fedora also exposed an ABI mismatch between its optional
 Linux X11 GTK 4.16/4.18; the distro scene step uses PyOpenGL's supported
 ctypes path to avoid the incompatible optional extension. Startup regressions pass **35 tests**. The
 native Linux X11/NVIDIA scene test passed both open/render/close cycles with
-22 draws per cycle on GTK 4.14.5. The next full matrix is pending. pDynamo3
-scientific/runtime tests are tracked separately against pDynamo3; EH4-201
-remains unchecked until the full matrix passes.
+22 draws per cycle on GTK 4.14.5. Corrected matrix
+[`39272229764`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39272229764)
+on `467e620` passed **30/30 cells** across Linux, Windows, macOS arm64 and
+provisioned Intel macOS for the workflow's GTK 4.8–4.24 coverage. Every cell
+passed its GTK/widget smoke and two-cycle EasyHybrid/VisMol scene render and
+close checks. EH4-201 is complete for its stated acceptance; exact per-cell
+runtime versions are in the run artifacts. The next eligible graphics task is
+EH4-202. pDynamo3 scientific/runtime tests remain separate and must run in
+pDynamo3 itself.
 
 EH4-200's graphics provenance audit
 found the declared `casebor/graphics_engine` URL redirects to public
