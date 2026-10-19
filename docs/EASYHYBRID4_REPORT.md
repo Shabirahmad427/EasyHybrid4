@@ -63,8 +63,12 @@ added on branch `ci/gtk-exact-runtime-guard`. Its first workflow run
 `setup-micromamba@v3.2.1` could not find the unpinned latest micromamba
 `2.9.0-0` Linux binary. The subsequent “Unexpected end of JSON input” was a
 cleanup error. This cell did not run GTK tests. The workflow now pins
-micromamba `2.8.1-1`; the full corrected matrix is pending. This is a test
-provisioning failure, not a GTK or EasyHybrid failure.
+micromamba `2.8.1-1`. Corrected run
+[`39278528559`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39278528559)
+is accepted but queued; GitHub still reports the old run as `in_progress`
+despite a cancellation request, so none of the corrected 30 cells has started.
+This is a runner scheduling stall, not a GTK test result. Exact-version
+validation remains pending; do not merge this branch until it passes.
 
 EH4-200's graphics provenance audit
 found the declared `casebor/graphics_engine` URL redirects to public
