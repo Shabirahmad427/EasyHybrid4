@@ -320,9 +320,10 @@ after rerunning its initially aborted Windows GTK 4.24 full-suite job.
   separately reproduces an upstream GtkImage finalization critical; see the
   compatibility report and [Debian bug #1041599](https://bugs.debian.org/1041599).
   EH4-103 is complete: dialog, window, chooser, data-view, and selection tests
-  pass in native matrix run `39153435108` (30/30). The native GitHub Actions matrix passes for every GTK minor 4.8–4.24 on
-  Linux x86_64, Windows x86_64 and macOS arm64, plus GTK 4.8/4.10 on macOS
-  x86_64 (run `39071376507`, 30/30). Three GTK defects needed app-side
+  pass in native matrix run `39153435108` (30/30). Latest main-branch matrix
+  run `39275185493` passes every GTK minor 4.8–4.24 on Linux x86_64, Windows
+  x86_64 and macOS arm64, plus GTK 4.8/4.10 on macOS x86_64 (30/30), including
+  two real EasyHybrid/VisMol scene cycles per cell. Three GTK defects needed app-side
   handling (Windows 4.8/4.10 WGL pixel format, macOS 4.8/4.10 GL profile,
   GTK 4.16 GLArea teardown). Wayland and physical hardware graphics remain
   **NOT TESTED**. Exact results are recorded in `GTK4_COMPATIBILITY.md`.

@@ -164,7 +164,7 @@ for another OS or backend.
 | macOS arm64 native GTK4 runner smoke | **PASS** for GTK 4.8–4.24 (4.8/4.10/4.16/4.18 built from GNOME source). Physical GPU behavior beyond the hosted runner, Retina, and trackpad remain **NOT TESTED**. |
 | macOS x86_64 native GTK4 | **PASS** for GTK 4.8.2 and 4.10.1 (conda-forge `osx-64`, `macos-15-intel`). Other minors on Intel macOS are **NOT TESTED**. |
 
-## Native platform CI (2026-10-17)
+## Native platform CI (2026-10-19)
 
 `.github/workflows/native-gtk-matrix.yml` covers every released GTK4 minor
 from 4.8 to 4.24 on Linux x86_64, Windows x86_64 and Apple Silicon macOS, plus
@@ -172,11 +172,15 @@ Intel macOS for GTK 4.8/4.10 (30 cells). conda-forge provides most cells.
 Where it has no build, the workflow uses another native provider (see the
 matrix below). Linux uses Xvfb and llvmpipe; Windows uses a pinned Mesa
 26.2.4 llvmpipe WGL runtime; macOS uses the runner's native Apple OpenGL.
-Every job fails if the loaded GTK patch version differs from the exact version
-selected for that provider. The conda jobs pin the patch release; source builds
-use SHA-256-pinned GNOME tarballs, and distro jobs check their actual packaged
-patch version.
-Only GTK 4.24 runs the full test suite and graphics-extension build.
+The current branch adds a guard that fails if the loaded GTK patch differs
+from the provider's selected version. Conda jobs pin the patch release; source
+builds use SHA-256-pinned GNOME tarballs; distro jobs check the packaged patch.
+The guard's full 30-cell validation is pending. The latest complete matrix on
+`main` is run `39275185493`, whose exact runtime values are preserved in its
+artifacts.
+Every cell builds the graphics extensions and runs GTK widget/GL plus the
+EasyHybrid scene smoke. GTK 4.24 cells also run the remaining full regression
+suite.
 Hardware GPUs, physical trackpad, Retina, Linux Wayland and real Linux
 desktop behavior require separate testing.
 
@@ -475,9 +479,10 @@ format indices, as Mesa does. It is not an EasyHybrid defect. The GTK 4.8.2 job 
 the same run traced the identical sequence (bootstrap HDC format 75,
 surface format 1, `wglMakeCurrent` error 2000). Whether physical Windows
 drivers pick matching indices is **NOT TESTED**. No supported
-application-side workaround exists, because both pixel formats are chosen
-inside GDK. Hosted Windows GTK 4.8/4.10 GL remains **FAIL**. The decision
-on whether to declare GTK 4.12 as the Windows floor is left to the user.
+application-side workaround exists at this diagnostic stage, because both
+pixel formats are chosen inside GDK. Hosted Windows GTK 4.8/4.10 GL was then
+**FAIL**; the application-side legacy WGL pixel-format adapter below fixed
+both cells, confirmed in subsequent full native matrices.
 
 Fix (branch `fix/win32-legacy-wgl-pixel-format`, merged to `main`):
 `src/os_integration/win32_wgl.py` applies only on Windows with GTK earlier
