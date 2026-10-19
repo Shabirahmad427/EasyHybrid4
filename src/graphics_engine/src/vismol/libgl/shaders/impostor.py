@@ -14,11 +14,12 @@ layout(std140) uniform CameraMatrices {
 uniform mat4 model_mat;
 
 uniform vec3 u_campos;
+// Render-target height in framebuffer pixels (HiDPI-aware).
+uniform float u_viewport_height;
 
 in vec3 vert_coord;        // attribute vec3 position;
 in vec3 vert_color;        // attribute vec3 color;
 in float vert_dot_size;   // attribute float radius;
-float hw_ratio;
 
 out vec3 frag_color;       // varying vec3 v_color;
 out float f_radius;        // varying float v_radius;
@@ -26,13 +27,15 @@ out float f_size;          // varying float v_size;
 out vec4 frag_coord;       // varying vec4 v_eye_position;
 
 void main (void){
-    hw_ratio = proj_mat[0][0] * proj_mat[1][1];
     frag_color = vert_color;
     f_radius = vert_dot_size;
     frag_coord = view_mat * model_mat * vec4(vert_coord, 1.0);
     gl_Position = proj_mat * frag_coord;
-    vec4 p = proj_mat * vec4(vert_dot_size, vert_dot_size, frag_coord.z, frag_coord.w);
-    f_size = 256.0 * hw_ratio * vert_dot_size / p.w;
+    // The sprite is the sphere's projected diameter in framebuffer pixels:
+    // 2 * radius * proj[1][1] / w in NDC, times half the viewport height.
+    // The former fixed 256-pixel scale ignored window size and display
+    // scale, so spheres shrank by half on a 2x (HiDPI) display.
+    f_size = vert_dot_size * proj_mat[1][1] * u_viewport_height / gl_Position.w;
     gl_PointSize = f_size;
 }
 """

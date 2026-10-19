@@ -602,7 +602,14 @@ class DotsRepresentation(Representation):
         _height = self.vm_glcore.height
         GL.glEnable(GL.GL_VERTEX_PROGRAM_POINT_SIZE)
         GL.glUseProgram(self.shader_program)
-        GL.glPointSize(_size * _height / (abs(self.vm_glcore.dist_cam_zrp)) / 2)
+        point_size = _size * _height / (abs(self.vm_glcore.dist_cam_zrp)) / 2
+        GL.glPointSize(point_size)
+        # With program point size enabled only gl_PointSize counts; the
+        # dot shaders read it from this uniform (as OneColorDots does).
+        # Without it the size is driver-defined: zero on Mesa, so dots
+        # were invisible and unpickable.
+        GL.glUniform1f(self.vm_glcore._get_uniform_location(self.shader_program, "point_size"),
+                       point_size)
         self.vm_glcore.load_matrices(self.shader_program, self.vm_object.model_mat)
         self.vm_glcore.load_fog(self.shader_program)
         self.vm_glcore.load_lights(self.shader_program)
@@ -633,7 +640,10 @@ class DotsRepresentation(Representation):
         _height = self.vm_glcore.height
         GL.glEnable(GL.GL_VERTEX_PROGRAM_POINT_SIZE)
         GL.glUseProgram(self.sel_shader_program)
-        GL.glPointSize(_size * _height / (abs(self.vm_glcore.dist_cam_zrp)) / 2)
+        point_size = _size * _height / (abs(self.vm_glcore.dist_cam_zrp)) / 2
+        GL.glPointSize(point_size)
+        GL.glUniform1f(self.vm_glcore._get_uniform_location(self.sel_shader_program, "point_size"),
+                       point_size)
         self.vm_glcore.load_matrices(self.sel_shader_program, self.vm_object.model_mat)
         GL.glBindVertexArray(self.sel_vao)
         
@@ -1457,7 +1467,8 @@ class ImpostorRepresentation(Representation):
         self.sel_ind_vbo = self._make_gl_index_buffer(self.indexes)
         self.sel_coord_vbo = self._make_gl_coord_buffer(self.vm_object.frames[0], self.sel_shader_program)
         self.sel_col_vbo = self._make_gl_color_buffer(self.vm_object.color_indexes, self.sel_shader_program)
-        self.sel_size_vbo, self.sel_ratio_vbo = self._make_gl_impostor_buffer(self.vm_object.cov_radii_array, self.shader_program)
+        # Attribute locations belong to the program that reads this VAO.
+        self.sel_size_vbo, self.sel_ratio_vbo = self._make_gl_impostor_buffer(self.vm_object.cov_radii_array, self.sel_shader_program)
     
     # def _modified_window_size(self):
     #     ratio = self.vm_glcore.width / self.vm_glcore.height
@@ -1469,6 +1480,9 @@ class ImpostorRepresentation(Representation):
         xyz_coords = self.vm_glcore.glcamera.get_modelview_position(self.vm_object.model_mat)
         u_campos = self.vm_glcore._get_uniform_location(program, "u_campos")
         GL.glUniform3fv(u_campos, 1, xyz_coords)
+        # Point-sprite spheres are sized from the live framebuffer height.
+        GL.glUniform1f(self.vm_glcore._get_uniform_location(program, "u_viewport_height"),
+                       float(self.vm_glcore.height))
     
     def draw_representation(self):
         """ Function doc """

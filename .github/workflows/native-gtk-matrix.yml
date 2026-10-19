@@ -209,6 +209,22 @@ jobs:
             micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_vismol_components_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
           fi
 
+      - name: Validate VisMol rendering, export, picking and resize at scale 1 and 2
+        env:
+          EASYHYBRID_RUN_GRAPHICS_TESTS: "1"
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+          # Xvfb honours GDK_SCALE=2; other backends record whether it applied.
+          EASYHYBRID_REQUIRE_HIDPI_RENDER: ${{ runner.os == 'Linux' && '1' || '0' }}
+        run: |
+          set -o pipefail
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_vismol_render_validation.py 2>&1 | tee -a platform-results.txt
+          elif [[ "$RUNNER_OS" == "Windows" ]]; then
+            GALLIUM_DRIVER=llvmpipe micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_vismol_render_validation.py 2>&1 | tee -a platform-results.txt
+          else
+            micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_vismol_render_validation.py 2>&1 | tee -a platform-results.txt
+          fi
+
       - name: Run complete regression suite with real GTK smoke enabled
         if: matrix.gtk == '4.24'
         env:
@@ -342,6 +358,16 @@ jobs:
           set -o pipefail
           LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" python3 -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_vismol_components_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
 
+      - name: Validate VisMol rendering, export, picking and resize at scale 1 and 2
+        env:
+          EASYHYBRID_RUN_GRAPHICS_TESTS: "1"
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+          EASYHYBRID_REQUIRE_HIDPI_RENDER: "1"
+          PYOPENGL_USE_ACCELERATE: "0"
+        run: |
+          set -o pipefail
+          LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" python3 -m pytest -q -s -p no:cacheprovider tests/test_vismol_render_validation.py 2>&1 | tee -a platform-results.txt
+
       - name: Upload runtime and test evidence
         if: always()
         uses: actions/upload-artifact@v6
@@ -469,6 +495,14 @@ jobs:
         run: |
           set -o pipefail
           GALLIUM_DRIVER=llvmpipe python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_vismol_components_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
+
+      - name: Validate VisMol rendering, export, picking and resize at scale 1 and 2
+        env:
+          EASYHYBRID_RUN_GRAPHICS_TESTS: "1"
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+        run: |
+          set -o pipefail
+          GALLIUM_DRIVER=llvmpipe python -m pytest -q -s -p no:cacheprovider tests/test_vismol_render_validation.py 2>&1 | tee -a platform-results.txt
 
       - name: Reject native Windows fatal exceptions in GTK logs
         if: always()
@@ -637,6 +671,14 @@ jobs:
         run: |
           set -o pipefail
           micromamba run -n easyhybrid-gtk-src python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_vismol_components_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
+
+      - name: Validate VisMol rendering, export, picking and resize at scale 1 and 2
+        env:
+          EASYHYBRID_RUN_GRAPHICS_TESTS: "1"
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+        run: |
+          set -o pipefail
+          micromamba run -n easyhybrid-gtk-src python -m pytest -q -s -p no:cacheprovider tests/test_vismol_render_validation.py 2>&1 | tee -a platform-results.txt
 
       - name: Show macOS native crash report
         if: failure() && runner.os == 'macOS'
