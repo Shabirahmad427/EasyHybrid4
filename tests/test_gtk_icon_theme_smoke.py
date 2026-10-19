@@ -4,14 +4,21 @@ import os
 import subprocess
 import sys
 import textwrap
+import time
 
 import pytest
 
 
 _GTK_SMOKE = textwrap.dedent(
     """
+    import faulthandler
     import importlib.util
     import os
+    import signal
+
+    # On a hang the test sends SIGUSR1 to print every thread's Python stack.
+    if hasattr(signal, "SIGUSR1"):
+        faulthandler.register(signal.SIGUSR1, all_threads=True)
 
     import gi
 
@@ -625,6 +632,32 @@ _EASYHYBRID_GRAPHICS_SMOKE = textwrap.dedent(
 )
 
 
+def _run_with_hang_diagnostics(arguments, timeout, environment):
+    """subprocess.run, but a hung GTK process explains itself before it dies.
+
+    On timeout: a native stack sample (macOS ``sample``), then SIGUSR1 so
+    faulthandler prints every Python thread's stack, then kill.
+    """
+    process = subprocess.Popen(arguments, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                               text=True, env=environment)
+    try:
+        stdout, stderr = process.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        native = ""
+        if sys.platform == "darwin":
+            sampled = subprocess.run(["sample", str(process.pid), "3"], capture_output=True,
+                                     text=True, check=False)
+            native = sampled.stdout[-12000:] + sampled.stderr[-2000:]
+        if hasattr(subprocess.signal, "SIGUSR1"):
+            process.send_signal(subprocess.signal.SIGUSR1)
+            time.sleep(2)
+        process.kill()
+        stdout, stderr = process.communicate()
+        pytest.fail("GTK process hung for %ss.\nstdout:\n%s\nstderr (Python stacks):\n%s\n"
+                    "native sample:\n%s" % (timeout, stdout[-4000:], stderr[-8000:], native))
+    return subprocess.CompletedProcess(arguments, process.returncode, stdout, stderr)
+
+
 @pytest.mark.skipif(
     os.environ.get("EASYHYBRID_RUN_GTK_GUI_TESTS") != "1",
     reason="requires an explicitly selected native or virtual GTK display",
@@ -633,14 +666,7 @@ def test_application_resolves_icon_theme_after_display_startup():
     """Exercise real GTK startup with GLib criticals promoted to failures."""
     environment = os.environ.copy()
     environment["G_DEBUG"] = "fatal-criticals"
-    result = subprocess.run(
-        [sys.executable, "-c", _GTK_SMOKE],
-        capture_output=True,
-        text=True,
-        timeout=35,
-        env=environment,
-        check=False,
-    )
+    result = _run_with_hang_diagnostics([sys.executable, "-c", _GTK_SMOKE], 35, environment)
     print(result.stdout.strip())
     assert result.returncode == 0, result.stdout + result.stderr
     assert "icon-theme=" in result.stdout
