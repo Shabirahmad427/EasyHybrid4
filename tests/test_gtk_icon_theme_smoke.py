@@ -393,19 +393,103 @@ _EASYHYBRID_GRAPHICS_SMOKE = textwrap.dedent(
                         for channel in oxygen.color_id
                     )
                     state["pick_expected_id"] = int(oxygen.unique_id)
+                    state["pick_draw_calls"] = []
+                    state["pick_diagnostics"] = {
+                        "draw_framebuffer": int(
+                            GL.glGetIntegerv(GL.GL_DRAW_FRAMEBUFFER_BINDING)
+                        ),
+                        "read_framebuffer": int(
+                            GL.glGetIntegerv(GL.GL_READ_FRAMEBUFFER_BINDING)
+                        ),
+                        "viewport": tuple(
+                            int(value) for value in GL.glGetIntegerv(GL.GL_VIEWPORT)
+                        ),
+                        "line_width_range": tuple(
+                            float(value) for value in GL.glGetFloatv(GL.GL_LINE_WIDTH_RANGE)
+                        ),
+                    }
+                    representation_info = []
+                    for vm_object in state["vm_session"].vm_objects_dic.values():
+                        if not vm_object.active:
+                            continue
+                        for rep in vm_object.representations.values():
+                            if rep is None or not rep.active:
+                                continue
+                            program = rep.sel_shader_program
+                            info = {
+                                "name": rep.name,
+                                "indexes": len(rep.indexes),
+                                "elements": int(rep.elements),
+                                "program": int(program) if program else None,
+                                "vao": int(rep.sel_vao) if rep.sel_vao else None,
+                            }
+                            if program:
+                                info["linked"] = bool(
+                                    GL.glGetProgramiv(program, GL.GL_LINK_STATUS)
+                                )
+                            representation_info.append(info)
+                    state["pick_diagnostics"]["representations"] = representation_info
                     state["pick_gl_state_before"] = {
                         int(cap): bool(GL.glIsEnabled(cap)) for cap in pick_caps
                     }
                     original_read_pixels = GL.glReadPixels
+                    draw_wrappers = {}
+                    if os.environ.get("EASYHYBRID_DEBUG_PICK") == "1":
+                        for draw_name in (
+                            "glDrawElements",
+                            "glDrawElementsInstanced",
+                            "glDrawArrays",
+                        ):
+                            original_draw = getattr(GL, draw_name)
+
+                            def count_pick_draw(*args, _draw=original_draw,
+                                                _name=draw_name, **kwargs):
+                                if core.picking:
+                                    state["pick_draw_calls"].append(
+                                        (_name, tuple(int(value) for value in args[:3]),
+                                         int(GL.glGetIntegerv(GL.GL_CURRENT_PROGRAM)),
+                                         int(GL.glGetIntegerv(GL.GL_VERTEX_ARRAY_BINDING)))
+                                    )
+                                return _draw(*args, **kwargs)
+
+                            draw_wrappers[draw_name] = original_draw
+                            setattr(GL, draw_name, count_pick_draw)
 
                     def capture_pick_pixel(*args, **kwargs):
                         pixels = original_read_pixels(*args, **kwargs)
                         if core.picking and len(args) >= 4 and args[2] == args[3] == 1:
                             state["pick_pixel"] = tuple(bytes(pixels)[:4])
+                            if os.environ.get("EASYHYBRID_DEBUG_PICK") == "1":
+                                state["pick_diagnostics"]["read_draw_framebuffer"] = int(
+                                    GL.glGetIntegerv(GL.GL_DRAW_FRAMEBUFFER_BINDING)
+                                )
+                                state["pick_diagnostics"]["read_read_framebuffer"] = int(
+                                    GL.glGetIntegerv(GL.GL_READ_FRAMEBUFFER_BINDING)
+                                )
+                                state["pick_diagnostics"]["read_viewport"] = tuple(
+                                    int(value) for value in GL.glGetIntegerv(GL.GL_VIEWPORT)
+                                )
+                                state["pick_diagnostics"]["pixel_pack_buffer"] = int(
+                                    GL.glGetIntegerv(GL.GL_PIXEL_PACK_BUFFER_BINDING)
+                                )
+                                samples = {}
+                                center_x = int(core.picking_x)
+                                center_y = int(core.height - core.picking_y)
+                                for dy in (-4, -2, 0, 2, 4):
+                                    for dx in (-4, -2, 0, 2, 4):
+                                        sx = max(0, min(core.width - 1, center_x + dx))
+                                        sy = max(0, min(core.height - 1, center_y + dy))
+                                        sample = original_read_pixels(
+                                            sx, sy, 1, 1, GL.GL_RGBA, GL.GL_UNSIGNED_BYTE
+                                        )
+                                        samples[(dx, dy)] = tuple(bytes(sample)[:4])
+                                state["pick_diagnostics"]["neighbor_pixels"] = samples
                             state["pick_gl_state_at_read"] = {
                                 int(cap): bool(GL.glIsEnabled(cap)) for cap in pick_caps
                             }
                             GL.glReadPixels = original_read_pixels
+                            for draw_name, original_draw in draw_wrappers.items():
+                                setattr(GL, draw_name, original_draw)
                         return pixels
 
                     GL.glReadPixels = capture_pick_pixel
@@ -428,7 +512,8 @@ _EASYHYBRID_GRAPHICS_SMOKE = textwrap.dedent(
                         "oxygen pick missed: target=%r widget=%r framebuffer=%r "
                         "pick=(%r,%r) viewport=%r pixel=%r pixel_id=%r "
                         "expected_color=%r expected_id=%r "
-                        "gl_state_before=%r gl_state_at_read=%r gl_error=%r"
+                        "gl_state_before=%r gl_state_at_read=%r diagnostics=%r "
+                        "selection_draws=%r gl_error=%r"
                         % (
                             state.get("pick_target"),
                             state.get("pick_widget"),
@@ -443,6 +528,8 @@ _EASYHYBRID_GRAPHICS_SMOKE = textwrap.dedent(
                             state.get("pick_expected_id"),
                             state.get("pick_gl_state_before"),
                             state.get("pick_gl_state_at_read"),
+                            state.get("pick_diagnostics"),
+                            state.get("pick_draw_calls"),
                             int(GL.glGetError()),
                         )
                     )
@@ -563,8 +650,12 @@ def test_missing_display_is_reported_before_gapplication_registration():
     os.environ.get("EASYHYBRID_RUN_GRAPHICS_TESTS") != "1",
     reason="requires bundled graphics extensions and a native GTK display",
 )
-def test_easyhybrid_menu_and_molecular_renderer_open_and_close_cleanly():
-    """Exercise fresh EasyHybrid scene lifecycles with native GTK events."""
+def test_easyhybrid_menu_vismol_components_open_and_close_cleanly():
+    """Exercise production menu/VisMol components in an isolated GTK host.
+
+    This intentionally does not construct EasyHybridApplication or MainWindow;
+    it is a renderer and input regression, not a full-interface startup test.
+    """
     environment = os.environ.copy()
     environment["G_DEBUG"] = "fatal-criticals"
     cycles = int(environment.get("EASYHYBRID_GRAPHICS_SMOKE_CYCLES", "2"))

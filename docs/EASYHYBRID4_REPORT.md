@@ -12,9 +12,10 @@ use framebuffer pixels. `widget_to_framebuffer_coordinates()` now converts
 press/release/motion input using the live widget and GL framebuffer dimensions.
 Native Linux X11/NVIDIA testing at GTK 4.14.5, Python 3.12.3, PyGObject 3.48.2,
 GLib 2.80.0 and `GDK_SCALE=2` picked the projected oxygen atom in **20/20**
-fresh EasyHybrid/VisMol open/render/close cycles. The focused GTK compatibility
+fresh test-host open/callback-pick/render/close cycles using EasyHybrid menu/VisMol components. The pick is triggered by calling the GTK gesture handlers with synthetic coordinates, not by injecting an OS pointer event; the harness does not launch EasyHybridApplication/MainWindow. The focused GTK compatibility
 tests pass **7/7**. The matrix workflow now exercises the same projected-oxygen
-GTK event in **20 cycles per cell**. First expanded run
+GTK event in **20 isolated component-harness cycles per cell**. These are not
+20 full EasyHybrid interface launches or OS-injected pointer events. First expanded run
 [`39307131433`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39307131433)
 completed **19/30 PASS**: every Linux and Windows cell passed; all 11 macOS
 cells rendered the scene but returned no atom ID through Apple Software
@@ -23,12 +24,25 @@ Renderer. A focused dither-only correction did not resolve it: expanded run
 again passed all 19 Linux/Windows cells and failed all 11 macOS cells, despite
 matching click and framebuffer coordinates. The pick pass now disables
 blending, dithering, framebuffer sRGB conversion and multisampling for exact
-RGB ID rendering, then restores all four GL states. Diagnostics capture the
-returned pixel, decoded ID, GL states and GL error on failure. Local Linux
-X11/NVIDIA GTK 4.14.5 `GDK_SCALE=2` validation after this change passed
-**20/20** fresh scene cycles; each picked `O:0`, confirmed GL state restoration,
-rendered and closed cleanly. Full matrix verification of this correction is
-pending. Earlier matrix run
+RGB ID rendering, then restores all four GL states. This did not fix native
+macOS. Matrix run
+[`39311621966`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39311621966)
+still fails Apple Software Renderer picking in 11 completed macOS cells,
+including Apple Silicon GTK 4.8.3–4.24.1 and Intel macOS GTK 4.8.2/4.10.1. The GTK 4.12.1
+artifact shows the correct in-bounds projected oxygen coordinate and viewport,
+but `glReadPixels` returns white `(255,255,255,255)` (background ID
+`16777215`), with GL error 0 and the four states disabled. GTK's GLArea source
+binds its own framebuffer as read/draw target before render callbacks; there is
+no evidence for rebinding framebuffer 0. The failure is narrowed to selection
+geometry not writing the sampled pixel, but its cause is still unknown. Local
+Linux X11/NVIDIA GTK 4.14.5 `GDK_SCALE=2` validation after state isolation
+passed **20/20** fresh scene cycles; each picked `O:0`, confirmed GL state
+restoration, rendered and closed cleanly. The failure harness now records
+selection draw calls, active representation shader/VAO state, framebuffer and
+viewport bindings, raw target and nearby pixels, and GL state/error. That
+instrumentation passed 20/20 local Linux component cycles; the macOS-only
+diagnostic run is pending. A cause-based correction and then the full matrix
+are still required.
 Earlier matrix run
 [`39305083176`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39305083176)
 passed **30/30** after the coordinate conversion was first added, confirming
@@ -37,8 +51,22 @@ review found that the old smoke did not invoke picking on hosted platforms.
 EH4-202 remains unchecked until the expanded 20-cycle per cell pick/render/close
 matrix passes.
 
-**EH4-201 acceptance evidence:** Its GTK smoke creates a real
+**Full-interface coverage added locally (not yet in CI):** the opt-in
+`tests/test_easyhybrid_full_app_smoke.py` launches the actual
+`EasyHybridApplication` 20 times in fresh processes, constructs the production
+`MainWindow`, loads a generated molecular fixture through EasyHybrid's real
+pDynamo3-backed session, renders it, picks oxygen through the production GTK
+gesture callback, and closes cleanly. It passed 20/20 cycles on native Linux
+X11 with GTK 4.14.5 / Python 3.12.3 / PyGObject 3.48.2 / GLib 2.80.0 and
+OpenGL 4.6.0 NVIDIA RTX 4060 Ti. The pointer is still represented by synthetic
+callback coordinates, not an OS-injected event. It has not run on Windows,
+macOS, or across GTK 4.8–4.24. This pass does not resolve the macOS selection
+failures above. A pDynamo import without a system label also exposed and fixed
+a production display-name fallback to the loaded coordinate file's basename.
+
+**EH4-201 component-smoke evidence:** The GTK smoke creates a test-owned
 GTK window with EasyHybrid's production menu and bundled VisMol widget. It
+does not instantiate `EasyHybridApplication` or `MainWindow`. It
 loads a generated three-atom water PDB, verifies two bonds, active
 representations and actual draw calls, checks the GL error state, then closes
 and reopens the window. On this Linux host (GTK 4.14.5, native X11, NVIDIA RTX
@@ -2325,14 +2353,17 @@ temporary-copy command in [Section 6 of this report](#6-reproducible-test-baseli
   GApplication registration. Run it with
   `EASYHYBRID_RUN_GTK_GUI_TESTS=1` and, for the missing-display probe,
   `EASYHYBRID_RUN_GTK_ENV_DIAGNOSTIC=1`.
-- `test_easyhybrid_menu_and_molecular_renderer_open_and_close_cleanly`
+- `test_easyhybrid_menu_vismol_components_open_and_close_cleanly`
   runs when `EASYHYBRID_RUN_GRAPHICS_TESTS=1`. It puts EasyHybrid's production
-  GTK menu and bundled VisMol GTK widget in a real application window, loads a
-  generated three-atom water PDB, checks its atoms/bonds, counts representation
-  draw calls, checks GL errors, and opens/closes twice. The full native GTK
-  matrix builds the seven graphics extensions and runs this smoke in every
-  supported GTK minor/platform cell. This smoke covers EasyHybrid's GTK and
-  renderer path; pDynamo3 calculations are tested separately against pDynamo3.
+  GTK menu and bundled VisMol widget in a test-created GTK window, loads a
+  generated three-atom water PDB, checks atoms/bonds, counts representation
+  draws, checks GL errors, and opens/closes the component host. Matrix jobs set
+  a 20-cycle count and call the GTK gesture callbacks with test coordinates;
+  they do not inject native OS pointer events. It does **not** construct
+  `EasyHybridApplication` or the real `gui.main.MainWindow`; therefore it is
+  component/renderer evidence, not full-interface acceptance. A separate full-app
+  regression with real pDynamo3 is still required across the supported GTK/OS
+  matrix. pDynamo3 scientific calculations remain tested against pDynamo3.
 - `test_dependency_boundaries.py`, `test_session_state.py`,
   `test_easyplot_boundaries.py`, and `test_os_integration.py` cover the
   EH4-100 import, state, plotting, and startup-policy boundaries.

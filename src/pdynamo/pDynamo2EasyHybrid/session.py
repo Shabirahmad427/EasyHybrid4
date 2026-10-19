@@ -548,6 +548,13 @@ class pDynamoSession (pSimulations, pAnalysis, ModifyRepInVismol, LoadAndSaveDat
         if name == None:
             name = getattr (system, 'label', None)
             tag  = getattr (system,'e_tag', None)
+        if not name:
+            coordinate_file = input_files.get('coordinates')
+            if coordinate_file:
+                name = os.path.splitext(os.path.basename(os.fspath(coordinate_file)))[0]
+            else:
+                name = 'pDynamo system'
+        name = str(name)
         if len(name) > 70:
             name = name[-70:]
         

@@ -13,6 +13,7 @@ on:
         options:
           - all
           - windows-legacy
+          - macos-diagnostic
 
 permissions:
   contents: read
@@ -26,7 +27,7 @@ jobs:
       fail-fast: false
       max-parallel: 9
       matrix:
-        os: ${{ fromJSON(inputs.scope == 'windows-legacy' && '["windows-x86_64"]' || '["linux-x86_64", "windows-x86_64", "macos-arm64"]') }}
+        os: ${{ fromJSON(inputs.scope == 'windows-legacy' && '["windows-x86_64"]' || inputs.scope == 'macos-diagnostic' && '["macos-arm64"]' || '["linux-x86_64", "windows-x86_64", "macos-arm64"]') }}
         gtk: ${{ fromJSON(inputs.scope == 'windows-legacy' && '["4.8", "4.10"]' || '["4.8", "4.10", "4.12", "4.14", "4.16", "4.18", "4.20", "4.22", "4.24"]') }}
         # conda-forge publishes no GTK 4.16/4.18 builds, and GTK 4.8/4.10 only
         # for osx-64. Those cells are covered by the distro, MSYS2 and
@@ -196,15 +197,16 @@ jobs:
           EASYHYBRID_RUN_GRAPHICS_TESTS: "1"
           EASYHYBRID_TEST_COORDINATE_PICKING: "1"
           EASYHYBRID_GRAPHICS_SMOKE_CYCLES: "20"
+          EASYHYBRID_DEBUG_PICK: ${{ runner.os == 'macOS' && '1' || '0' }}
           PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
         run: |
           set -o pipefail
           if [[ "$RUNNER_OS" == "Linux" ]]; then
-          LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_and_molecular_renderer_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
+          LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_vismol_components_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
           elif [[ "$RUNNER_OS" == "Windows" ]]; then
-            GALLIUM_DRIVER=llvmpipe micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_and_molecular_renderer_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
+            GALLIUM_DRIVER=llvmpipe micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_vismol_components_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
           else
-            micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_and_molecular_renderer_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
+            micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_vismol_components_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
           fi
 
       - name: Run complete regression suite with real GTK smoke enabled
@@ -235,7 +237,7 @@ jobs:
   # end-of-life and served from their archives; Debian 13 is current stable.
   gtk-linux-distro:
     name: GTK ${{ matrix.gtk }} / linux-x86_64 (${{ matrix.distro }})
-    if: inputs.scope != 'windows-legacy'
+    if: inputs.scope != 'windows-legacy' && inputs.scope != 'macos-diagnostic'
     runs-on: ubuntu-24.04
     container: ${{ matrix.image }}
     timeout-minutes: 30
@@ -338,7 +340,7 @@ jobs:
           PYOPENGL_USE_ACCELERATE: "0"
         run: |
           set -o pipefail
-          LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" python3 -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_and_molecular_renderer_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
+          LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" python3 -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_vismol_components_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
 
       - name: Upload runtime and test evidence
         if: always()
@@ -354,7 +356,7 @@ jobs:
   # UCRT64 dependencies, then test with the same pinned Mesa renderer.
   gtk-windows-msys2:
     name: GTK ${{ matrix.gtk }} / windows-x86_64 (msys2 source ${{ matrix.version }})
-    if: inputs.scope != 'windows-legacy'
+    if: inputs.scope != 'windows-legacy' && inputs.scope != 'macos-diagnostic'
     runs-on: windows-2022
     timeout-minutes: 75
     strategy:
@@ -466,7 +468,7 @@ jobs:
           EASYHYBRID_GRAPHICS_SMOKE_CYCLES: "20"
         run: |
           set -o pipefail
-          GALLIUM_DRIVER=llvmpipe python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_and_molecular_renderer_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
+          GALLIUM_DRIVER=llvmpipe python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_vismol_components_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
 
       - name: Reject native Windows fatal exceptions in GTK logs
         if: always()
@@ -629,10 +631,11 @@ jobs:
           EASYHYBRID_RUN_GRAPHICS_TESTS: "1"
           EASYHYBRID_TEST_COORDINATE_PICKING: "1"
           EASYHYBRID_GRAPHICS_SMOKE_CYCLES: "20"
+          EASYHYBRID_DEBUG_PICK: "1"
         run: >-
           micromamba run -n easyhybrid-gtk-src python -m pytest -q -s
           -p no:cacheprovider
-          tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_and_molecular_renderer_open_and_close_cleanly
+          tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_vismol_components_open_and_close_cleanly
 
       - name: Show macOS native crash report
         if: failure() && runner.os == 'macOS'

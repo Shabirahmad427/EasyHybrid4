@@ -224,21 +224,48 @@ and drag paths operate in GL framebuffer pixels. The GTK widget now converts
 press, release and motion coordinates using its allocated logical dimensions
 and the live framebuffer dimensions. Unit tests cover 1x, 1.5x, 2x and the
 pre-allocation fallback. Native Linux X11/NVIDIA testing at GTK 4.14.5 with
-`GDK_SCALE=2` passed **20 independent open/pick/render/close cycles**, each
-making a real oxygen-atom pick through the GTK event handlers. The matrix
-workflow now performs the same 20 cycles in every cell; that expanded run is
-pending. Its first run `39307131433` passed all 19 Linux/Windows cells but all
+`GDK_SCALE=2` passed **20 independent component-harness open/pick/render/close
+cycles**, each picking the oxygen through direct calls to GTK gesture handlers with test coordinates. This does not inject an OS pointer event. The
+harness uses production menu/VisMol components in its own window; it does not
+launch `EasyHybridApplication` or the real `MainWindow`. The matrix
+workflow performs the same 20 component-harness cycles in every cell. Full
+EasyHybrid interface startup and MainWindow behavior are a separate, not-yet-implemented
+matrix check. Its first run `39307131433` passed all 19 Linux/Windows cells but all
 11 macOS Apple Software Renderer cells returned no atom ID from the color
 buffer. A dither-only correction failed in all 11 macOS cells of matrix run
 `39309838872`, while all 19 Linux/Windows cells passed; click and framebuffer
-coordinates matched. The pick pass now disables blending, dithering, framebuffer
+coordinates matched. The pick pass disables blending, dithering, framebuffer
 sRGB conversion and multisampling for exact RGB ID rendering, then restores all
-four GL states. Failure diagnostics include the raw pixel, decoded ID and GL
-state. Local GTK 4.14.5 / Python 3.12.3 / PyGObject 3.48.2 / GLib 2.80.0 /
-OpenGL 4.6.0 NVIDIA RTX 4060 Ti passed 20/20 independent native X11 scale-2
-scene cycles, including pick, render, GL state restoration and clean close.
-Full matrix verification is pending; Windows/macOS and other GTK minor scaling
-behavior remain **NOT TESTED** until that run completes.
+four GL states. This still fails on native macOS. Run `39311621966` has failures
+on Apple Software Renderer for all 11 completed cells, including Apple Silicon
+GTK 4.8.3–4.24.1 and Intel macOS GTK 4.8.2/4.10.1. The GTK 4.12 artifact reads white `(255,255,255,255)` /
+background ID `16777215` at the valid projected atom coordinate, with GL error
+0 and the four states disabled. GTK GLArea source binds its own framebuffer as
+the read/draw target; changing to framebuffer zero is not justified. This
+localizes the defect to the selection draw/read path but does not identify why
+the atom geometry is absent. Local GTK 4.14.5 / Python 3.12.3 / PyGObject
+3.48.2 / GLib 2.80.0 / OpenGL 4.6.0 NVIDIA RTX 4060 Ti passed 20/20
+independent native X11 scale-2 scene cycles. That does not prove macOS or the
+other GTK minors. The harness now collects per-representation selection draw
+calls, shader/VAO state, framebuffer and viewport bindings, and nearby pixel
+samples. Its instrumentation completed 20/20 local Linux component cycles;
+the macOS-only diagnostic run must now reveal the native draw/read failure.
+Correct the source cause, then rerun affected cells and the complete required
+matrix.
+
+The separate full-interface regression now exists at
+`tests/test_easyhybrid_full_app_smoke.py`. It launched the real
+`EasyHybridApplication` and `MainWindow`, loaded a generated structure using
+the installed pDynamo3 runtime, rendered the molecule, picked oxygen through
+the application's GTK callback path, and closed cleanly for 20/20 fresh
+process cycles on Linux x86_64 / native X11 / GTK 4.14.5 / Python 3.12.3 /
+PyGObject 3.48.2 / GLib 2.80.0 / NVIDIA OpenGL 4.6.0. Pointer coordinates are
+synthetic callback inputs, not OS-injected pointer events. The test is opt-in
+and is not yet wired into the native GTK matrix. Windows, macOS, and other GTK
+minors remain **NOT TESTED** with the full application. The production session
+display-name fallback for unlabeled imported pDynamo systems was fixed as part
+of this test; the full regression must still be provisioned and run across the
+matrix after the macOS selection rendering failure is diagnosed.
 
 ### GTK defects found and handled
 
