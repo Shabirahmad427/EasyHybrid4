@@ -131,11 +131,16 @@ jobs:
             Select-Object -Last 1).Trim()
           & .github/scripts/install_mesa_wgl.ps1 -PythonExe $pythonExe
 
-      - name: Install full regression dependencies
+      - name: Install graphics scene build dependencies
+        run: >-
+          micromamba install --yes -n easyhybrid-gtk --channel conda-forge
+          numpy cython pillow freetype-py pyyaml
+
+      - name: Install additional full-suite dependencies
         if: matrix.gtk == '4.24'
         run: >-
           micromamba install --yes -n easyhybrid-gtk --channel conda-forge
-          numpy scipy cython pillow freetype-py psutil pyyaml
+          scipy psutil
 
       - name: Record actual runtime and host
         run: |
@@ -180,25 +185,21 @@ jobs:
         run: python3 .github/scripts/show_macos_crash_report.py
 
       - name: Build graphics engine extensions
-        if: matrix.gtk == '4.24'
         run: micromamba run -n easyhybrid-gtk python setup.py build_ext --inplace
         working-directory: src/graphics_engine
 
-      - name: Render a real EasyHybrid molecular scene
-        if: matrix.gtk == '4.24'
+      - name: Render an EasyHybrid molecular scene and close the UI twice
         env:
-          EASYHYBRID_RUN_FULL_APP_TESTS: "1"
+          EASYHYBRID_RUN_GRAPHICS_TESTS: "1"
           PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
         run: |
           set -o pipefail
           if [[ "$RUNNER_OS" == "Linux" ]]; then
-            # EasyHybrid's startup selects PyOpenGL EGL to match GTK's GDK
-            # context; forcing GLX here makes PyOpenGL lose that context.
-            LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_full_application_opens_and_closes_without_critical_warnings 2>&1 | tee -a platform-results.txt
+            LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_and_molecular_renderer_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
           elif [[ "$RUNNER_OS" == "Windows" ]]; then
-            GALLIUM_DRIVER=llvmpipe micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_full_application_opens_and_closes_without_critical_warnings 2>&1 | tee -a platform-results.txt
+            GALLIUM_DRIVER=llvmpipe micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_and_molecular_renderer_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
           else
-            micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_full_application_opens_and_closes_without_critical_warnings 2>&1 | tee -a platform-results.txt
+            micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_and_molecular_renderer_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
           fi
 
       - name: Run complete regression suite with real GTK smoke enabled
@@ -272,8 +273,9 @@ jobs:
           sed -i -e 's|^metalink=|#metalink=|' \
             -e 's|^#baseurl=http://download.example/pub/fedora/linux|baseurl=https://archives.fedoraproject.org/pub/archive/fedora/linux|' \
             /etc/yum.repos.d/fedora*.repo
-          dnf -y install git python3 python3-gobject python3-cairo gtk4 \
-            python3-pyopengl python3-pytest xorg-x11-server-Xvfb xorg-x11-xauth \
+          dnf -y install git python3 python3-pip python3-gobject python3-cairo gtk4 \
+            python3-pyopengl python3-pytest \
+            python3-devel gcc xorg-x11-server-Xvfb xorg-x11-xauth \
             mesa-dri-drivers mesa-libEGL mesa-libGL which
 
       - name: Install distribution GTK runtime and software GL
@@ -284,9 +286,13 @@ jobs:
           set -e
           apt-get update
           apt-get install --yes --no-install-recommends \
-            ca-certificates git python3 python3-gi python3-gi-cairo gir1.2-gtk-4.0 \
-            python3-opengl python3-pytest xvfb xauth \
+            ca-certificates git python3 python3-pip python3-gi python3-gi-cairo gir1.2-gtk-4.0 \
+            python3-opengl python3-pytest python3-dev \
+            build-essential xvfb xauth \
             libgl1 libgl1-mesa-dri libegl1 libegl-mesa0
+
+      - name: Install graphics engine Python dependencies
+        run: python3 -m pip install --user --break-system-packages numpy cython pillow freetype-py pyyaml
 
       - uses: actions/checkout@v5
 
@@ -295,6 +301,10 @@ jobs:
           set -o pipefail
           printf 'GTK_REQUESTED=%s OS=linux-x86_64 PROVIDER=%s\n' '${{ matrix.gtk }}' '${{ matrix.distro }}' > platform-results.txt
           python3 .github/scripts/record_runtime.py '${{ matrix.distro }}' '${{ matrix.gtk }}' | tee -a platform-results.txt
+
+      - name: Build graphics engine extensions
+        run: python3 setup.py build_ext --inplace
+        working-directory: src/graphics_engine
 
       - name: Run native GTK window, Gio action, and real GLArea smoke
         run: |
@@ -311,6 +321,13 @@ jobs:
         run: |
           set -o pipefail
           LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" python3 -m pytest -q -p no:cacheprovider --noconftest -rs tests/test_gtk4_widget_patterns.py 2>&1 | tee -a platform-results.txt
+
+      - name: Render an EasyHybrid molecular scene and close the UI twice
+        env:
+          EASYHYBRID_RUN_GRAPHICS_TESTS: "1"
+        run: |
+          set -o pipefail
+          LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" python3 -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_and_molecular_renderer_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
 
       - name: Upload runtime and test evidence
         if: always()
@@ -377,6 +394,11 @@ jobs:
             mingw-w64-ucrt-x86_64-python-cairo
             mingw-w64-ucrt-x86_64-python-pyopengl
             mingw-w64-ucrt-x86_64-python-pytest
+            mingw-w64-ucrt-x86_64-python-numpy
+            mingw-w64-ucrt-x86_64-cython
+            mingw-w64-ucrt-x86_64-python-pillow
+            mingw-w64-ucrt-x86_64-python-freetype-py
+            mingw-w64-ucrt-x86_64-python-yaml
             tar
             xz
 
@@ -421,6 +443,17 @@ jobs:
         run: |
           set -o pipefail
           GALLIUM_DRIVER=llvmpipe python -m pytest -q -p no:cacheprovider --noconftest -rs tests/test_gtk4_widget_patterns.py 2>&1 | tee -a platform-results.txt
+
+      - name: Build graphics engine extensions
+        run: python setup.py build_ext --inplace
+        working-directory: src/graphics_engine
+
+      - name: Render an EasyHybrid molecular scene and close the UI twice
+        env:
+          EASYHYBRID_RUN_GRAPHICS_TESTS: "1"
+        run: |
+          set -o pipefail
+          GALLIUM_DRIVER=llvmpipe python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_and_molecular_renderer_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
 
       - name: Reject native Windows fatal exceptions in GTK logs
         if: always()
@@ -503,6 +536,11 @@ jobs:
           post-cleanup: none
           create-args: >-
             python=3.12
+            numpy
+            cython
+            pillow
+            freetype-py
+            pyyaml
             pygobject
             pycairo
             pyopengl
@@ -567,6 +605,18 @@ jobs:
         run: |
           set -o pipefail
           micromamba run -n easyhybrid-gtk-src python -m pytest -q -p no:cacheprovider --noconftest -rs tests/test_gtk4_widget_patterns.py 2>&1 | tee -a platform-results.txt
+
+      - name: Build graphics engine extensions
+        run: micromamba run -n easyhybrid-gtk-src python setup.py build_ext --inplace
+        working-directory: src/graphics_engine
+
+      - name: Render an EasyHybrid molecular scene and close the UI twice
+        env:
+          EASYHYBRID_RUN_GRAPHICS_TESTS: "1"
+        run: >-
+          micromamba run -n easyhybrid-gtk-src python -m pytest -q -s
+          -p no:cacheprovider
+          tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_and_molecular_renderer_open_and_close_cleanly
 
       - name: Show macOS native crash report
         if: failure() && runner.os == 'macOS'

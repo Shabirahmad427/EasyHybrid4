@@ -6,19 +6,21 @@
 GTK/Python compatibility, parity, platform, testing, and known-limitation
 status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).
 
-**Current roadmap work (2026-10-19):** EH4-201 now has a real molecular
-scene smoke: it loads a generated three-atom water PDB through the bundled
-VisMol parser, verifies two bonds, active representations and actual draw
-calls, checks the GL error state, and closes EasyHybrid twice. On this Linux
-host (GTK 4.14.5, X11, NVIDIA RTX 4060 Ti), two cycles passed three times with
-OpenGL 4.6.0. The test uses VisMol's base session insertion path because a
-synthetic fixture has no pDynamo `e_id` record; this keeps scientific-system
-mapping out of the renderer smoke. The workflow now runs it on GTK 4.24 Linux,
-Windows, and macOS runners after building the graphics extensions. A trial
-that forced PyOpenGL GLX failed because GTK had created an EGL context; the
-molecular-scene step now follows EasyHybrid's EGL startup selection. The full
-30-cell native matrix and those hosted molecular-scene runs are still pending;
-EH4-201 remains unchecked.
+**Current roadmap work (2026-10-19):** EH4-201's GTK smoke creates a real
+GTK window with EasyHybrid's production menu and bundled VisMol widget. It
+loads a generated three-atom water PDB, verifies two bonds, active
+representations and actual draw calls, checks the GL error state, then closes
+and reopens the window. On this Linux host (GTK 4.14.5, native X11, NVIDIA RTX
+4060 Ti), both cycles passed three times with 22–24 representation draws each
+and OpenGL 4.6.0. The synthetic fixture enters VisMol's base session insertion path
+because it intentionally has no pDynamo system record. The first full matrix
+passed generic GTK/widget checks in 30/30 cells; its added full-app scene step
+failed on Linux, Windows and macOS GTK 4.24 because hosted runners do not have
+pDynamo3 (`ModuleNotFoundError: pBabel`). The workflow now builds the graphics
+extensions and runs a pDynamo-independent EasyHybrid menu/VisMol scene smoke
+in every GTK/OS cell. That corrected full matrix is pending. pDynamo3
+scientific/runtime tests are tracked separately against pDynamo3; EH4-201
+remains unchecked until the corrected matrix passes.
 
 EH4-200's graphics provenance audit
 found the declared `casebor/graphics_engine` URL redirects to public
@@ -28,9 +30,11 @@ vendored tree's base: 28 of 88 common tracked files differ, with three
 local-only and eight upstream-only files. The local `LICENSE` says CC BY-NC
 4.0, while package/repository metadata says MIT. No graphics source or
 submodule pointer was changed; EH4-200 remains blocked pending authoritative
-source ancestry and license/ownership clarification. The GTK 4.24 matrix
-successfully built the graphics extensions on Linux, Windows and macOS arm64,
-but its GLArea smoke does not exercise a VisMol molecular scene.
+source ancestry and license/ownership clarification. The initial GTK 4.24
+matrix built the graphics extensions on Linux, Windows and macOS arm64. Its
+full-app scene test could not import pDynamo on hosted runners; the replacement
+matrix now builds the extensions and exercises the production menu and VisMol
+renderer in every GTK/OS job.
 
 EH4-300 moved preferences and transient autosaves out of the installed source
 tree into platform-standard per-user config/cache directories. Existing
@@ -2230,13 +2234,14 @@ temporary-copy command in [Section 6 of this report](#6-reproducible-test-baseli
   GApplication registration. Run it with
   `EASYHYBRID_RUN_GTK_GUI_TESTS=1` and, for the missing-display probe,
   `EASYHYBRID_RUN_GTK_ENV_DIAGNOSTIC=1`.
-- `test_easyhybrid_full_application_opens_and_closes_without_critical_warnings`
-  runs when `EASYHYBRID_RUN_FULL_APP_TESTS=1`. It launches EasyHybrid twice,
-  loads a generated three-atom water PDB through bundled VisMol, checks atom
-  and bond counts, observes active representation draw calls, checks the GL
-  error state, and closes each app. Native matrix CI runs this on GTK 4.24,
-  where the seven graphics extensions are built; other GTK minor cells still
-  test generic real GLArea rendering and teardown.
+- `test_easyhybrid_menu_and_molecular_renderer_open_and_close_cleanly`
+  runs when `EASYHYBRID_RUN_GRAPHICS_TESTS=1`. It puts EasyHybrid's production
+  GTK menu and bundled VisMol GTK widget in a real application window, loads a
+  generated three-atom water PDB, checks its atoms/bonds, counts representation
+  draw calls, checks GL errors, and opens/closes twice. The full native GTK
+  matrix builds the seven graphics extensions and runs this smoke in every
+  supported GTK minor/platform cell. This smoke covers EasyHybrid's GTK and
+  renderer path; pDynamo3 calculations are tested separately against pDynamo3.
 - `test_dependency_boundaries.py`, `test_session_state.py`,
   `test_easyplot_boundaries.py`, and `test_os_integration.py` cover the
   EH4-100 import, state, plotting, and startup-policy boundaries.

@@ -175,52 +175,92 @@ _GTK_SMOKE = textwrap.dedent(
 )
 
 
-_EASYHYBRID_LIFECYCLE_SMOKE = textwrap.dedent(
+_EASYHYBRID_GRAPHICS_SMOKE = textwrap.dedent(
     """
-    # Import the application first so its startup environment setup runs
-    # before PyGObject initializes GTK or PyOpenGL selects a GL platform.
-    import easyhybrid
     import os
     import re
+    import sys
     import tempfile
+    import importlib.util
+
+    from src.os_integration.gtk_startup import configure_startup_environment
+    configure_startup_environment(os.path.abspath("."))
+    sys.path.insert(0, os.path.abspath("src"))
+    sys.path.insert(0, os.path.abspath("src/graphics_engine/src"))
 
     import gi
 
     gi.require_version("Gtk", "4.0")
     gi.require_version("Gdk", "4.0")
     from gi.repository import Gdk, Gio, GLib, Gtk
+    from vismol.core.vismol_session import VismolSession
+    from vismol.utils import parser
 
     display = Gdk.Display.get_default()
     if display is None:
-        raise RuntimeError("EasyHybrid lifecycle smoke requires a native display")
+        raise RuntimeError("EasyHybrid graphics smoke requires a native display")
 
-    class ProbeApplication(easyhybrid.EasyHybridApplication):
-        def __init__(self):
-            Gtk.Application.__init__(
-                self,
-                application_id="org.easyhybrid.tests.FullLifecycle",
-                flags=(Gio.ApplicationFlags.HANDLES_OPEN |
-                       Gio.ApplicationFlags.NON_UNIQUE),
-            )
-            self.pending_open_files = []
+    menu_spec = importlib.util.spec_from_file_location(
+        "easyhybrid_menu_graphics_smoke",
+        os.path.abspath("src/gui/main/gtk4_menu.py"),
+    )
+    menu_module = importlib.util.module_from_spec(menu_spec)
+    menu_spec.loader.exec_module(menu_module)
+    Gtk4MainMenu = menu_module.Gtk4MainMenu
 
-    application = ProbeApplication()
-    state = {"closed": False, "scene_started": False, "scene_draws": 0}
+    application = Gtk.Application(
+        application_id="org.easyhybrid.tests.GraphicsLifecycle",
+        flags=Gio.ApplicationFlags.NON_UNIQUE,
+    )
+    state = {
+        "closed": False,
+        "scene_started": False,
+        "scene_draws": 0,
+        "area_renders": 0,
+    }
+
+    def activate(app):
+        vm_session = VismolSession("Gtk_4.0")
+        vm_session.vm_widget.set_size_request(640, 420)
+        vm_session.vm_widget.connect(
+            "render",
+            lambda *_args: state.__setitem__(
+                "area_renders", state["area_renders"] + 1
+            ),
+        )
+        window = Gtk.ApplicationWindow(application=app)
+        window.set_default_size(900, 650)
+        class ActionProbe:
+            last_action = None
+
+            def on_main_menu_activate(self, action):
+                self.last_action = action.get_name()
+
+        action_probe = ActionProbe()
+        menu = Gtk4MainMenu(action_probe, "src/gui/MainMenu.json")
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        content.append(menu.create_widget())
+        content.append(vm_session.vm_widget)
+        window.set_child(content)
+        menu.items["menuitem_open"].activate(None)
+        if action_probe.last_action != "menuitem_open":
+            raise RuntimeError("EasyHybrid main-menu action did not dispatch")
+        window.present()
+        state.update(vm_session=vm_session, window=window)
 
     def close_when_ready():
-        main_window = getattr(application, "main_window", None)
-        if main_window is not None:
-            vm_widget = main_window.vm_session.vm_widget
+        if state.get("window") is not None:
+            vm_widget = state["vm_session"].vm_widget
             vm_widget.make_current()
             context_error = vm_widget.get_error()
             if context_error is not None:
-                raise RuntimeError("EasyHybrid Gtk.GLArea failed: %s" % context_error)
+                raise RuntimeError("EasyHybrid VisMol Gtk.GLArea failed: %s" % context_error)
 
             from OpenGL import GL
             gl_version = GL.glGetString(GL.GL_VERSION)
             gl_renderer = GL.glGetString(GL.GL_RENDERER)
             if not gl_version or not gl_renderer:
-                raise RuntimeError("EasyHybrid Gtk.GLArea has no current OpenGL context")
+                raise RuntimeError("EasyHybrid VisMol has no current OpenGL context")
             version_text = gl_version.decode("ascii", errors="replace")
             version_match = re.search(r"(\\d+)\\.(\\d+)", version_text)
             if not version_match or tuple(map(int, version_match.groups())) < (3, 3):
@@ -245,19 +285,14 @@ _EASYHYBRID_LIFECYCLE_SMOKE = textwrap.dedent(
                     molecule_path = os.path.join(fixture_dir, "water.pdb")
                     with open(molecule_path, "w", encoding="ascii") as fixture:
                         fixture.write("\\n".join(atom_lines) + "\\nEND\\n")
-                    from vismol.core.vismol_session import VismolSession
-                    from vismol.utils import parser
-
-                    vm_session = main_window.vm_session
+                    vm_session = state["vm_session"]
                     molecule, show_molecule = parser.parse_file(
                         vm_session, molecule_path
                     )
                     molecule._generate_color_vectors(vm_session.atom_id_counter)
                     molecule.active = True
-                    # The full EasyHybrid session adds a pDynamo-system mapping
-                    # after loading user molecules. This fixture has no such
-                    # scientific-system record, so use VisMol's own insertion
-                    # path to exercise its production parser/scene/render code.
+                    # This synthetic graphics fixture intentionally has no
+                    # pDynamo scientific-system record.
                     VismolSession._add_vismol_object(
                         vm_session, molecule, show_molecule=show_molecule
                     )
@@ -285,7 +320,7 @@ _EASYHYBRID_LIFECYCLE_SMOKE = textwrap.dedent(
 
                 state["molecule"] = molecule
                 state["scene_started"] = True
-                vm_widget.queue_draw()
+                vm_widget.queue_render()
                 return GLib.SOURCE_CONTINUE
 
             if state["scene_draws"] == 0:
@@ -300,24 +335,36 @@ _EASYHYBRID_LIFECYCLE_SMOKE = textwrap.dedent(
             print("EASYHYBRID_MOLECULE_BONDS=%d" % len(molecule.bonds), flush=True)
             print("EASYHYBRID_MOLECULE_DRAW_CALLS=%d" % state["scene_draws"], flush=True)
 
-            print("EASYHYBRID_MAIN_WINDOW_OPENED", flush=True)
+            print("EASYHYBRID_GRAPHICS_WINDOW_OPENED", flush=True)
             print("EASYHYBRID_GL_VERSION=%s" % version_text, flush=True)
             print("EASYHYBRID_GL_RENDERER=%s" % gl_renderer.decode("utf-8", errors="replace"), flush=True)
             print("EASYHYBRID_GDK_DEBUG=%s" % os.environ.get("GDK_DEBUG", ""), flush=True)
             print("EASYHYBRID_PYOPENGL_PLATFORM=%s" % os.environ.get("PYOPENGL_PLATFORM", ""), flush=True)
-            main_window.window.close()
+            state["window"].close()
             application.quit()
             state["closed"] = True
             return GLib.SOURCE_REMOVE
         return GLib.SOURCE_CONTINUE
 
     def timed_out():
+        print(
+            "EASYHYBRID_RENDER_TIMEOUT realized=%s area_renders=%d draws=%d"
+            % (
+                state.get("window") is not None
+                and state["vm_session"].vm_widget.get_realized(),
+                state["area_renders"],
+                state["scene_draws"],
+            ),
+            flush=True,
+        )
         application.quit()
         return GLib.SOURCE_REMOVE
 
     GLib.timeout_add(500, close_when_ready)
     GLib.timeout_add_seconds(30, timed_out)
-    status = application.run(["easyhybrid-lifecycle-test"])
+    application.connect("activate", activate)
+    application.hold()
+    status = application.run(None)
     print("EASYHYBRID_STATUS=%d CLOSED=%s" % (status, state["closed"]), flush=True)
     if not state["closed"]:
         raise SystemExit(2)
@@ -372,16 +419,16 @@ def test_missing_display_is_reported_before_gapplication_registration():
 
 
 @pytest.mark.skipif(
-    os.environ.get("EASYHYBRID_RUN_FULL_APP_TESTS") != "1",
-    reason="requires pDynamo, graphics extensions, and a native GTK display",
+    os.environ.get("EASYHYBRID_RUN_GRAPHICS_TESTS") != "1",
+    reason="requires bundled graphics extensions and a native GTK display",
 )
-def test_easyhybrid_full_application_opens_and_closes_without_critical_warnings():
-    """Exercise two real EasyHybrid molecule render and close cycles."""
+def test_easyhybrid_menu_and_molecular_renderer_open_and_close_cleanly():
+    """Exercise the EasyHybrid menu and bundled molecule renderer twice."""
     environment = os.environ.copy()
     environment["G_DEBUG"] = "fatal-criticals"
     for cycle in range(1, 3):
         result = subprocess.run(
-            [sys.executable, "-c", _EASYHYBRID_LIFECYCLE_SMOKE],
+            [sys.executable, "-c", _EASYHYBRID_GRAPHICS_SMOKE],
             cwd=os.path.dirname(os.path.dirname(__file__)),
             capture_output=True,
             text=True,
@@ -392,7 +439,7 @@ def test_easyhybrid_full_application_opens_and_closes_without_critical_warnings(
         print("MOLECULAR_SCENE_CYCLE=%d" % cycle)
         print(result.stdout.strip())
         assert result.returncode == 0, result.stdout + result.stderr
-        assert "EASYHYBRID_MAIN_WINDOW_OPENED" in result.stdout
+        assert "EASYHYBRID_GRAPHICS_WINDOW_OPENED" in result.stdout
         assert "EASYHYBRID_GL_VERSION=" in result.stdout
         assert "EASYHYBRID_GL_RENDERER=" in result.stdout
         assert "EASYHYBRID_MOLECULE_ATOMS=3" in result.stdout
