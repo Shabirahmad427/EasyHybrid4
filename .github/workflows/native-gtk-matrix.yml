@@ -75,6 +75,9 @@ jobs:
       - name: Create GTK runtime
         uses: mamba-org/setup-micromamba@v3.2.1
         with:
+          # Pin the installer itself: the action's 2.9.0-0 latest lookup
+          # returned no linux-64 binary on 2026-10-19.
+          micromamba-version: 2.8.1-1
           environment-name: easyhybrid-gtk
           cache-environment: true
           init-shell: none
@@ -533,6 +536,7 @@ jobs:
       - name: Create GTK build dependencies
         uses: mamba-org/setup-micromamba@v3.2.1
         with:
+          micromamba-version: 2.8.1-1
           environment-name: easyhybrid-gtk-src
           cache-environment: true
           init-shell: none
