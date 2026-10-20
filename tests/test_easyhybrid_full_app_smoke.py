@@ -214,7 +214,11 @@ _FULL_APP_CYCLE = textwrap.dedent(
             else:
                 state["last_model_transform"] = transform_snapshot
                 state["stable_transform_ticks"] = 0
-            if state["stable_transform_ticks"] < 3:
+            # Two identical samples are sufficient once the center residual is
+            # zero. Native macOS runners may service the GLib polling callback
+            # less often than Linux, so avoid waiting for an unnecessary third
+            # timer tick after the transform has already settled.
+            if state["stable_transform_ticks"] < 2:
                 state["phase"] = "waiting_for_center_animation"
                 if time.monotonic() - state["center_wait_started"] > 10:
                     return fail(
