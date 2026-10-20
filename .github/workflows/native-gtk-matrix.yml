@@ -246,6 +246,7 @@ jobs:
         env:
           EASYHYBRID_RUN_FULL_APP_GRAPHICS: "1"
           EASYHYBRID_FULL_APP_CYCLES: "5"
+          EASYHYBRID_FULL_APP_TRACE: ${{ runner.os == 'macOS' && matrix.gtk == '4.24' && '1' || '0' }}
           PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
         run: |
           set -o pipefail

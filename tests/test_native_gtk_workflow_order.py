@@ -25,3 +25,11 @@ def test_failed_macos_gtk424_cell_can_be_dispatched_alone():
     assert "inputs.scope == 'macos-diagnostic' || inputs.scope == 'macos-gtk424') && '[\"macos-arm64\"]'" in workflow
     assert "inputs.scope == 'macos-gtk424' && '[\"4.24\"]'" in workflow
     assert workflow.count("inputs.scope != 'macos-gtk424'") == 3
+
+
+def test_macos_gtk424_full_app_smoke_enables_hang_stack_diagnostics():
+    workflow = (ROOT / ".github" / "workflows" / "native-gtk-matrix.yml").read_text()
+    smoke = (ROOT / "tests" / "test_easyhybrid_full_app_smoke.py").read_text()
+
+    assert "EASYHYBRID_FULL_APP_TRACE: ${{ runner.os == 'macOS' && matrix.gtk == '4.24'" in workflow
+    assert 'faulthandler.dump_traceback_later(20, repeat=True)' in smoke

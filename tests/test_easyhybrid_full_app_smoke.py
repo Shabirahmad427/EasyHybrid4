@@ -19,6 +19,7 @@ _FULL_APP_CYCLE = textwrap.dedent(
     import os
     import sys
     import time
+    import faulthandler
 
     from src.os_integration.gtk_startup import configure_startup_environment
     configure_startup_environment(os.path.abspath("."))
@@ -215,9 +216,16 @@ _FULL_APP_CYCLE = textwrap.dedent(
                 type(error).__name__, error
             ))
 
+    if os.environ.get("EASYHYBRID_FULL_APP_TRACE") == "1":
+        # A timeout callback cannot run while startup is blocked in a
+        # synchronous load/render call. Dump the Python call stack from a
+        # watchdog thread so native CI artifacts identify that call site.
+        faulthandler.dump_traceback_later(20, repeat=True)
+
     GLib.timeout_add(50, safe_poll_app)
     GLib.timeout_add_seconds(45, lambda: fail("full-app lifecycle timed out"))
     status = app.run([sys.argv[0], fixture])
+    faulthandler.cancel_dump_traceback_later()
     print("EASYHYBRID_FULL_APP_STATUS=%d CLOSED=%s" % (status, state.get("closed")), flush=True)
     if status != 0 or not state.get("closed"):
         raise SystemExit(2)
