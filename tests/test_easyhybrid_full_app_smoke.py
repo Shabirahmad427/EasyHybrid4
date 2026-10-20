@@ -19,6 +19,7 @@ _FULL_APP_CYCLE = textwrap.dedent(
     import os
     import sys
     import time
+    import numpy as np
 
     from src.os_integration.gtk_startup import configure_startup_environment
     configure_startup_environment(os.path.abspath("."))
@@ -147,6 +148,7 @@ _FULL_APP_CYCLE = textwrap.dedent(
                 representation.draw_representation = count_draw
 
             state.update(molecule=molecule, oxygen=oxygen, scene_ready=True)
+            state["scene_ready_at"] = time.monotonic()
             state["phase"] = "waiting_for_scene_render"
             active_representations = [
                 name for name, representation in molecule.representations.items()
@@ -174,6 +176,19 @@ _FULL_APP_CYCLE = textwrap.dedent(
 
             vm_widget = vm_session.vm_widget
             core = vm_session.vm_glcore
+            model_transform = np.asarray(state["molecule"].model_mat)
+            transform_snapshot = model_transform.tobytes()
+            if transform_snapshot == state.get("last_model_transform"):
+                state["stable_transform_ticks"] = state.get("stable_transform_ticks", 0) + 1
+            else:
+                state["last_model_transform"] = transform_snapshot
+                state["stable_transform_ticks"] = 0
+            if state["stable_transform_ticks"] < 3:
+                state["phase"] = "waiting_for_center_animation"
+                if time.monotonic() - state["scene_ready_at"] > 10:
+                    return fail("molecular centering did not settle before pick")
+                return GLib.SOURCE_CONTINUE
+
             widget_width, widget_height = vm_widget.get_width(), vm_widget.get_height()
             if min(widget_width, widget_height, core.width, core.height) <= 0:
                 state["phase"] = "waiting_for_gl_area_allocation"
@@ -283,7 +298,7 @@ _FULL_APP_CYCLE = textwrap.dedent(
                 "core_renders=%s scene_draws=%s active=%s picking=%s "
                 "pick_xy=%r pick_dimensions=%r pick_attempts=%s "
                 "pick_projection=%r atom_picked=%r polls=%s poll_age=%r "
-                "pick_render_calls=%s last_pick_render=%r"
+                "pick_render_calls=%s last_pick_render=%r stable_transform_ticks=%s"
                 % (
                     widget.get_realized(), widget.get_mapped(),
                     widget.get_visible(), widget.get_width(), widget.get_height(),
@@ -306,6 +321,7 @@ _FULL_APP_CYCLE = textwrap.dedent(
                     ),
                     state["pick_render_calls"],
                     state.get("last_pick_render"),
+                    state.get("stable_transform_ticks", 0),
                 )
             )
         return fail(
