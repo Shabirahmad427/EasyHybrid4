@@ -14,6 +14,7 @@ on:
           - all
           - windows-legacy
           - macos-diagnostic
+          - macos-gtk424
           - windows
 
 permissions:
@@ -34,14 +35,14 @@ jobs:
       fail-fast: false
       max-parallel: 9
       matrix:
-        os: ${{ fromJSON((inputs.scope == 'windows-legacy' || inputs.scope == 'windows') && '["windows-x86_64"]' || inputs.scope == 'macos-diagnostic' && '["macos-arm64"]' || '["linux-x86_64", "windows-x86_64", "macos-arm64"]') }}
-        gtk: ${{ fromJSON(inputs.scope == 'windows-legacy' && '["4.8", "4.10"]' || '["4.8", "4.10", "4.12", "4.14", "4.16", "4.18", "4.20", "4.22", "4.24"]') }}
+        os: ${{ fromJSON((inputs.scope == 'windows-legacy' || inputs.scope == 'windows') && '["windows-x86_64"]' || (inputs.scope == 'macos-diagnostic' || inputs.scope == 'macos-gtk424') && '["macos-arm64"]' || '["linux-x86_64", "windows-x86_64", "macos-arm64"]') }}
+        gtk: ${{ fromJSON(inputs.scope == 'windows-legacy' && '["4.8", "4.10"]' || inputs.scope == 'macos-gtk424' && '["4.24"]' || '["4.8", "4.10", "4.12", "4.14", "4.16", "4.18", "4.20", "4.22", "4.24"]') }}
         # conda-forge publishes no GTK 4.16/4.18 builds, and GTK 4.8/4.10 only
         # for osx-64. Those cells are covered by the distro, MSYS2 and
         # source-build jobs below; GTK 4.8/4.10 also run here on Intel macOS.
         # Focused Windows dispatches must not also add Intel macOS cells.
         include: >-
-          ${{ fromJSON((inputs.scope == 'windows' || inputs.scope == 'windows-legacy') && '[]' || '[{"os": "macos-x86_64", "gtk": "4.8"}, {"os": "macos-x86_64", "gtk": "4.10"}]') }}
+          ${{ fromJSON((inputs.scope == 'windows' || inputs.scope == 'windows-legacy' || inputs.scope == 'macos-diagnostic' || inputs.scope == 'macos-gtk424') && '[]' || '[{"os": "macos-x86_64", "gtk": "4.8"}, {"os": "macos-x86_64", "gtk": "4.10"}]') }}
         exclude:
           - os: linux-x86_64
             gtk: "4.16"
@@ -198,23 +199,6 @@ jobs:
         run: micromamba run -n easyhybrid-gtk python setup.py build_ext --inplace
         working-directory: src/graphics_engine
 
-      - name: Run 5 EasyHybrid molecular scene pick and close cycles
-        env:
-          EASYHYBRID_RUN_GRAPHICS_TESTS: "1"
-          EASYHYBRID_TEST_COORDINATE_PICKING: "1"
-          EASYHYBRID_GRAPHICS_SMOKE_CYCLES: "5"
-          EASYHYBRID_DEBUG_PICK: ${{ runner.os == 'macOS' && '1' || '0' }}
-          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
-        run: |
-          set -o pipefail
-          if [[ "$RUNNER_OS" == "Linux" ]]; then
-          LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_vismol_components_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
-          elif [[ "$RUNNER_OS" == "Windows" ]]; then
-            GALLIUM_DRIVER=llvmpipe micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_vismol_components_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
-          else
-            micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_vismol_components_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
-          fi
-
       - name: Restore pDynamo3 build
         id: pdynamo3-cache
         uses: actions/cache@v4
@@ -274,6 +258,23 @@ jobs:
             micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_easyhybrid_full_app_smoke.py 2>&1 | tee -a platform-results.txt
           fi
 
+      - name: Run 5 EasyHybrid molecular scene pick and close cycles
+        env:
+          EASYHYBRID_RUN_GRAPHICS_TESTS: "1"
+          EASYHYBRID_TEST_COORDINATE_PICKING: "1"
+          EASYHYBRID_GRAPHICS_SMOKE_CYCLES: "5"
+          EASYHYBRID_DEBUG_PICK: ${{ runner.os == 'macOS' && '1' || '0' }}
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+        run: |
+          set -o pipefail
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+          LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_vismol_components_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
+          elif [[ "$RUNNER_OS" == "Windows" ]]; then
+            GALLIUM_DRIVER=llvmpipe micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_vismol_components_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
+          else
+            micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_vismol_components_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
+          fi
+
       - name: Run complete regression suite with real GTK smoke enabled
         if: matrix.gtk == '4.24'
         env:
@@ -318,7 +319,7 @@ jobs:
   # end-of-life and served from their archives; Debian 13 is current stable.
   gtk-linux-distro:
     name: GTK ${{ matrix.gtk }} / linux-x86_64 (${{ matrix.distro }})
-    if: inputs.scope != 'windows-legacy' && inputs.scope != 'macos-diagnostic' && inputs.scope != 'windows'
+    if: inputs.scope != 'windows-legacy' && inputs.scope != 'macos-diagnostic' && inputs.scope != 'macos-gtk424' && inputs.scope != 'windows'
     runs-on: ubuntu-24.04
     container: ${{ matrix.image }}
     timeout-minutes: 30
@@ -410,19 +411,6 @@ jobs:
           set -o pipefail
           LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" python3 -m pytest -q -p no:cacheprovider --noconftest -rs tests/test_gtk4_widget_patterns.py 2>&1 | tee -a platform-results.txt
 
-      - name: Run 5 EasyHybrid molecular scene pick and close cycles
-        env:
-          EASYHYBRID_RUN_GRAPHICS_TESTS: "1"
-          EASYHYBRID_TEST_COORDINATE_PICKING: "1"
-          EASYHYBRID_GRAPHICS_SMOKE_CYCLES: "5"
-          # The distro's optional Cython accelerator was built against its
-          # packaged NumPy; the user-site NumPy needed by the renderer can
-          # have a different C ABI. PyOpenGL's ctypes path is fully capable.
-          PYOPENGL_USE_ACCELERATE: "0"
-        run: |
-          set -o pipefail
-          LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" python3 -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_vismol_components_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
-
       - name: Restore pDynamo3 build
         id: pdynamo3-cache
         uses: actions/cache@v4
@@ -476,6 +464,19 @@ jobs:
           export PDYNAMO3_HOME="$PWD/pDynamo3"
           LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe PYOPENGL_USE_ACCELERATE=0 xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" python3 -m pytest -q -s -p no:cacheprovider tests/test_easyhybrid_full_app_smoke.py 2>&1 | tee -a platform-results.txt
 
+      - name: Run 5 EasyHybrid molecular scene pick and close cycles
+        env:
+          EASYHYBRID_RUN_GRAPHICS_TESTS: "1"
+          EASYHYBRID_TEST_COORDINATE_PICKING: "1"
+          EASYHYBRID_GRAPHICS_SMOKE_CYCLES: "5"
+          # The distro's optional Cython accelerator was built against its
+          # packaged NumPy; the user-site NumPy needed by the renderer can
+          # have a different C ABI. PyOpenGL's ctypes path is fully capable.
+          PYOPENGL_USE_ACCELERATE: "0"
+        run: |
+          set -o pipefail
+          LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" python3 -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_vismol_components_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
+
       - name: Validate VisMol rendering, export, picking and resize at scale 1 and 2
         env:
           EASYHYBRID_RUN_GRAPHICS_TESTS: "1"
@@ -500,7 +501,7 @@ jobs:
   # UCRT64 dependencies, then test with the same pinned Mesa renderer.
   gtk-windows-msys2:
     name: GTK ${{ matrix.gtk }} / windows-x86_64 (msys2 source ${{ matrix.version }})
-    if: inputs.scope != 'windows-legacy' && inputs.scope != 'macos-diagnostic'
+    if: inputs.scope != 'windows-legacy' && inputs.scope != 'macos-diagnostic' && inputs.scope != 'macos-gtk424'
     runs-on: windows-2022
     timeout-minutes: 75
     strategy:
@@ -608,15 +609,6 @@ jobs:
         run: python setup.py build_ext --inplace
         working-directory: src/graphics_engine
 
-      - name: Run 5 EasyHybrid molecular scene pick and close cycles
-        env:
-          EASYHYBRID_RUN_GRAPHICS_TESTS: "1"
-          EASYHYBRID_TEST_COORDINATE_PICKING: "1"
-          EASYHYBRID_GRAPHICS_SMOKE_CYCLES: "5"
-        run: |
-          set -o pipefail
-          GALLIUM_DRIVER=llvmpipe python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_vismol_components_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
-
       - name: Restore pDynamo3 build
         id: pdynamo3-cache
         uses: actions/cache@v4
@@ -669,6 +661,15 @@ jobs:
           set -o pipefail
           export PDYNAMO3_HOME="$(cygpath -m "$PWD/pDynamo3")"
           GALLIUM_DRIVER=llvmpipe python -m pytest -q -s -p no:cacheprovider tests/test_easyhybrid_full_app_smoke.py 2>&1 | tee -a platform-results.txt
+
+      - name: Run 5 EasyHybrid molecular scene pick and close cycles
+        env:
+          EASYHYBRID_RUN_GRAPHICS_TESTS: "1"
+          EASYHYBRID_TEST_COORDINATE_PICKING: "1"
+          EASYHYBRID_GRAPHICS_SMOKE_CYCLES: "5"
+        run: |
+          set -o pipefail
+          GALLIUM_DRIVER=llvmpipe python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_vismol_components_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
 
       - name: Validate VisMol rendering, export, picking and resize at scale 1 and 2
         env:
@@ -723,7 +724,7 @@ jobs:
   # dependencies on the native arm64 runner.
   gtk-macos-source:
     name: GTK ${{ matrix.gtk }} / macos-arm64 (source ${{ matrix.version }})
-    if: inputs.scope != 'windows-legacy' && inputs.scope != 'windows'
+    if: inputs.scope != 'windows-legacy' && inputs.scope != 'windows' && inputs.scope != 'macos-gtk424'
     runs-on: macos-14
     timeout-minutes: 75
     strategy:
@@ -837,18 +838,6 @@ jobs:
         run: micromamba run -n easyhybrid-gtk-src python setup.py build_ext --inplace
         working-directory: src/graphics_engine
 
-      - name: Run 5 EasyHybrid molecular scene pick and close cycles
-        env:
-          EASYHYBRID_RUN_GRAPHICS_TESTS: "1"
-          EASYHYBRID_TEST_COORDINATE_PICKING: "1"
-          EASYHYBRID_GRAPHICS_SMOKE_CYCLES: "5"
-          EASYHYBRID_DEBUG_PICK: "1"
-        # Keep the scene/pick evidence in the uploaded artifact like the
-        # other providers; this step previously wrote only to the job log.
-        run: |
-          set -o pipefail
-          micromamba run -n easyhybrid-gtk-src python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_vismol_components_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
-
       - name: Restore pDynamo3 build
         id: pdynamo3-cache
         uses: actions/cache@v4
@@ -901,6 +890,18 @@ jobs:
           set -o pipefail
           export PDYNAMO3_HOME="${{ github.workspace }}/pDynamo3"
           micromamba run -n easyhybrid-gtk-src python -m pytest -q -s -p no:cacheprovider tests/test_easyhybrid_full_app_smoke.py 2>&1 | tee -a platform-results.txt
+
+      - name: Run 5 EasyHybrid molecular scene pick and close cycles
+        env:
+          EASYHYBRID_RUN_GRAPHICS_TESTS: "1"
+          EASYHYBRID_TEST_COORDINATE_PICKING: "1"
+          EASYHYBRID_GRAPHICS_SMOKE_CYCLES: "5"
+          EASYHYBRID_DEBUG_PICK: "1"
+        # Keep the scene/pick evidence in the uploaded artifact like the
+        # other providers; this step previously wrote only to the job log.
+        run: |
+          set -o pipefail
+          micromamba run -n easyhybrid-gtk-src python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_vismol_components_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
 
       - name: Validate VisMol rendering, export, picking and resize at scale 1 and 2
         env:
