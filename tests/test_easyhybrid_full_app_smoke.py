@@ -214,11 +214,18 @@ _FULL_APP_CYCLE = textwrap.dedent(
             else:
                 state["last_model_transform"] = transform_snapshot
                 state["stable_transform_ticks"] = 0
-            # Two identical samples are sufficient once the center residual is
-            # zero. Native macOS runners may service the GLib polling callback
-            # less often than Linux, so avoid waiting for an unnecessary third
-            # timer tick after the transform has already settled.
-            if state["stable_transform_ticks"] < 2:
+            # The one-step test centering animation is complete when the target
+            # residual is zero and the transform is not changing. Do not require
+            # repeated GLib timer ticks: macOS may render/poll sparsely while
+            # still reaching the exact final transform.
+            center_is_settled = (
+                state["centering_residual"] <= 1.0e-5
+                and (
+                    state["last_transform_delta"] is None
+                    or state["last_transform_delta"] <= 1.0e-6
+                )
+            )
+            if not center_is_settled:
                 state["phase"] = "waiting_for_center_animation"
                 if time.monotonic() - state["center_wait_started"] > 10:
                     return fail(
