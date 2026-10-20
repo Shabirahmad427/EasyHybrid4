@@ -35,5 +35,5 @@ def test_full_app_timeout_reports_gtk_scene_progress():
     assert 'widget.get_realized(), widget.get_mapped()' in smoke
     assert 'state["phase"] = "waiting_for_gl_area_allocation"' in smoke
     assert 'state["pick_dimensions"] = (' in smoke
-    assert 'pick_stable_ticks=%s pick_projection=%r' in smoke
-    assert 'if moved_pixels > 1.0:' in smoke
+    assert 'pick_attempts=%s' in smoke
+    assert 'state["pick_attempts"] = state.get("pick_attempts", 0) + 1' in smoke

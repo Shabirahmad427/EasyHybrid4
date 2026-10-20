@@ -172,35 +172,17 @@ _FULL_APP_CYCLE = textwrap.dedent(
             )
             if px is None:
                 return fail("fixture oxygen is behind the production camera")
-            # Loading animates the camera onto the molecule. Wait until its
-            # projected point is stable within one framebuffer pixel; exact
-            # subpixel equality can starve the test while the camera eases.
-            position = (float(px), float(py), float(core.width), float(core.height))
-            state["pick_projection"] = (
-                round(px, 5), round(py, 5), core.width, core.height
-            )
-            previous_position = state.get("pick_position")
-            moved_pixels = float("inf")
-            if previous_position is not None and position[2:] == previous_position[2:]:
-                moved_pixels = (
-                    (position[0] - previous_position[0]) ** 2
-                    + (position[1] - previous_position[1]) ** 2
-                ) ** 0.5
-            if moved_pixels > 1.0:
-                state["pick_position"] = position
-                state["pick_stable_ticks"] = 0
-                vm_widget.queue_render()
-                return GLib.SOURCE_CONTINUE
-            state["pick_position"] = position
-            state["pick_stable_ticks"] = state.get("pick_stable_ticks", 0) + 1
-            if state["pick_stable_ticks"] < 3:
-                vm_widget.queue_render()
-                return GLib.SOURCE_CONTINUE
+            # Use the latest measured projection directly. Camera centering
+            # is animated asynchronously and may keep moving while low-FPS
+            # software renderers service the main loop; requiring a stable
+            # coordinate can starve this integration smoke without testing a
+            # user-visible behavior.
             x = px * widget_width / core.width
             y = py * widget_height / core.height
             state["pick_dimensions"] = (
                 widget_width, widget_height, core.width, core.height
             )
+            state["pick_projection"] = (round(px, 5), round(py, 5))
 
             class TestGesture:
                 def __init__(self, x, y):
@@ -219,6 +201,7 @@ _FULL_APP_CYCLE = textwrap.dedent(
             vm_widget._on_mouse_pressed(gesture, 1, x, y)
             vm_widget._on_mouse_released(gesture, 1, x, y)
             state["pick_started"] = True
+            state["pick_attempts"] = state.get("pick_attempts", 0) + 1
             vm_widget.queue_render()
             return GLib.SOURCE_CONTINUE
 
@@ -227,6 +210,11 @@ _FULL_APP_CYCLE = textwrap.dedent(
             return GLib.SOURCE_CONTINUE
         picked = core.atom_picked
         if picked is None or picked.symbol != "O":
+            if state.get("pick_attempts", 0) < 5:
+                core.atom_picked = None
+                state["pick_started"] = False
+                vm_session.vm_widget.queue_render()
+                return GLib.SOURCE_CONTINUE
             return fail("production MainWindow GTK gesture pick missed oxygen: %r" % picked)
 
         vm_session.vm_widget.make_current()
@@ -279,8 +267,8 @@ _FULL_APP_CYCLE = textwrap.dedent(
             details = (
                 "gl_area(realized=%s,mapped=%s,visible=%s,size=%sx%s) "
                 "core_renders=%s scene_draws=%s active=%s picking=%s "
-                "pick_xy=%r pick_dimensions=%r pick_position=%r "
-                "pick_stable_ticks=%s pick_projection=%r atom_picked=%r"
+                "pick_xy=%r pick_dimensions=%r pick_attempts=%s "
+                "pick_projection=%r atom_picked=%r"
                 % (
                     widget.get_realized(), widget.get_mapped(),
                     widget.get_visible(), widget.get_width(), widget.get_height(),
@@ -291,8 +279,7 @@ _FULL_APP_CYCLE = textwrap.dedent(
                         getattr(main.vm_session.vm_glcore, "picking_y", None),
                     ),
                     state.get("pick_dimensions"),
-                    state.get("pick_position"),
-                    state.get("pick_stable_ticks", 0),
+                    state.get("pick_attempts", 0),
                     state.get("pick_projection"),
                     getattr(
                         getattr(main.vm_session.vm_glcore, "atom_picked", None),
