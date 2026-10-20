@@ -106,5 +106,9 @@ def test_native_matrix_uses_scratch_and_keeps_windows_legacy_dispatch_focused():
 
     # The legacy-only rerun is intended to cover GTK 4.8/4.10 on Windows and
     # must not inject unrelated Intel macOS cells into a focused failure retry.
-    assert "(inputs.scope == 'windows' || inputs.scope == 'windows-legacy') && '[]'" in workflow
+    assert (
+        "(inputs.scope == 'windows' || inputs.scope == 'windows-legacy' "
+        "|| inputs.scope == 'macos-diagnostic' || inputs.scope == 'macos-gtk424') "
+        "&& '[]'"
+    ) in workflow
 
