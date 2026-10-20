@@ -221,7 +221,7 @@ jobs:
         with:
           path: pDynamo3
           # One build per identical environment; saved only after a green job.
-          key: pdynamo3-${{ env.PDYNAMO3_REF }}-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.gtk }}-${{ matrix.distro || matrix.version || 'conda' }}-v5
+          key: pdynamo3-${{ env.PDYNAMO3_REF }}-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.gtk }}-${{ matrix.distro || matrix.version || 'conda' }}-v6
 
       - name: Check out pinned pDynamo3
         if: steps.pdynamo3-cache.outputs.cache-hit != 'true'
@@ -240,7 +240,17 @@ jobs:
           fi
           [[ "${{ steps.pdynamo3-cache.outputs.cache-hit }}" == "true" ]] || micromamba run -n easyhybrid-gtk python .github/scripts/patch_pdynamo3_windows.py pDynamo3 | tee -a platform-results.txt
           cd pDynamo3/installation
-          [[ "${{ steps.pdynamo3-cache.outputs.cache-hit }}" == "true" ]] || micromamba run -n easyhybrid-gtk python Install.py -f -q 2>&1 | tail -80
+          if [[ "${{ steps.pdynamo3-cache.outputs.cache-hit }}" != "true" ]]; then
+            # Keep the whole log: compiler error cascades bury the first error.
+            if ! micromamba run -n easyhybrid-gtk python Install.py -f -q > ../../pdynamo3-build.log 2>&1; then
+              first=$(grep -m1 -nE "error|Error" ../../pdynamo3-build.log | cut -d: -f1)
+              echo "== pDynamo3 build: context before the first error (line $first)"
+              sed -n "$(( first > 25 ? first - 25 : 1 )),$(( first + 15 ))p" ../../pdynamo3-build.log
+              echo "== last lines"; tail -25 ../../pdynamo3-build.log
+              exit 1
+            fi
+            tail -5 ../../pdynamo3-build.log
+          fi
           cd ../..
           export PDYNAMO3_HOME="${{ github.workspace }}/pDynamo3"
           export PDYNAMO3_PARAMETERS="$PDYNAMO3_HOME/parameters"
@@ -418,7 +428,7 @@ jobs:
         with:
           path: pDynamo3
           # One build per identical environment; saved only after a green job.
-          key: pdynamo3-${{ env.PDYNAMO3_REF }}-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.gtk }}-${{ matrix.distro || matrix.version || 'conda' }}-v5
+          key: pdynamo3-${{ env.PDYNAMO3_REF }}-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.gtk }}-${{ matrix.distro || matrix.version || 'conda' }}-v6
 
       - name: Check out pinned pDynamo3
         if: steps.pdynamo3-cache.outputs.cache-hit != 'true'
@@ -437,7 +447,17 @@ jobs:
           fi
           [[ "${{ steps.pdynamo3-cache.outputs.cache-hit }}" == "true" ]] || python3 .github/scripts/patch_pdynamo3_windows.py pDynamo3 | tee -a platform-results.txt
           cd pDynamo3/installation
-          [[ "${{ steps.pdynamo3-cache.outputs.cache-hit }}" == "true" ]] || python3 Install.py -f -q 2>&1 | tail -80
+          if [[ "${{ steps.pdynamo3-cache.outputs.cache-hit }}" != "true" ]]; then
+            # Keep the whole log: compiler error cascades bury the first error.
+            if ! python3 Install.py -f -q > ../../pdynamo3-build.log 2>&1; then
+              first=$(grep -m1 -nE "error|Error" ../../pdynamo3-build.log | cut -d: -f1)
+              echo "== pDynamo3 build: context before the first error (line $first)"
+              sed -n "$(( first > 25 ? first - 25 : 1 )),$(( first + 15 ))p" ../../pdynamo3-build.log
+              echo "== last lines"; tail -25 ../../pdynamo3-build.log
+              exit 1
+            fi
+            tail -5 ../../pdynamo3-build.log
+          fi
           cd ../..
           export PDYNAMO3_HOME="$PWD/pDynamo3"
           export PDYNAMO3_PARAMETERS="$PDYNAMO3_HOME/parameters"
@@ -601,7 +621,7 @@ jobs:
         with:
           path: pDynamo3
           # One build per identical environment; saved only after a green job.
-          key: pdynamo3-${{ env.PDYNAMO3_REF }}-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.gtk }}-${{ matrix.distro || matrix.version || 'conda' }}-v5
+          key: pdynamo3-${{ env.PDYNAMO3_REF }}-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.gtk }}-${{ matrix.distro || matrix.version || 'conda' }}-v6
 
       - name: Check out pinned pDynamo3
         if: steps.pdynamo3-cache.outputs.cache-hit != 'true'
@@ -620,7 +640,17 @@ jobs:
           fi
           [[ "${{ steps.pdynamo3-cache.outputs.cache-hit }}" == "true" ]] || python .github/scripts/patch_pdynamo3_windows.py pDynamo3 | tee -a platform-results.txt
           cd pDynamo3/installation
-          [[ "${{ steps.pdynamo3-cache.outputs.cache-hit }}" == "true" ]] || python Install.py -f -q 2>&1 | tail -80
+          if [[ "${{ steps.pdynamo3-cache.outputs.cache-hit }}" != "true" ]]; then
+            # Keep the whole log: compiler error cascades bury the first error.
+            if ! python Install.py -f -q > ../../pdynamo3-build.log 2>&1; then
+              first=$(grep -m1 -nE "error|Error" ../../pdynamo3-build.log | cut -d: -f1)
+              echo "== pDynamo3 build: context before the first error (line $first)"
+              sed -n "$(( first > 25 ? first - 25 : 1 )),$(( first + 15 ))p" ../../pdynamo3-build.log
+              echo "== last lines"; tail -25 ../../pdynamo3-build.log
+              exit 1
+            fi
+            tail -5 ../../pdynamo3-build.log
+          fi
           cd ../..
           export PDYNAMO3_HOME="$(cygpath -m "$PWD/pDynamo3")"
           export PDYNAMO3_PARAMETERS="$PDYNAMO3_HOME/parameters"
@@ -822,7 +852,7 @@ jobs:
         with:
           path: pDynamo3
           # One build per identical environment; saved only after a green job.
-          key: pdynamo3-${{ env.PDYNAMO3_REF }}-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.gtk }}-${{ matrix.distro || matrix.version || 'conda' }}-v5
+          key: pdynamo3-${{ env.PDYNAMO3_REF }}-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.gtk }}-${{ matrix.distro || matrix.version || 'conda' }}-v6
 
       - name: Check out pinned pDynamo3
         if: steps.pdynamo3-cache.outputs.cache-hit != 'true'
@@ -841,7 +871,17 @@ jobs:
           fi
           [[ "${{ steps.pdynamo3-cache.outputs.cache-hit }}" == "true" ]] || micromamba run -n easyhybrid-gtk-src python .github/scripts/patch_pdynamo3_windows.py pDynamo3 | tee -a platform-results.txt
           cd pDynamo3/installation
-          [[ "${{ steps.pdynamo3-cache.outputs.cache-hit }}" == "true" ]] || micromamba run -n easyhybrid-gtk-src python Install.py -f -q 2>&1 | tail -80
+          if [[ "${{ steps.pdynamo3-cache.outputs.cache-hit }}" != "true" ]]; then
+            # Keep the whole log: compiler error cascades bury the first error.
+            if ! micromamba run -n easyhybrid-gtk-src python Install.py -f -q > ../../pdynamo3-build.log 2>&1; then
+              first=$(grep -m1 -nE "error|Error" ../../pdynamo3-build.log | cut -d: -f1)
+              echo "== pDynamo3 build: context before the first error (line $first)"
+              sed -n "$(( first > 25 ? first - 25 : 1 )),$(( first + 15 ))p" ../../pdynamo3-build.log
+              echo "== last lines"; tail -25 ../../pdynamo3-build.log
+              exit 1
+            fi
+            tail -5 ../../pdynamo3-build.log
+          fi
           cd ../..
           export PDYNAMO3_HOME="${{ github.workspace }}/pDynamo3"
           export PDYNAMO3_PARAMETERS="$PDYNAMO3_HOME/parameters"
