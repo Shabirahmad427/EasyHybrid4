@@ -1,6 +1,6 @@
 # EasyHybrid4 Development and Compatibility Report
 
-**Report date:** 2026-10-19
+**Report date:** 2026-10-20
 
 **Purpose:** One consolidated source for repository, architecture, dependency,
 GTK/Python compatibility, parity, platform, testing, and known-limitation
@@ -86,6 +86,22 @@ callback coordinates, not an OS-injected event. It has not run on Windows,
 macOS, or across GTK 4.8–4.24. This pass does not resolve the macOS selection
 failures above. A pDynamo import without a system label also exposed and fixed
 a production display-name fallback to the loaded coordinate file's basename.
+
+**Windows full-app CI blocker (2026-10-20):** run
+[`39368203653`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39368203653)
+passed native GTK/window/Gio/GLArea and five-cycle production menu/VisMol
+checks on Windows GTK 4.8.2 and 4.10.1 (Python 3.12.15, PyGObject 3.46.0 and
+3.48.1 respectively, Mesa 26.2.4 llvmpipe WGL). It then failed to build the
+pinned pDynamo3 revision `6b28dd8958e1a705fcdca130f4ab862a8af8de82`:
+MSVC C2466 rejects its empty `SNEGATIVE[0]` array. This table is selected
+when `jam == 0`; every `NNEGATIVE[iam][0]` count is zero, and its only reads
+are bounded by that count. The Windows-only CI patch now changes the array
+declaration and definition to one zero sentinel without changing the count or
+calculation loop. The local patch regression passes; native pDynamo3 rebuild
+and full-app smoke are pending. Windows conda GTK 4.8–4.24 jobs showed the
+same build failure; Windows source GTK 4.16/4.18 jobs were cancelled before
+the build step. Linux/macOS were skipped in this Windows-scoped run. This is a
+Windows pDynamo3 compiler-portability issue, separate from GTK compatibility.
 
 **EH4-201 component-smoke evidence:** The GTK smoke creates a test-owned
 GTK window with EasyHybrid's production menu and bundled VisMol widget. It

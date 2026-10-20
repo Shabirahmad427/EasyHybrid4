@@ -157,6 +157,7 @@ A task may be **implemented but NOT VERIFIED**; in that case leave unchecked and
 
 | Date (UTC) | Task | Commit(s) | Environment (OS/arch) | Python / PyGObject / GTK / GLib | Test commands & outcomes | Graphics context | Status / gap |
 |---|---|---|---|---|---|---|---|
+| 2026-10-20 | EH4-202 Windows full-app pDynamo3 build portability (in progress) | pending | GitHub Actions Windows Server 2022 x86_64; run [`39368203653`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39368203653), GTK 4.8.2 and 4.10.1 jobs inspected | GTK 4.8.2 / Python 3.12.15 / PyGObject 3.46.0 / GLib 2.78.0; GTK 4.10.1 / Python 3.12.15 / PyGObject 3.48.1 / GLib 2.78.0 | Both GTK window/Gio/GLArea smokes **PASS** (OpenGL 4.6 Core, Mesa 26.2.4 llvmpipe, 3 window cycles); production EasyHybrid menu/VisMol five-cycle step passed. Full-app setup then failed building pinned pDynamo3 `6b28dd8958e1a705fcdca130f4ab862a8af8de82`: MSVC C2466 rejects the intentionally empty `SNEGATIVE[0]` declaration/definition. Source audit confirmed `NNEGATIVE[iam][0]` is always zero and reads are bounded by that count. Added a Windows CI patch using a single zero sentinel and regression test for exact patch application/idempotence and unchanged count/loop structure. Local `easyhybrid312` targeted test: **1 passed**; compile checks and `git diff --check`: **PASS**. | Mesa 26.2.4 llvmpipe WGL; real GTK GLArea | Patch implemented; Windows native pDynamo3 rebuild pending. GTK 4.8/4.10 pass only the component/scene smoke; full app remains untested until the pDynamo build passes. GTK 4.16/4.18 source jobs were cancelled before the pDynamo build; Linux and macOS were skipped in this Windows-scoped run. |
 | 2026-10-20 | EH4-202 real-context render validation and sprite-size fixes | `eh4-202-render-validation` (impostor/dots fixes, validation scene, CI ordering); full matrix [`39355045155`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39355045155) **30/30** | GitHub-hosted Linux x86_64 (Ubuntu 24.04 conda; Ubuntu 24.10, Fedora 41, Debian 13), Windows Server 2022 x86_64 (conda, MSYS2 source), macOS 14 arm64 (conda, GNOME source), macOS 15 x86_64 | Exact GTK patch per artifact: 4.8.2/4.8.3, 4.10.1/4.10.5, 4.12.1, 4.14.1, 4.16.3/4.16.13, 4.18.6, 4.20.3, 4.22.5, 4.24.1 | Fixed: impostor sprite spheres used a fixed 256-px scale (6x too large at 420x300, half size at 2x) and are now the exact projected diameter; impostor selection VAO bound its radius with the drawing program; `dots` never sent its `point_size` uniform (invisible/unpickable on Mesa). `tests/render_validation_scene.py` (shipped EasyHybrid GL parameters, live GLArea) passes in every cell at scale 1 and 2: GL >= 3.3/GLSL >= 3.30 and export render-target limits; all 8 representations draw with no GL error; impostor diameters 40/37/57 px (80/74/114 at 2x) match the projection; 2x offscreen export vs screen mean |diff| 0.0145/255, 0% of pixels > 64 (thresholds 2/255 and 1%); colour-ID picking 9/9 on spheres (O, H1, N) and impostors (C, N, S); after resize viewport/framebuffer/projection follow the granted size, sphere aspect within 8%, pick 9/9. GDK_SCALE=2 doubled the framebuffer on all Linux cells and Windows GTK 4.8-4.18, where filled-geometry coverage matched 1x within 5%; macOS and Windows GTK 4.20+ ignore GDK_SCALE (HiDPI NOT TESTED there). Old renderer fails the validation (impostor 254 px vs 40, dots 3 px). The earlier pick smoke still passes 20/20 x 9/9 everywhere. CI: macOS `CVMCompiler` runs at 80-100% CPU after the validation, slowing the next GTK startup to 21-44 s; validation now runs after the timed suite (diagnosed in runs `39339989182`, `39351097870`, `39353081330`). | Linux Xvfb/llvmpipe (GL 4.5, POINT_SIZE max 256); Windows Mesa 26.2.4 llvmpipe WGL; macOS Apple Software Renderer (GL 4.1) | Render, export, picking, resize and capability sub-scope accepted and merged. EH4-202 stays unchecked: its full-interface (`EasyHybridApplication`/`MainWindow`/pDynamo3) regression has only local Linux evidence; pDynamo3 is not provisioned in CI. Physical GPUs and Retina NOT TESTED. |
 | 2026-10-19 | EH4-202 portable colour-ID picking (macOS fix) | `0f11e50` on top of `55038f7`..`1344d08`; full matrix [`39317377076`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39317377076) **30/30** | GitHub-hosted Linux x86_64 (Ubuntu 24.04 conda; Ubuntu 24.10, Fedora 41, Debian 13 containers), Windows Server 2022 x86_64 (conda and MSYS2 source), macOS 14 arm64 (conda and GNOME source), macOS 15 x86_64 | GTK 4.8.2/4.8.3, 4.10.1/4.10.5, 4.12.1, 4.14.1, 4.16.3/4.16.13, 4.18.6, 4.20.3, 4.22.5, 4.24.1 (exact patch per artifact); Python 3.12.15 (conda), 3.12.7/3.13.5/3.13.9 (distro), 3.14.8 (MSYS2) | Cause of `39311621966`: macOS `GL_LINE_WIDTH_RANGE` is (0.1, 1.0), so the `glLineWidth`-widened ID lines were 1 px and missed atom centres. Selection geometry for lines/nonbonded/dashed now emits fixed-pixel quads with atom-end caps and flat ID colours; Builder hover ring sets the same uniforms. Smoke clicks the oxygen centre plus 8 points 3 framebuffer px away: old renderer fails on Linux and under a 1 px clamp, new passes locally at `GDK_SCALE` 1 and 2 (Linux x86_64 Xvfb, GTK 4.14.5, Python 3.12.3, PyGObject 3.48.2, Mesa 25.2.8 llvmpipe). Matrix: every cell 20 cycles, `EASYHYBRID_PICK_HIT_REGION=9/9` and `O:0` in all 20, closed cleanly. Local full suite 148 passed/11 skipped; full-app pDynamo3 smoke 3/3 picked `O:0`. macOS source cells now tee scene output into artifacts. | Linux Xvfb/llvmpipe; Windows Mesa 26.2.4 llvmpipe WGL; macOS Apple Software Renderer | Picking/selection sub-scope of EH4-202 accepted and merged. EH4-202 stays unchecked: shader/VBO/VAO/FBO image-difference evidence and resize checks are still open. Sphere-representation selection-attribute fix (from Codex `a6ac622`, as `a809464`) then passed full matrix [`39321285586`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39321285586) **30/30** with the same 20-cycle, 9/9 pick evidence and exact GTK patch in every artifact, and is merged. A real-context `spheres` pick test is still missing. |
 | 2026-10-19 | EH4-202 Apple color-ID pick failure diagnosis | `3ba0f0b`; matrix run [`39311621966`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39311621966) completed 19/30 | Native macOS arm64 and Intel macOS CI (Apple Software Renderer); all Linux/Windows cells passed | run completed: 19/30 pass, all 11 macOS cells fail picking; exact per-cell details are in run artifacts | The prior dither-only correction failed all 11 macOS cells in run `39309838872`. The follow-up disables blend, dither, framebuffer sRGB and multisample state, with restoration in `finally`; local Linux X11/NVIDIA GTK 4.14.5 passed 20/20 scene open/pick/render/close cycles. The second native macOS matrix still fails: GTK 4.12 reads the white clear color `(255,255,255,255)`, ID `16777215`, at a valid projected atom coordinate in viewport `(0,0,900,420)`; GL error is 0 and state isolation is active. This proves neither an out-of-bounds coordinate nor an ID-color conversion issue, but does not yet identify why selection geometry wrote no pixel. GTK GLArea source/docs state the widget's own framebuffer is bound as draw/read target before render callbacks; no framebuffer-zero correction is justified. Need instrument selection pass/draw calls on native macOS and fix that specific cause before rerunning affected cells. | Local Linux NVIDIA plus native macOS Apple Software Renderer | Local only passes; macOS native GTK pick fails. Matrix finished 19/30; current change not accepted. |
@@ -250,24 +251,24 @@ the corrected matrix must rerun before drawing conclusions from the GLib pin.
 
 ### Active task and blockers
 
-Windows GTK 4.8/4.10 follow-up: run `39067404621` reproduced both GL failures.
-Focused run `39067671751` traced the actual GTK process in both versions:
-ChoosePixelFormat returned 75, SetPixelFormat succeeded, but GetPixelFormat
-later returned 0 for the same HDC across repeated Mesa DLL loads. A candidate
-CI-only fix retains the explicitly configured Mesa DLL before GTK import in
-the existing real GLArea regression. Native validation is pending; shared
-application code is unchanged. Future investigative dispatches select only
-Windows GTK 4.8 and 4.10 as requested.
-The next diagnostic uses Frida 17.2.17 on the native Windows runner to trace
-GTK's actual GDI pixel-format and WGL calls, including DLL paths and Windows
-error codes. It is restricted to the two failing cells and does not alter
-arguments or return values. The normal, uninstrumented GTK/GL smoke remains
-mandatory. Local Python compilation and whitespace checks passed; native
-trace results are pending. This is investigation, not a verified fix.
-Trace result at `1529bf5` (GTK 4.10.1, Windows Server 2022 x86_64, Mesa
-26.2.4 llvmpipe; run `39067856957`): retaining the Mesa
-DLL fixed the earlier lost-format symptom. GDK WGL init now succeeds and
-creates a 4.6 core shared context. The new failure is `wglMakeCurrent`
+The GTK 4.8/4.10 WGL issue is resolved by the Windows adapter and passed in
+later native runs (`39068617718`, `39068863706`, and subsequent full GTK
+matrices). Historical diagnosis and fix evidence remain in the earlier log
+entries. The new blocker is the Windows full-app pDynamo3 build: run
+`39368203653` passed GTK/window/GL and EasyHybrid menu/VisMol checks on GTK
+4.8.2 and 4.10.1, then MSVC failed on the pinned pDynamo3 zero-length
+`SNEGATIVE` table (C2466). The Windows-only patch in
+`.github/scripts/patch_pdynamo3_windows.py` now uses a one-element zero
+sentinel; the associated term count remains zero, so the calculation never
+reads it. A local regression test passes. Windows pDynamo3 build/full-app
+validation is pending, and EH4-202 remains open. The Windows 4.16/4.18 source
+jobs were cancelled before pDynamo3 setup; Linux and macOS were skipped in
+this Windows-scoped run.
+
+Historical trace result at `1529bf5` (GTK 4.10.1, Windows Server 2022 x86_64, Mesa
+26.2.4 llvmpipe; run `39067856957`): retaining the Mesa DLL fixed the earlier
+lost-format symptom. GDK WGL init succeeded and created a 4.6 core shared
+context. The diagnosed failure was `wglMakeCurrent`
 returning Windows error 2000 (`ERROR_INVALID_PIXEL_FORMAT`). GTK sets the
 display-HWND bootstrap HDC through legacy `ChoosePixelFormat` (format 75)
 and the surface HDC through `wglChoosePixelFormatARB` (format 1). A surface
@@ -277,15 +278,9 @@ reports `render signal not emitted`. Upstream source at GTK 4.8.3 and 4.10.1
 shows the same design: `GetDC(display_win32->hwnd)` serves as the dummy HDC,
 and surfaceless `make_current` binds to it. GTK 4.12 discards the initial
 dummy and sets the ARB-chosen format on the display HDC
-(`set_wgl_pixformat_for_hdc`), which explains why 4.12+ passes. This is a
-GTK 4.8/4.10 Win32 defect that is exposed when GDI and ARB choose different
-format indices, as Mesa does. It is not an EasyHybrid defect. The GTK 4.8.2 job in
-the same run traced the identical sequence (bootstrap HDC format 75,
-surface format 1, `wglMakeCurrent` error 2000). Whether physical Windows
-drivers pick matching indices is **NOT TESTED**. No supported
-application-side workaround exists, because both pixel formats are chosen
-inside GDK. Hosted Windows GTK 4.8/4.10 GL remains **FAIL**. The decision
-on whether to declare GTK 4.12 as the Windows floor is left to the user.
+(`set_wgl_pixformat_for_hdc`), which explains why 4.12+ passes. The hosted
+GTK 4.8/4.10 defect was subsequently fixed by the tested Windows startup
+adapter below. Physical Windows GPUs remain **NOT TESTED**.
 
 Fix (branch `fix/win32-legacy-wgl-pixel-format`, merged to `main`):
 `src/os_integration/win32_wgl.py` applies only on Windows with GTK earlier
@@ -304,9 +299,9 @@ diagnosis step, and `EASYHYBRID_TEST_OPENGL_DLL`. Clean full-matrix run `3906886
 Unit coverage is in `tests/test_win32_wgl.py`, using a fake Win32 API; it
 does not prove native behavior.
 
-- **Current task:** EH4-202 remains active. Merged and matrix-verified: HiDPI pointer conversion, portable colour-ID picking, sphere/impostor selection-attribute fixes, impostor and dots sprite-size fixes, and real-context render validation (run [`39355045155`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39355045155), 30/30; scale 1 and 2, image-difference export check, picking, resize, GL capabilities). Remaining EH4-202 acceptance: the full-interface regression (`tests/test_easyhybrid_full_app_smoke.py`: `EasyHybridApplication`, production `MainWindow`, real pDynamo3) must run in CI on every OS/GTK cell; it currently has only local Linux GTK 4.14.5 evidence because pDynamo3 is not provisioned in the matrix. HiDPI remains NOT TESTED on macOS and Windows GTK 4.20+ (GDK_SCALE ignored). pDynamo3 scientific/runtime tests remain separate. Graphics source ancestry and license/ownership remain unresolved under EH4-200. Real trajectory-data playback remains **NOT TESTED**.
+- **Current task:** EH4-202 remains active. Render, export, picking, resize and capability checks passed in run `39355045155` (30/30); the 5-cycle production menu/VisMol smoke passed on every cell in later matrices. The full-interface regression (`tests/test_easyhybrid_full_app_smoke.py`) still needs CI results on every OS/GTK cell. Windows run `39368203653` passed GTK/GL and component checks on GTK 4.8.2 and 4.10.1 but failed while building pinned pDynamo3 (`SNEGATIVE[0]`, MSVC C2466). A Windows-only one-zero-sentinel compatibility patch is implemented and awaits native rebuild evidence. Windows conda GTK 4.8–4.24 jobs showed the same build failure; GTK 4.16/4.18 source jobs were cancelled before that step. Linux/macOS were skipped. HiDPI remains NOT TESTED on macOS and Windows GTK 4.20+ (GDK_SCALE ignored). pDynamo3 scientific/runtime tests remain separate. Graphics source ancestry and license/ownership remain unresolved under EH4-200. Real trajectory-data playback remains **NOT TESTED**.
 - **EH4-000 provenance limitations:** `origin` points to the user-supplied private EasyHybrid4 repository. Graphics-engine files remain ordinary tracked files rather than an active submodule. Their exact upstream ancestry and ownership/license for local changes remain unresolved. Do not publish graphics changes or convert the directory to a submodule until these facts are reconciled. EH4-200's audit and native build evidence are recorded above; local use and test-only validation of the bundled engine can proceed without publishing it.
-- **Current implementation/testing blockers:** No open picking blocker: run `39317377076` passed 30/30 including all 11 macOS cells. The exact GTK 4.8/Python 3.10 full-app pDynamo ABI limitation and upstream Gtk.AboutDialog finalization critical remain documented. Linux Wayland, physical GPUs, HiDPI on real Retina displays, and Intel macOS beyond GTK 4.8/4.10 remain **NOT TESTED**.
+- **Current implementation/testing blockers:** No open picking blocker: run `39317377076` passed 30/30 including all 11 macOS cells. Current Windows full-app blocker: pDynamo3 MSVC C2466 on the empty table; native rebuild with the zero-sentinel patch is pending. The exact GTK 4.8/Python 3.10 full-app pDynamo ABI limitation and upstream Gtk.AboutDialog finalization critical remain documented. Linux Wayland, physical GPUs, HiDPI on real Retina displays, and Intel macOS beyond GTK 4.8/4.10 remain **NOT TESTED**.
 - **Compatibility policy:** GTK runtime minimum = 4.8; GTK 4.6 is too old and rejected by the installer. The `Gtk 4.0` namespace remains the typelib API version. Linux X11 has full-app evidence for GTK 4.8.2, 4.14.5, and 4.24.1. Native GTK/widget and real scene smoke passed for every GTK minor 4.8–4.24 on Linux x86_64, Windows x86_64 and macOS arm64, plus GTK 4.8/4.10 on macOS x86_64 (30/30, exact-version main run `39292753361`); providers and exact patch versions are in `docs/GTK4_COMPATIBILITY.md`. Linux Wayland remains **NOT TESTED**. Python 3.10.22/3.12.3/3.12.15 have Linux test evidence; no maximum is approved. See `docs/EASYHYBRID4_REPORT.md` and `docs/GTK4_COMPATIBILITY.md`.
 - **Rule:** Update the active task pointer after a completed or blocked task. Do not change task ordering without recording why.
 

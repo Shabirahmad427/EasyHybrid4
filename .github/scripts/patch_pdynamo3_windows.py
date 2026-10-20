@@ -30,6 +30,10 @@ Windows it fails before any scientific code is involved:
 * MSVC only: <math.h> defines M_PI, M_LN10, ... only with
   ``_USE_MATH_DEFINES`` (addOns/pcetk EnergyModel.c: "'M_LN10':
   undeclared identifier"), so it is defined for the whole build.
+* MSVC only: ``MNDOIntegralDefinitions`` declares and defines the empty
+  ``SNEGATIVE`` table as a zero-length C array. MSVC rejects it (C2466),
+  although the associated ``NNEGATIVE`` count is zero whenever this table is
+  selected. A one-element zero sentinel preserves the zero-term behavior.
 * Both: f2c.h defines an ``abs(x)`` macro; files that include
   f2clapack.h before <math.h> (Splines/CubicSpline.c) then break the
   Windows runtime's abs() declaration (corecrt_math.h: "syntax error:
@@ -38,8 +42,8 @@ Windows it fails before any scientific code is involved:
   ``_MSC_VER``, so MinGW took the Unix branch (``<sys/uio.h>``, absent);
   it now selects Win32 for any ``_WIN32`` compiler.
 
-The edits touch only the installer, that macro, those two stack arrays
-and that platform condition
+The edits touch only the installer, that macro, the stack arrays, the empty
+MNDO table, and that platform condition
 (no field, type or calculation changes), and each must match the pinned upstream text
 exactly. Usage:
 
@@ -173,6 +177,19 @@ SOURCE_EDITS = (
         "        auto Integer     rank ;\n"
         "        auto Integer    *extents = ( Integer * ) _alloca ( ( size_t ) self->rank * sizeof ( Integer ) ) ;\n"
         "        auto Integer    *strides = ( Integer * ) _alloca ( ( size_t ) self->rank * sizeof ( Integer ) ) ;\n",
+    ),
+    # . This term table is intentionally empty. NNEGATIVE[iam][0] is always
+    # . zero, so the loop that reads it is skipped. MSVC rejects [0] arrays;
+    # . use a zero sentinel while preserving the zero term count.
+    (
+        "pMolecule/QCModel/__extensions__/cinclude/MNDOIntegralDefinitions.h",
+        "extern const Integer  SNEGATIVE   [  0] ;",
+        "extern const Integer  SNEGATIVE   [  1] ;",
+    ),
+    (
+        "pMolecule/QCModel/__extensions__/csource/MNDOIntegralDefinitions.c",
+        "const Integer  SNEGATIVE[ 0] = {} ;",
+        "const Integer  SNEGATIVE[ 1] = { 0 } ;",
     ),
 )
 
