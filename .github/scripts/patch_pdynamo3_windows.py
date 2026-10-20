@@ -19,8 +19,15 @@ Windows it fails before any scientific code is involved:
   BLAS/LAPACK) are gcc flags; stripping them uses ``compiler_so``, which
   MSVCCompiler does not have.
 
-This script edits only the installer, never pDynamo3's scientific sources,
-and each edit must match the pinned upstream text exactly. Usage:
+* MSVC only: ``View1D_Fields`` ends in ``;`` and is used as
+  ``View1D_Fields ;`` inside a struct, leaving an empty member declaration
+  that gcc/clang accept and MSVC rejects (View1D.h(32): "syntax error:
+  ';'"), which cascades into every pScientific array header.
+  ``View2D_Fields`` already omits that semicolon; View1D is made to match.
+
+The edits touch only the installer and that one macro (no field, type or
+calculation changes), and each must match the pinned upstream text
+exactly. Usage:
 
     python patch_pdynamo3_windows.py <pDynamo3 checkout> [--force]
 
@@ -108,6 +115,16 @@ EDITS = (
 )
 
 
+# . Portability edits outside the installer: (relative path, old, new).
+SOURCE_EDITS = (
+    (
+        "pScientific/Arrays/__extensions__/cinclude/View1D.h",
+        "    Integer size   ; \\\n    Integer stride ;\n",
+        "    Integer size   ; \\\n    Integer stride\n",
+    ),
+)
+
+
 def patch(root, force=False):
     path = Path(root) / "installation" / "InstallUtilities.py"
     if os.name != "nt" and not force:
@@ -123,11 +140,18 @@ def patch(root, force=False):
             raise SystemExit("pDynamo3 installer changed; expected one match, found %d: %r" % (count, old[:80]))
         text = text.replace(old, new)
     path.write_text(text, encoding="utf-8")
+    for relative, old, new in SOURCE_EDITS:
+        source = Path(root) / relative
+        content = source.read_text(encoding="utf-8")
+        if content.count(old) != 1:
+            raise SystemExit("pDynamo3 source changed; expected one match in %s" % relative)
+        source.write_text(content.replace(old, new), encoding="utf-8")
     shutil.copytree(Path(__file__).with_name("pdynamo3_msvc_include"),
                     # Outside installation/: setup() runs there and setuptools'
                     # flat-layout discovery rejects a second top-level folder.
                     Path(root) / "msvc_include", dirs_exist_ok=True)
-    print("PDYNAMO3_WINDOWS_PATCH=applied (%d edits)" % len(EDITS))
+    print("PDYNAMO3_WINDOWS_PATCH=applied (%d installer edits, %d source edits)"
+          % (len(EDITS), len(SOURCE_EDITS)))
 
 
 if __name__ == "__main__":
