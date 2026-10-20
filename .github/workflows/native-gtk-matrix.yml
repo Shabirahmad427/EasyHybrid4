@@ -221,7 +221,7 @@ jobs:
         with:
           path: pDynamo3
           # One build per identical environment; saved only after a green job.
-          key: pdynamo3-${{ env.PDYNAMO3_REF }}-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.gtk }}-${{ matrix.distro || matrix.version || 'conda' }}-v9
+          key: pdynamo3-${{ env.PDYNAMO3_REF }}-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.gtk }}-${{ matrix.distro || matrix.version || 'conda' }}-v10
 
       - name: Check out pinned pDynamo3
         if: steps.pdynamo3-cache.outputs.cache-hit != 'true'
@@ -243,7 +243,7 @@ jobs:
           if [[ "${{ steps.pdynamo3-cache.outputs.cache-hit }}" != "true" ]]; then
             # Keep the whole log: compiler error cascades bury the first error.
             if ! micromamba run -n easyhybrid-gtk python Install.py -f -q > ../../pdynamo3-build.log 2>&1; then
-              first=$(grep -m1 -nE "error|Error" ../../pdynamo3-build.log | cut -d: -f1)
+              first=$(grep -m1 -nE "error C[0-9]+|error LNK[0-9]+|fatal error|: error:|^error: " ../../pdynamo3-build.log | cut -d: -f1)
               echo "== pDynamo3 build: context before the first error (line $first)"
               sed -n "$(( first > 25 ? first - 25 : 1 )),$(( first + 15 ))p" ../../pdynamo3-build.log
               echo "== last lines"; tail -25 ../../pdynamo3-build.log
@@ -428,7 +428,7 @@ jobs:
         with:
           path: pDynamo3
           # One build per identical environment; saved only after a green job.
-          key: pdynamo3-${{ env.PDYNAMO3_REF }}-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.gtk }}-${{ matrix.distro || matrix.version || 'conda' }}-v9
+          key: pdynamo3-${{ env.PDYNAMO3_REF }}-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.gtk }}-${{ matrix.distro || matrix.version || 'conda' }}-v10
 
       - name: Check out pinned pDynamo3
         if: steps.pdynamo3-cache.outputs.cache-hit != 'true'
@@ -450,7 +450,7 @@ jobs:
           if [[ "${{ steps.pdynamo3-cache.outputs.cache-hit }}" != "true" ]]; then
             # Keep the whole log: compiler error cascades bury the first error.
             if ! python3 Install.py -f -q > ../../pdynamo3-build.log 2>&1; then
-              first=$(grep -m1 -nE "error|Error" ../../pdynamo3-build.log | cut -d: -f1)
+              first=$(grep -m1 -nE "error C[0-9]+|error LNK[0-9]+|fatal error|: error:|^error: " ../../pdynamo3-build.log | cut -d: -f1)
               echo "== pDynamo3 build: context before the first error (line $first)"
               sed -n "$(( first > 25 ? first - 25 : 1 )),$(( first + 15 ))p" ../../pdynamo3-build.log
               echo "== last lines"; tail -25 ../../pdynamo3-build.log
@@ -621,7 +621,7 @@ jobs:
         with:
           path: pDynamo3
           # One build per identical environment; saved only after a green job.
-          key: pdynamo3-${{ env.PDYNAMO3_REF }}-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.gtk }}-${{ matrix.distro || matrix.version || 'conda' }}-v9
+          key: pdynamo3-${{ env.PDYNAMO3_REF }}-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.gtk }}-${{ matrix.distro || matrix.version || 'conda' }}-v10
 
       - name: Check out pinned pDynamo3
         if: steps.pdynamo3-cache.outputs.cache-hit != 'true'
@@ -643,7 +643,7 @@ jobs:
           if [[ "${{ steps.pdynamo3-cache.outputs.cache-hit }}" != "true" ]]; then
             # Keep the whole log: compiler error cascades bury the first error.
             if ! python Install.py -f -q > ../../pdynamo3-build.log 2>&1; then
-              first=$(grep -m1 -nE "error|Error" ../../pdynamo3-build.log | cut -d: -f1)
+              first=$(grep -m1 -nE "error C[0-9]+|error LNK[0-9]+|fatal error|: error:|^error: " ../../pdynamo3-build.log | cut -d: -f1)
               echo "== pDynamo3 build: context before the first error (line $first)"
               sed -n "$(( first > 25 ? first - 25 : 1 )),$(( first + 15 ))p" ../../pdynamo3-build.log
               echo "== last lines"; tail -25 ../../pdynamo3-build.log
@@ -852,7 +852,7 @@ jobs:
         with:
           path: pDynamo3
           # One build per identical environment; saved only after a green job.
-          key: pdynamo3-${{ env.PDYNAMO3_REF }}-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.gtk }}-${{ matrix.distro || matrix.version || 'conda' }}-v9
+          key: pdynamo3-${{ env.PDYNAMO3_REF }}-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.gtk }}-${{ matrix.distro || matrix.version || 'conda' }}-v10
 
       - name: Check out pinned pDynamo3
         if: steps.pdynamo3-cache.outputs.cache-hit != 'true'
@@ -874,7 +874,7 @@ jobs:
           if [[ "${{ steps.pdynamo3-cache.outputs.cache-hit }}" != "true" ]]; then
             # Keep the whole log: compiler error cascades bury the first error.
             if ! micromamba run -n easyhybrid-gtk-src python Install.py -f -q > ../../pdynamo3-build.log 2>&1; then
-              first=$(grep -m1 -nE "error|Error" ../../pdynamo3-build.log | cut -d: -f1)
+              first=$(grep -m1 -nE "error C[0-9]+|error LNK[0-9]+|fatal error|: error:|^error: " ../../pdynamo3-build.log | cut -d: -f1)
               echo "== pDynamo3 build: context before the first error (line $first)"
               sed -n "$(( first > 25 ? first - 25 : 1 )),$(( first + 15 ))p" ../../pdynamo3-build.log
               echo "== last lines"; tail -25 ../../pdynamo3-build.log

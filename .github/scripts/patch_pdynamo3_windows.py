@@ -27,6 +27,9 @@ Windows it fails before any scientific code is involved:
 * MSVC only: ViewND_MakeIterator uses C99 variable length arrays, which
   MSVC does not support (ViewND.c(364): "expected constant expression");
   they become equivalent _alloca stack allocations.
+* MSVC only: <math.h> defines M_PI, M_LN10, ... only with
+  ``_USE_MATH_DEFINES`` (addOns/pcetk EnergyModel.c: "'M_LN10':
+  undeclared identifier"), so it is defined for the whole build.
 * MinGW only: pBabel's fastio.h selects its native Win32 I/O only for
   ``_MSC_VER``, so MinGW took the Unix branch (``<sys/uio.h>``, absent);
   it now selects Win32 for any ``_WIN32`` compiler.
@@ -113,7 +116,8 @@ EDITS = (
             # . Minimal POSIX headers missing on Windows (PRIMME timers, strcasecmp):
             # . MSVC lacks <unistd.h>, <strings.h>, <sys/time.h>, <sys/resource.h>;
             # . MinGW lacks <sys/resource.h>. See pDynamo3/windows_include.
-            if _UsesMSVC  : item = item + [ "/Zc:preprocessor", "/I" + os.path.join ( _WindowsIncludePath, "msvc" ) ]
+            # . MSVC's <math.h> defines M_PI, M_LN10, ... only with _USE_MATH_DEFINES.
+            if _UsesMSVC  : item = item + [ "/Zc:preprocessor", "/D_USE_MATH_DEFINES", "/I" + os.path.join ( _WindowsIncludePath, "msvc" ) ]
             elif _IsWindows: item = item + [ "-I" + os.path.join ( _WindowsIncludePath, "mingw" ) ]
             setattr ( self, "_compilerFlags", item )
 """,
