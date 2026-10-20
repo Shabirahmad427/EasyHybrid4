@@ -647,7 +647,16 @@ def _run_with_hang_diagnostics(arguments, timeout, environment):
         if sys.platform == "darwin":
             sampled = subprocess.run(["sample", str(process.pid), "3"], capture_output=True,
                                      text=True, check=False)
-            native = sampled.stdout[-12000:] + sampled.stderr[-2000:]
+            report = sampled.stdout
+            # Keep the call graph; the loaded-image list after it is noise.
+            report = report.split("Binary Images:", 1)[0]
+            start = report.find("Call graph:")
+            native = (report[start:] if start >= 0 else report)[:16000] + sampled.stderr[-2000:]
+            processes = subprocess.run(["ps", "-axo", "pid,ppid,etime,pcpu,stat,command"],
+                                       capture_output=True, text=True, check=False).stdout
+            native += "\nprocesses:\n" + "\n".join(
+                line for line in processes.splitlines()
+                if "python" in line or "PID" in line)[:6000]
         if hasattr(subprocess.signal, "SIGUSR1"):
             process.send_signal(subprocess.signal.SIGUSR1)
             time.sleep(2)
