@@ -172,18 +172,26 @@ _FULL_APP_CYCLE = textwrap.dedent(
             )
             if px is None:
                 return fail("fixture oxygen is behind the production camera")
-            # Loading animates the camera onto the molecule. Click only after
-            # the oxygen has stopped moving; otherwise the pick reads a later
-            # frame and slow runners intermittently miss.
-            position = (round(px, 2), round(py, 2), float(core.width), float(core.height))
+            # Loading animates the camera onto the molecule. Wait until its
+            # projected point is stable within one framebuffer pixel; exact
+            # subpixel equality can starve the test while the camera eases.
+            position = (float(px), float(py), float(core.width), float(core.height))
             state["pick_projection"] = (
                 round(px, 5), round(py, 5), core.width, core.height
             )
-            if position != state.get("pick_position"):
+            previous_position = state.get("pick_position")
+            moved_pixels = float("inf")
+            if previous_position is not None and position[2:] == previous_position[2:]:
+                moved_pixels = (
+                    (position[0] - previous_position[0]) ** 2
+                    + (position[1] - previous_position[1]) ** 2
+                ) ** 0.5
+            if moved_pixels > 1.0:
                 state["pick_position"] = position
                 state["pick_stable_ticks"] = 0
                 vm_widget.queue_render()
                 return GLib.SOURCE_CONTINUE
+            state["pick_position"] = position
             state["pick_stable_ticks"] = state.get("pick_stable_ticks", 0) + 1
             if state["pick_stable_ticks"] < 3:
                 vm_widget.queue_render()
