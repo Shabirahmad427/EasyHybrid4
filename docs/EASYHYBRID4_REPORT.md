@@ -6,6 +6,29 @@
 GTK/Python compatibility, parity, platform, testing, and known-limitation
 status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).
 
+**Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
+passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
+used GTK 4.24.1 / GLib 2.90.0 / PyGObject 3.58.1 / Python 3.12.15 on
+macOS 14.8.9 arm64 with Apple's OpenGL 4.1 Software Renderer. It passed the
+native GTK/GL smoke, 62 widget-pattern tests (6 skipped), five real
+`EasyHybridApplication`/`MainWindow` cycles loading the generated water PDB,
+picking oxygen (`O:0`), and closing cleanly, five production menu/VisMol scene
+cycles, and the 101-passed/6-skipped complete regression suite. Render
+validation passed at requested scales 1 and 2; GTK reported widget scale factor
+1 and `scale_applied=false` for both, so Retina/HiDPI scaling is not verified.
+The test pick invokes GTK callbacks with synthetic coordinates and does not
+inject an OS pointer event.
+
+The repeated failure was in the test's centering wait: it required multiple
+unchanged GLib timer samples after the center residual had reached zero and
+the transform delta was zero. macOS serviced too few timer polls before the
+test deadline. The harness now waits on the actual centering residual and
+transform delta. This is a test synchronization correction, not a GTK 4.24
+runtime or application renderer defect. Local Linux GTK 4.14.5/NVIDIA also
+passed five full-app cycles with the updated harness. Other platform/version
+cells were not rerun for this test-only correction; previous component-matrix
+evidence remains separate.
+
 **Current roadmap work (2026-10-19): EH4-202 HiDPI picking correction.** GTK
 pointer events arrive in widget-local logical units, while VisMol pick reads
 use framebuffer pixels. `widget_to_framebuffer_coordinates()` now converts
@@ -74,18 +97,21 @@ with it. Only a static test covers it; a real-context spheres pick is pending.
 EH4-202 remains unchecked until image-difference, resize and capability
 evidence is added.
 
-**Full-interface coverage added locally (not yet in CI):** the opt-in
-`tests/test_easyhybrid_full_app_smoke.py` launches the actual
-`EasyHybridApplication` 20 times in fresh processes, constructs the production
-`MainWindow`, loads a generated molecular fixture through EasyHybrid's real
-pDynamo3-backed session, renders it, picks oxygen through the production GTK
-gesture callback, and closes cleanly. It passed 20/20 cycles on native Linux
-X11 with GTK 4.14.5 / Python 3.12.3 / PyGObject 3.48.2 / GLib 2.80.0 and
-OpenGL 4.6.0 NVIDIA RTX 4060 Ti. The pointer is still represented by synthetic
-callback coordinates, not an OS-injected event. It has not run on Windows,
-macOS, or across GTK 4.8–4.24. This pass does not resolve the macOS selection
-failures above. A pDynamo import without a system label also exposed and fixed
-a production display-name fallback to the loaded coordinate file's basename.
+**Full-interface coverage:** the opt-in `tests/test_easyhybrid_full_app_smoke.py`
+launches `EasyHybridApplication`, constructs the production `MainWindow`, loads
+a generated molecular fixture through EasyHybrid's real pDynamo3-backed
+session, renders, picks oxygen through the production GTK gesture callback,
+and closes. Linux X11/GTK 4.14.5/Python 3.12.3/PyGObject 3.48.2/GLib 2.80.0/
+NVIDIA passed 20/20 cycles in the earlier local run and five cycles with the
+current centering gate. Windows GTK 4.8.2 and 4.10.1 passed five cycles each in
+focused run `39450153293`. macOS arm64 GTK 4.24.1/Python 3.12.15/PyGObject
+3.58.1/GLib 2.90.0/Apple Software Renderer passed five cycles in focused run
+`39476612300`, with the complete regression suite passing 101 tests and
+skipping 6. These runs use synthetic GTK callback coordinates, not
+OS-injected pointer events. Full-app runs do not cover every GTK minor/platform
+pair; the separate component matrix must not be represented as full-app
+coverage. A pDynamo import without a system label also exposed and fixed a
+production display-name fallback to the loaded coordinate file's basename.
 
 **Windows full-app CI blocker (2026-10-20):** diagnostic run `39368203653`
 (its Actions record was deleted at the maintainer's request after inspection)
