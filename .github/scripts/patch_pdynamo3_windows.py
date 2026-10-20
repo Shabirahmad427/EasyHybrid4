@@ -133,8 +133,8 @@ EDITS = (
 """,
         """                        build_info["macros"       ] = None
                         if _IsWindows and ( libraryName == "dcprimme" ):
-                            # . PRIMME's gethostname() (diagnostics only) has no Windows declaration.
-                            header = os.path.join ( _WindowsIncludePath, "primme_gethostname.h" )
+                            # . PRIMME's POSIX gethostname()/valloc() have no Windows equivalent.
+                            header = os.path.join ( _WindowsIncludePath, "primme_windows.h" )
                             build_info["extra_preargs"].extend ( [ "/FI" + header ] if _UsesMSVC else [ "-include", header ] )
 """,
     ),
