@@ -11,7 +11,10 @@ Windows it fails before any scientific code is involved:
 * static libraries are assumed to be ``lib<name>.a``; MSVC writes
   ``<name>.lib`` (conda: "The system cannot find the file specified:
   ...\\libdcCore.a");
-* MSVC only: extensions link the Unix maths library ``m``, and the
+* MSVC only: its traditional preprocessor mis-expands pDynamo3's nested
+  ``_MakeToken`` token pasting (Array1D_Header.i: "syntax error: missing
+  ';' before '*'"), so ``/Zc:preprocessor`` is added; extensions link the
+  Unix maths library ``m``; and the
   per-library optimisation levels (``-O0`` for LAPACK's dlamch, ``-O3`` for
   BLAS/LAPACK) are gcc flags; stripping them uses ``compiler_so``, which
   MSVCCompiler does not have.
@@ -83,6 +86,17 @@ EDITS = (
     (
         'os.rename ( os.path.join ( buildPath, "lib" + libraryName + _LibraryExtension ), os.path.join ( self.cLibraryPath, "lib" + libraryName + _LibraryExtension ) )',
         'os.rename ( os.path.join ( buildPath, _StaticLibraryFileName ( libraryName ) ), os.path.join ( self.cLibraryPath, _StaticLibraryFileName ( libraryName ) ) )',
+    ),
+    (
+        """            else: item = []
+            setattr ( self, "_compilerFlags", item )
+""",
+        """            else: item = []
+            # . MSVC's traditional preprocessor mis-expands the nested _MakeToken
+            # . token pasting (pScientific Array*_Header.i); use the conforming one.
+            if _UsesMSVC: item = item + [ "/Zc:preprocessor" ]
+            setattr ( self, "_compilerFlags", item )
+""",
     ),
     (
         "runtime_library_dirs = libraryDirectories ) )",
