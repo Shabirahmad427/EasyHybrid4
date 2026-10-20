@@ -148,8 +148,9 @@ jobs:
       - name: Install graphics scene Python dependencies without changing GTK
         run: micromamba run -n easyhybrid-gtk python -m pip install --disable-pip-version-check numpy cython pillow freetype-py pyyaml setuptools
 
-      - name: Install additional full-suite dependencies
-        if: matrix.gtk == '4.24'
+      - name: Install full-application dependencies
+        # The full EasyHybrid application (with pDynamo3) imports SciPy and
+        # psutil and now runs in every cell, not only the 4.24 full suite.
         run: micromamba run -n easyhybrid-gtk python -m pip install --disable-pip-version-check scipy psutil
 
       - name: Record actual runtime and host
@@ -198,11 +199,11 @@ jobs:
         run: micromamba run -n easyhybrid-gtk python setup.py build_ext --inplace
         working-directory: src/graphics_engine
 
-      - name: Run 20 EasyHybrid molecular scene pick and close cycles
+      - name: Run 5 EasyHybrid molecular scene pick and close cycles
         env:
           EASYHYBRID_RUN_GRAPHICS_TESTS: "1"
           EASYHYBRID_TEST_COORDINATE_PICKING: "1"
-          EASYHYBRID_GRAPHICS_SMOKE_CYCLES: "20"
+          EASYHYBRID_GRAPHICS_SMOKE_CYCLES: "5"
           EASYHYBRID_DEBUG_PICK: ${{ runner.os == 'macOS' && '1' || '0' }}
           PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
         run: |
@@ -215,7 +216,16 @@ jobs:
             micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_vismol_components_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
           fi
 
+      - name: Restore pDynamo3 build
+        id: pdynamo3-cache
+        uses: actions/cache@v4
+        with:
+          path: pDynamo3
+          # One build per identical environment; saved only after a green job.
+          key: pdynamo3-${{ env.PDYNAMO3_REF }}-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.gtk }}-${{ matrix.distro || matrix.version || 'conda' }}-v1
+
       - name: Check out pinned pDynamo3
+        if: steps.pdynamo3-cache.outputs.cache-hit != 'true'
         uses: actions/checkout@v5
         with:
           repository: ${{ env.PDYNAMO3_REPOSITORY }}
@@ -224,11 +234,17 @@ jobs:
 
       - name: Build pDynamo3
         run: |
-          set -o pipefail
+          # This workflow's bash runs without -e: stop on a failed build.
+          set -eo pipefail
+          if [[ "${{ steps.pdynamo3-cache.outputs.cache-hit }}" == "true" ]]; then
+            echo "PDYNAMO3_BUILD=cached" | tee -a platform-results.txt
+          fi
           cd pDynamo3/installation
-          micromamba run -n easyhybrid-gtk python Install.py -f -q 2>&1 | tail -30
+          [[ "${{ steps.pdynamo3-cache.outputs.cache-hit }}" == "true" ]] || micromamba run -n easyhybrid-gtk python Install.py -f -q 2>&1 | tail -30
           cd ../..
-          PYTHONPATH="${{ github.workspace }}/pDynamo3" micromamba run -n easyhybrid-gtk python -c "import pCore, pBabel, pMolecule, pScientific, pSimulation; print('PDYNAMO3_IMPORT=OK')" | tee -a platform-results.txt
+          export PDYNAMO3_HOME="${{ github.workspace }}/pDynamo3"
+          export PDYNAMO3_PARAMETERS="$PDYNAMO3_HOME/parameters"
+          PYTHONPATH="$PDYNAMO3_HOME" micromamba run -n easyhybrid-gtk python -c "import pCore, pBabel, pMolecule, pScientific, pSimulation; print('PDYNAMO3_IMPORT=OK')" | tee -a platform-results.txt
           echo "PDYNAMO3_REF=$PDYNAMO3_REF" | tee -a platform-results.txt
 
       - name: Run the full EasyHybrid application with pDynamo3
@@ -277,16 +293,6 @@ jobs:
           else
             micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_vismol_render_validation.py 2>&1 | tee -a platform-results.txt
           fi
-
-      - name: Measure macOS GTK startup after render validation (diagnostic)
-        if: runner.os == 'macOS'
-        run: |
-          ps -axo pid,ppid,etime,pcpu,rss,command | grep -iE "python|gtk" | grep -v grep | tee -a platform-results.txt || true
-          echo "MACOS_TOP_CPU_AFTER_VALIDATION:" | tee -a platform-results.txt
-          ps -axro pcpu,etime,comm | head -8 | tee -a platform-results.txt
-          start=$(date +%s)
-          micromamba run -n easyhybrid-gtk python tests/test_gtk_icon_theme_smoke.py 2>&1 | tail -3 | tee -a platform-results.txt || true
-          echo "MACOS_GTK_STARTUP_AFTER_VALIDATION_SECONDS=$(( $(date +%s) - start ))" | tee -a platform-results.txt
 
       - name: Upload runtime and test evidence
         if: always()
@@ -393,11 +399,11 @@ jobs:
           set -o pipefail
           LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" python3 -m pytest -q -p no:cacheprovider --noconftest -rs tests/test_gtk4_widget_patterns.py 2>&1 | tee -a platform-results.txt
 
-      - name: Run 20 EasyHybrid molecular scene pick and close cycles
+      - name: Run 5 EasyHybrid molecular scene pick and close cycles
         env:
           EASYHYBRID_RUN_GRAPHICS_TESTS: "1"
           EASYHYBRID_TEST_COORDINATE_PICKING: "1"
-          EASYHYBRID_GRAPHICS_SMOKE_CYCLES: "20"
+          EASYHYBRID_GRAPHICS_SMOKE_CYCLES: "5"
           # The distro's optional Cython accelerator was built against its
           # packaged NumPy; the user-site NumPy needed by the renderer can
           # have a different C ABI. PyOpenGL's ctypes path is fully capable.
@@ -406,7 +412,16 @@ jobs:
           set -o pipefail
           LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" python3 -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_vismol_components_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
 
+      - name: Restore pDynamo3 build
+        id: pdynamo3-cache
+        uses: actions/cache@v4
+        with:
+          path: pDynamo3
+          # One build per identical environment; saved only after a green job.
+          key: pdynamo3-${{ env.PDYNAMO3_REF }}-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.gtk }}-${{ matrix.distro || matrix.version || 'conda' }}-v1
+
       - name: Check out pinned pDynamo3
+        if: steps.pdynamo3-cache.outputs.cache-hit != 'true'
         uses: actions/checkout@v5
         with:
           repository: ${{ env.PDYNAMO3_REPOSITORY }}
@@ -415,11 +430,17 @@ jobs:
 
       - name: Build pDynamo3
         run: |
-          set -o pipefail
+          # This workflow's bash runs without -e: stop on a failed build.
+          set -eo pipefail
+          if [[ "${{ steps.pdynamo3-cache.outputs.cache-hit }}" == "true" ]]; then
+            echo "PDYNAMO3_BUILD=cached" | tee -a platform-results.txt
+          fi
           cd pDynamo3/installation
-          python3 Install.py -f -q 2>&1 | tail -30
+          [[ "${{ steps.pdynamo3-cache.outputs.cache-hit }}" == "true" ]] || python3 Install.py -f -q 2>&1 | tail -30
           cd ../..
-          PYTHONPATH="$PWD/pDynamo3" python3 -c "import pCore, pBabel, pMolecule, pScientific, pSimulation; print('PDYNAMO3_IMPORT=OK')" | tee -a platform-results.txt
+          export PDYNAMO3_HOME="$PWD/pDynamo3"
+          export PDYNAMO3_PARAMETERS="$PDYNAMO3_HOME/parameters"
+          PYTHONPATH="$PDYNAMO3_HOME" python3 -c "import pCore, pBabel, pMolecule, pScientific, pSimulation; print('PDYNAMO3_IMPORT=OK')" | tee -a platform-results.txt
           echo "PDYNAMO3_REF=$PDYNAMO3_REF" | tee -a platform-results.txt
 
       - name: Run the full EasyHybrid application with pDynamo3
@@ -564,16 +585,25 @@ jobs:
         run: python setup.py build_ext --inplace
         working-directory: src/graphics_engine
 
-      - name: Run 20 EasyHybrid molecular scene pick and close cycles
+      - name: Run 5 EasyHybrid molecular scene pick and close cycles
         env:
           EASYHYBRID_RUN_GRAPHICS_TESTS: "1"
           EASYHYBRID_TEST_COORDINATE_PICKING: "1"
-          EASYHYBRID_GRAPHICS_SMOKE_CYCLES: "20"
+          EASYHYBRID_GRAPHICS_SMOKE_CYCLES: "5"
         run: |
           set -o pipefail
           GALLIUM_DRIVER=llvmpipe python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_vismol_components_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
 
+      - name: Restore pDynamo3 build
+        id: pdynamo3-cache
+        uses: actions/cache@v4
+        with:
+          path: pDynamo3
+          # One build per identical environment; saved only after a green job.
+          key: pdynamo3-${{ env.PDYNAMO3_REF }}-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.gtk }}-${{ matrix.distro || matrix.version || 'conda' }}-v1
+
       - name: Check out pinned pDynamo3
+        if: steps.pdynamo3-cache.outputs.cache-hit != 'true'
         uses: actions/checkout@v5
         with:
           repository: ${{ env.PDYNAMO3_REPOSITORY }}
@@ -582,11 +612,17 @@ jobs:
 
       - name: Build pDynamo3
         run: |
-          set -o pipefail
+          # This workflow's bash runs without -e: stop on a failed build.
+          set -eo pipefail
+          if [[ "${{ steps.pdynamo3-cache.outputs.cache-hit }}" == "true" ]]; then
+            echo "PDYNAMO3_BUILD=cached" | tee -a platform-results.txt
+          fi
           cd pDynamo3/installation
-          python Install.py -f -q 2>&1 | tail -30
+          [[ "${{ steps.pdynamo3-cache.outputs.cache-hit }}" == "true" ]] || python Install.py -f -q 2>&1 | tail -30
           cd ../..
-          PYTHONPATH="$(cygpath -m "$PWD/pDynamo3")" python -c "import pCore, pBabel, pMolecule, pScientific, pSimulation; print('PDYNAMO3_IMPORT=OK')" | tee -a platform-results.txt
+          export PDYNAMO3_HOME="$(cygpath -m "$PWD/pDynamo3")"
+          export PDYNAMO3_PARAMETERS="$PDYNAMO3_HOME/parameters"
+          PYTHONPATH="$PDYNAMO3_HOME" python -c "import pCore, pBabel, pMolecule, pScientific, pSimulation; print('PDYNAMO3_IMPORT=OK')" | tee -a platform-results.txt
           echo "PDYNAMO3_REF=$PDYNAMO3_REF" | tee -a platform-results.txt
 
       - name: Run the full EasyHybrid application with pDynamo3
@@ -766,11 +802,11 @@ jobs:
         run: micromamba run -n easyhybrid-gtk-src python setup.py build_ext --inplace
         working-directory: src/graphics_engine
 
-      - name: Run 20 EasyHybrid molecular scene pick and close cycles
+      - name: Run 5 EasyHybrid molecular scene pick and close cycles
         env:
           EASYHYBRID_RUN_GRAPHICS_TESTS: "1"
           EASYHYBRID_TEST_COORDINATE_PICKING: "1"
-          EASYHYBRID_GRAPHICS_SMOKE_CYCLES: "20"
+          EASYHYBRID_GRAPHICS_SMOKE_CYCLES: "5"
           EASYHYBRID_DEBUG_PICK: "1"
         # Keep the scene/pick evidence in the uploaded artifact like the
         # other providers; this step previously wrote only to the job log.
@@ -778,7 +814,16 @@ jobs:
           set -o pipefail
           micromamba run -n easyhybrid-gtk-src python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_vismol_components_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
 
+      - name: Restore pDynamo3 build
+        id: pdynamo3-cache
+        uses: actions/cache@v4
+        with:
+          path: pDynamo3
+          # One build per identical environment; saved only after a green job.
+          key: pdynamo3-${{ env.PDYNAMO3_REF }}-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.gtk }}-${{ matrix.distro || matrix.version || 'conda' }}-v1
+
       - name: Check out pinned pDynamo3
+        if: steps.pdynamo3-cache.outputs.cache-hit != 'true'
         uses: actions/checkout@v5
         with:
           repository: ${{ env.PDYNAMO3_REPOSITORY }}
@@ -787,11 +832,17 @@ jobs:
 
       - name: Build pDynamo3
         run: |
-          set -o pipefail
+          # This workflow's bash runs without -e: stop on a failed build.
+          set -eo pipefail
+          if [[ "${{ steps.pdynamo3-cache.outputs.cache-hit }}" == "true" ]]; then
+            echo "PDYNAMO3_BUILD=cached" | tee -a platform-results.txt
+          fi
           cd pDynamo3/installation
-          micromamba run -n easyhybrid-gtk-src python Install.py -f -q 2>&1 | tail -30
+          [[ "${{ steps.pdynamo3-cache.outputs.cache-hit }}" == "true" ]] || micromamba run -n easyhybrid-gtk-src python Install.py -f -q 2>&1 | tail -30
           cd ../..
-          PYTHONPATH="${{ github.workspace }}/pDynamo3" micromamba run -n easyhybrid-gtk-src python -c "import pCore, pBabel, pMolecule, pScientific, pSimulation; print('PDYNAMO3_IMPORT=OK')" | tee -a platform-results.txt
+          export PDYNAMO3_HOME="${{ github.workspace }}/pDynamo3"
+          export PDYNAMO3_PARAMETERS="$PDYNAMO3_HOME/parameters"
+          PYTHONPATH="$PDYNAMO3_HOME" micromamba run -n easyhybrid-gtk-src python -c "import pCore, pBabel, pMolecule, pScientific, pSimulation; print('PDYNAMO3_IMPORT=OK')" | tee -a platform-results.txt
           echo "PDYNAMO3_REF=$PDYNAMO3_REF" | tee -a platform-results.txt
 
       - name: Run the full EasyHybrid application with pDynamo3
@@ -811,16 +862,6 @@ jobs:
         run: |
           set -o pipefail
           micromamba run -n easyhybrid-gtk-src python -m pytest -q -s -p no:cacheprovider tests/test_vismol_render_validation.py 2>&1 | tee -a platform-results.txt
-
-      - name: Measure macOS GTK startup after render validation (diagnostic)
-        if: runner.os == 'macOS'
-        run: |
-          ps -axo pid,ppid,etime,pcpu,rss,command | grep -iE "python|gtk" | grep -v grep | tee -a platform-results.txt || true
-          echo "MACOS_TOP_CPU_AFTER_VALIDATION:" | tee -a platform-results.txt
-          ps -axro pcpu,etime,comm | head -8 | tee -a platform-results.txt
-          start=$(date +%s)
-          micromamba run -n easyhybrid-gtk-src python tests/test_gtk_icon_theme_smoke.py 2>&1 | tail -3 | tee -a platform-results.txt || true
-          echo "MACOS_GTK_STARTUP_AFTER_VALIDATION_SECONDS=$(( $(date +%s) - start ))" | tee -a platform-results.txt
 
       - name: Show macOS native crash report
         if: failure() && runner.os == 'macOS'

@@ -139,6 +139,19 @@ _FULL_APP_CYCLE = textwrap.dedent(
             )
             if px is None:
                 return fail("fixture oxygen is behind the production camera")
+            # Loading animates the camera onto the molecule. Click only after
+            # the oxygen has stopped moving; otherwise the pick reads a later
+            # frame and slow runners intermittently miss.
+            position = (round(px, 2), round(py, 2), float(core.width), float(core.height))
+            if position != state.get("pick_position"):
+                state["pick_position"] = position
+                state["pick_stable_ticks"] = 0
+                vm_widget.queue_render()
+                return GLib.SOURCE_CONTINUE
+            state["pick_stable_ticks"] = state.get("pick_stable_ticks", 0) + 1
+            if state["pick_stable_ticks"] < 3:
+                vm_widget.queue_render()
+                return GLib.SOURCE_CONTINUE
             x = px * widget_width / core.width
             y = py * widget_height / core.height
 
@@ -259,6 +272,11 @@ def test_real_easyhybrid_application_mainwindow_load_render_pick_close():
         temp_root = Path(temp_dir)
         home = temp_root / "home"
         (home / ".VisMol").mkdir(parents=True)
+        # Keep packages installed with ``pip --user`` (distro CI images)
+        # importable after HOME is isolated for the application's config.
+        import site
+
+        base_environment.setdefault("PYTHONUSERBASE", site.getuserbase())
         base_environment["HOME"] = str(home)
         if os.name == "nt":
             base_environment["USERPROFILE"] = str(home)

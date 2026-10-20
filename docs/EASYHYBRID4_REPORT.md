@@ -14,8 +14,9 @@ Native Linux X11/NVIDIA testing at GTK 4.14.5, Python 3.12.3, PyGObject 3.48.2,
 GLib 2.80.0 and `GDK_SCALE=2` picked the projected oxygen atom in **20/20**
 fresh test-host open/callback-pick/render/close cycles using EasyHybrid menu/VisMol components. The pick is triggered by calling the GTK gesture handlers with synthetic coordinates, not by injecting an OS pointer event; the harness does not launch EasyHybridApplication/MainWindow. The focused GTK compatibility
 tests pass **7/7**. The matrix workflow now exercises the same projected-oxygen
-GTK event in **20 isolated component-harness cycles per cell**. These are not
-20 full EasyHybrid interface launches or OS-injected pointer events. First expanded run
+GTK event in **5 isolated component-harness cycles per cell** (20 until
+2026-10-20; reduced at the maintainer's request). These are not full
+EasyHybrid interface launches or OS-injected pointer events. First expanded run
 [`39307131433`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39307131433)
 completed **19/30 PASS**: every Linux and Windows cell passed; all 11 macOS
 cells rendered the scene but returned no atom ID through Apple Software
