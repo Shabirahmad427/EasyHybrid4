@@ -40,7 +40,8 @@ jobs:
         # for osx-64. Those cells are covered by the distro, MSYS2 and
         # source-build jobs below; GTK 4.8/4.10 also run here on Intel macOS.
         # The "windows" scope runs Windows cells only.
-        include: ${{ fromJSON(inputs.scope == 'windows' && '[]' || '[{"os": "macos-x86_64", "gtk": "4.8"}, {"os": "macos-x86_64", "gtk": "4.10"}]') }}
+        include: >-
+          ${{ fromJSON(inputs.scope == 'windows' && '[]' || '[{"os": "macos-x86_64", "gtk": "4.8"}, {"os": "macos-x86_64", "gtk": "4.10"}]') }}
         exclude:
           - os: linux-x86_64
             gtk: "4.16"
