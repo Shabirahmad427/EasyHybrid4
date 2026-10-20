@@ -217,6 +217,20 @@ Python 3.12.15, PyGObject 3.58.1, GLib 2.90.0. Source builds use
 SHA-256-pinned `download.gnome.org` tarballs. All Linux and Windows results
 use software OpenGL; all macOS results use hosted-runner Apple OpenGL.
 
+### Real-context render validation (EH4-202, 2026-10-20)
+
+`tests/test_vismol_render_validation.py` runs `tests/render_validation_scene.py`
+at `GDK_SCALE` 1 and 2 with EasyHybrid's shipped GL parameters on a live
+`Gtk.GLArea`. Run `39355045155` passed **30/30 cells**. It checks GL >= 3.3
+and GLSL >= 3.30, every representation's draw, impostor diameters against the
+exact projection (or the `GL_POINT_SIZE_RANGE` cap), the 2x offscreen export
+against the on-screen frame (mean difference 0.0145/255), colour-ID picking on
+spheres and impostors, and resize. It found and fixed three renderer defects:
+impostor spheres sized with a fixed 256-pixel scale, the impostor picking
+attribute bound to the wrong program, and dots without a point size (invisible
+on Mesa). `GDK_SCALE=2` takes effect on Linux and Windows GTK 4.8-4.18 only;
+macOS and Windows GTK 4.20+ HiDPI rendering is **NOT TESTED**.
+
 ### Portable colour-ID picking (EH4-202, accepted 2026-10-19)
 
 macOS core-profile OpenGL clamps `glLineWidth` to 1 pixel

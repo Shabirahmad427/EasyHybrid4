@@ -48,6 +48,16 @@ Earlier matrix run
 passed **30/30** after the coordinate conversion was first added, confirming
 exact GTK patch runtimes and two scene render/close cycles per cell. Artifact
 review found that the old smoke did not invoke picking on hosted platforms.
+**Render validation (2026-10-20):** a real-context validation at display
+scale 1 and 2 now runs in every matrix cell and passed 30/30 in run
+[`39355045155`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39355045155). It fixed impostor sphere sizing (a fixed
+256-pixel scale ignored window size and display scale), the impostor picking
+attribute binding, and invisible dots on Mesa. The 2x offscreen export matches
+the screen (mean difference 0.0145/255). macOS CI note: Apple's `CVMCompiler`
+keeps a core busy for tens of seconds after many new shader programs, so the
+workflow runs the validation after the timed suite. EH4-202 stays open only for
+running the full-interface pDynamo3 regression in CI.
+
 **Resolved (2026-10-19):** the macOS picking failure was the platform's
 1-pixel line-width limit (`GL_LINE_WIDTH_RANGE` 0.1–1.0), not colour processing
 or framebuffer binding. Selection lines are now fixed-pixel-width quads with
