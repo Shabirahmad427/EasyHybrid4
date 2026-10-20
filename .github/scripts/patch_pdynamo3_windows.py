@@ -54,6 +54,7 @@ EDITS = (
         "    import importlib.machinery\n"
         "    _SharedObjectExtension          = \".pyd\"\n"
         "    _SharedObjectBuildPathExtension = importlib.machinery.EXTENSION_SUFFIXES[0]\n"
+        "_WindowsIncludePath = os.path.join ( os.path.dirname ( os.path.dirname ( os.path.abspath ( __file__ ) ) ), \"windows_include\" )\n"
         "def _StaticLibraryFileName ( name ):\n"
         "    \"\"\"The static library file name the active compiler writes.\"\"\"\n"
         "    from distutils.ccompiler import new_compiler\n"
@@ -102,10 +103,22 @@ EDITS = (
         """            else: item = []
             # . MSVC's traditional preprocessor mis-expands the nested _MakeToken
             # . token pasting (pScientific Array*_Header.i); use the conforming one.
-            # . MSVC has no <unistd.h>, <strings.h>, <sys/time.h>, <sys/resource.h>;
-            # . minimal versions (PRIMME timers/hostname, strcasecmp) are in pDynamo3/msvc_include.
-            if _UsesMSVC: item = item + [ "/Zc:preprocessor", "/I" + os.path.join ( os.path.dirname ( os.path.dirname ( os.path.abspath ( __file__ ) ) ), "msvc_include" ) ]
+            # . Minimal POSIX headers missing on Windows (PRIMME timers, strcasecmp):
+            # . MSVC lacks <unistd.h>, <strings.h>, <sys/time.h>, <sys/resource.h>;
+            # . MinGW lacks <sys/resource.h>. See pDynamo3/windows_include.
+            if _UsesMSVC  : item = item + [ "/Zc:preprocessor", "/I" + os.path.join ( _WindowsIncludePath, "msvc" ) ]
+            elif _IsWindows: item = item + [ "-I" + os.path.join ( _WindowsIncludePath, "mingw" ) ]
             setattr ( self, "_compilerFlags", item )
+""",
+    ),
+    (
+        """                        build_info["macros"       ] = None
+""",
+        """                        build_info["macros"       ] = None
+                        if _IsWindows and ( libraryName == "dcprimme" ):
+                            # . PRIMME's gethostname() (diagnostics only) has no Windows declaration.
+                            header = os.path.join ( _WindowsIncludePath, "primme_gethostname.h" )
+                            build_info["extra_preargs"].extend ( [ "/FI" + header ] if _UsesMSVC else [ "-include", header ] )
 """,
     ),
     (
@@ -146,10 +159,10 @@ def patch(root, force=False):
         if content.count(old) != 1:
             raise SystemExit("pDynamo3 source changed; expected one match in %s" % relative)
         source.write_text(content.replace(old, new), encoding="utf-8")
-    shutil.copytree(Path(__file__).with_name("pdynamo3_msvc_include"),
+    shutil.copytree(Path(__file__).with_name("pdynamo3_windows_include"),
                     # Outside installation/: setup() runs there and setuptools'
                     # flat-layout discovery rejects a second top-level folder.
-                    Path(root) / "msvc_include", dirs_exist_ok=True)
+                    Path(root) / "windows_include", dirs_exist_ok=True)
     print("PDYNAMO3_WINDOWS_PATCH=applied (%d installer edits, %d source edits)"
           % (len(EDITS), len(SOURCE_EDITS)))
 
