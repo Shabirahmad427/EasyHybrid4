@@ -14,6 +14,7 @@ on:
           - all
           - windows-legacy
           - macos-diagnostic
+          - windows
 
 permissions:
   contents: read
@@ -33,7 +34,7 @@ jobs:
       fail-fast: false
       max-parallel: 9
       matrix:
-        os: ${{ fromJSON(inputs.scope == 'windows-legacy' && '["windows-x86_64"]' || inputs.scope == 'macos-diagnostic' && '["macos-arm64"]' || '["linux-x86_64", "windows-x86_64", "macos-arm64"]') }}
+        os: ${{ fromJSON((inputs.scope == 'windows-legacy' || inputs.scope == 'windows') && '["windows-x86_64"]' || inputs.scope == 'macos-diagnostic' && '["macos-arm64"]' || '["linux-x86_64", "windows-x86_64", "macos-arm64"]') }}
         gtk: ${{ fromJSON(inputs.scope == 'windows-legacy' && '["4.8", "4.10"]' || '["4.8", "4.10", "4.12", "4.14", "4.16", "4.18", "4.20", "4.22", "4.24"]') }}
         # conda-forge publishes no GTK 4.16/4.18 builds, and GTK 4.8/4.10 only
         # for osx-64. Those cells are covered by the distro, MSYS2 and
@@ -222,7 +223,7 @@ jobs:
         with:
           path: pDynamo3
           # One build per identical environment; saved only after a green job.
-          key: pdynamo3-${{ env.PDYNAMO3_REF }}-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.gtk }}-${{ matrix.distro || matrix.version || 'conda' }}-v1
+          key: pdynamo3-${{ env.PDYNAMO3_REF }}-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.gtk }}-${{ matrix.distro || matrix.version || 'conda' }}-v2
 
       - name: Check out pinned pDynamo3
         if: steps.pdynamo3-cache.outputs.cache-hit != 'true'
@@ -239,6 +240,7 @@ jobs:
           if [[ "${{ steps.pdynamo3-cache.outputs.cache-hit }}" == "true" ]]; then
             echo "PDYNAMO3_BUILD=cached" | tee -a platform-results.txt
           fi
+          [[ "${{ steps.pdynamo3-cache.outputs.cache-hit }}" == "true" ]] || micromamba run -n easyhybrid-gtk python .github/scripts/patch_pdynamo3_windows.py pDynamo3 | tee -a platform-results.txt
           cd pDynamo3/installation
           [[ "${{ steps.pdynamo3-cache.outputs.cache-hit }}" == "true" ]] || micromamba run -n easyhybrid-gtk python Install.py -f -q 2>&1 | tail -30
           cd ../..
@@ -307,7 +309,7 @@ jobs:
   # end-of-life and served from their archives; Debian 13 is current stable.
   gtk-linux-distro:
     name: GTK ${{ matrix.gtk }} / linux-x86_64 (${{ matrix.distro }})
-    if: inputs.scope != 'windows-legacy' && inputs.scope != 'macos-diagnostic'
+    if: inputs.scope != 'windows-legacy' && inputs.scope != 'macos-diagnostic' && inputs.scope != 'windows'
     runs-on: ubuntu-24.04
     container: ${{ matrix.image }}
     timeout-minutes: 30
@@ -418,7 +420,7 @@ jobs:
         with:
           path: pDynamo3
           # One build per identical environment; saved only after a green job.
-          key: pdynamo3-${{ env.PDYNAMO3_REF }}-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.gtk }}-${{ matrix.distro || matrix.version || 'conda' }}-v1
+          key: pdynamo3-${{ env.PDYNAMO3_REF }}-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.gtk }}-${{ matrix.distro || matrix.version || 'conda' }}-v2
 
       - name: Check out pinned pDynamo3
         if: steps.pdynamo3-cache.outputs.cache-hit != 'true'
@@ -435,6 +437,7 @@ jobs:
           if [[ "${{ steps.pdynamo3-cache.outputs.cache-hit }}" == "true" ]]; then
             echo "PDYNAMO3_BUILD=cached" | tee -a platform-results.txt
           fi
+          [[ "${{ steps.pdynamo3-cache.outputs.cache-hit }}" == "true" ]] || python3 .github/scripts/patch_pdynamo3_windows.py pDynamo3 | tee -a platform-results.txt
           cd pDynamo3/installation
           [[ "${{ steps.pdynamo3-cache.outputs.cache-hit }}" == "true" ]] || python3 Install.py -f -q 2>&1 | tail -30
           cd ../..
@@ -600,7 +603,7 @@ jobs:
         with:
           path: pDynamo3
           # One build per identical environment; saved only after a green job.
-          key: pdynamo3-${{ env.PDYNAMO3_REF }}-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.gtk }}-${{ matrix.distro || matrix.version || 'conda' }}-v1
+          key: pdynamo3-${{ env.PDYNAMO3_REF }}-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.gtk }}-${{ matrix.distro || matrix.version || 'conda' }}-v2
 
       - name: Check out pinned pDynamo3
         if: steps.pdynamo3-cache.outputs.cache-hit != 'true'
@@ -617,6 +620,7 @@ jobs:
           if [[ "${{ steps.pdynamo3-cache.outputs.cache-hit }}" == "true" ]]; then
             echo "PDYNAMO3_BUILD=cached" | tee -a platform-results.txt
           fi
+          [[ "${{ steps.pdynamo3-cache.outputs.cache-hit }}" == "true" ]] || python .github/scripts/patch_pdynamo3_windows.py pDynamo3 | tee -a platform-results.txt
           cd pDynamo3/installation
           [[ "${{ steps.pdynamo3-cache.outputs.cache-hit }}" == "true" ]] || python Install.py -f -q 2>&1 | tail -30
           cd ../..
@@ -688,7 +692,7 @@ jobs:
   # dependencies on the native arm64 runner.
   gtk-macos-source:
     name: GTK ${{ matrix.gtk }} / macos-arm64 (source ${{ matrix.version }})
-    if: inputs.scope != 'windows-legacy'
+    if: inputs.scope != 'windows-legacy' && inputs.scope != 'windows'
     runs-on: macos-14
     timeout-minutes: 75
     strategy:
@@ -820,7 +824,7 @@ jobs:
         with:
           path: pDynamo3
           # One build per identical environment; saved only after a green job.
-          key: pdynamo3-${{ env.PDYNAMO3_REF }}-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.gtk }}-${{ matrix.distro || matrix.version || 'conda' }}-v1
+          key: pdynamo3-${{ env.PDYNAMO3_REF }}-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.gtk }}-${{ matrix.distro || matrix.version || 'conda' }}-v2
 
       - name: Check out pinned pDynamo3
         if: steps.pdynamo3-cache.outputs.cache-hit != 'true'
@@ -837,6 +841,7 @@ jobs:
           if [[ "${{ steps.pdynamo3-cache.outputs.cache-hit }}" == "true" ]]; then
             echo "PDYNAMO3_BUILD=cached" | tee -a platform-results.txt
           fi
+          [[ "${{ steps.pdynamo3-cache.outputs.cache-hit }}" == "true" ]] || micromamba run -n easyhybrid-gtk-src python .github/scripts/patch_pdynamo3_windows.py pDynamo3 | tee -a platform-results.txt
           cd pDynamo3/installation
           [[ "${{ steps.pdynamo3-cache.outputs.cache-hit }}" == "true" ]] || micromamba run -n easyhybrid-gtk-src python Install.py -f -q 2>&1 | tail -30
           cd ../..
