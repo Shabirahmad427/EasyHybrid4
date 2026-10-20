@@ -18,6 +18,12 @@ on:
 permissions:
   contents: read
 
+env:
+  # Upstream pDynamo3 commit built in every cell for the full EasyHybrid
+  # application regression (tests/test_easyhybrid_full_app_smoke.py).
+  PDYNAMO3_REPOSITORY: pdynamo/pDynamo3
+  PDYNAMO3_REF: 6b28dd8958e1a705fcdca130f4ab862a8af8de82
+
 jobs:
   gtk-runtime:
     name: GTK ${{ matrix.gtk }} / ${{ matrix.os }}
@@ -209,6 +215,38 @@ jobs:
             micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_vismol_components_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
           fi
 
+      - name: Check out pinned pDynamo3
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ env.PDYNAMO3_REPOSITORY }}
+          ref: ${{ env.PDYNAMO3_REF }}
+          path: pDynamo3
+
+      - name: Build pDynamo3
+        run: |
+          set -o pipefail
+          cd pDynamo3/installation
+          micromamba run -n easyhybrid-gtk python Install.py -f -q 2>&1 | tail -30
+          cd ../..
+          PYTHONPATH="${{ github.workspace }}/pDynamo3" micromamba run -n easyhybrid-gtk python -c "import pCore, pBabel, pMolecule, pScientific, pSimulation; print('PDYNAMO3_IMPORT=OK')" | tee -a platform-results.txt
+          echo "PDYNAMO3_REF=$PDYNAMO3_REF" | tee -a platform-results.txt
+
+      - name: Run the full EasyHybrid application with pDynamo3
+        env:
+          EASYHYBRID_RUN_FULL_APP_GRAPHICS: "1"
+          EASYHYBRID_FULL_APP_CYCLES: "5"
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+        run: |
+          set -o pipefail
+          export PDYNAMO3_HOME="${{ github.workspace }}/pDynamo3"
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_easyhybrid_full_app_smoke.py 2>&1 | tee -a platform-results.txt
+          elif [[ "$RUNNER_OS" == "Windows" ]]; then
+            GALLIUM_DRIVER=llvmpipe micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_easyhybrid_full_app_smoke.py 2>&1 | tee -a platform-results.txt
+          else
+            micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_easyhybrid_full_app_smoke.py 2>&1 | tee -a platform-results.txt
+          fi
+
       - name: Run complete regression suite with real GTK smoke enabled
         if: matrix.gtk == '4.24'
         env:
@@ -368,6 +406,32 @@ jobs:
           set -o pipefail
           LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" python3 -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_vismol_components_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
 
+      - name: Check out pinned pDynamo3
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ env.PDYNAMO3_REPOSITORY }}
+          ref: ${{ env.PDYNAMO3_REF }}
+          path: pDynamo3
+
+      - name: Build pDynamo3
+        run: |
+          set -o pipefail
+          cd pDynamo3/installation
+          python3 Install.py -f -q 2>&1 | tail -30
+          cd ../..
+          PYTHONPATH="$PWD/pDynamo3" python3 -c "import pCore, pBabel, pMolecule, pScientific, pSimulation; print('PDYNAMO3_IMPORT=OK')" | tee -a platform-results.txt
+          echo "PDYNAMO3_REF=$PDYNAMO3_REF" | tee -a platform-results.txt
+
+      - name: Run the full EasyHybrid application with pDynamo3
+        env:
+          EASYHYBRID_RUN_FULL_APP_GRAPHICS: "1"
+          EASYHYBRID_FULL_APP_CYCLES: "5"
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+        run: |
+          set -o pipefail
+          export PDYNAMO3_HOME="$PWD/pDynamo3"
+          LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe PYOPENGL_USE_ACCELERATE=0 xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" python3 -m pytest -q -s -p no:cacheprovider tests/test_easyhybrid_full_app_smoke.py 2>&1 | tee -a platform-results.txt
+
       - name: Validate VisMol rendering, export, picking and resize at scale 1 and 2
         env:
           EASYHYBRID_RUN_GRAPHICS_TESTS: "1"
@@ -448,6 +512,9 @@ jobs:
             mingw-w64-ucrt-x86_64-python-pillow
             mingw-w64-ucrt-x86_64-python-freetype-py
             mingw-w64-ucrt-x86_64-python-yaml
+            mingw-w64-ucrt-x86_64-python-scipy
+            mingw-w64-ucrt-x86_64-python-psutil
+            mingw-w64-ucrt-x86_64-python-setuptools
             tar
             xz
 
@@ -505,6 +572,32 @@ jobs:
         run: |
           set -o pipefail
           GALLIUM_DRIVER=llvmpipe python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_vismol_components_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
+
+      - name: Check out pinned pDynamo3
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ env.PDYNAMO3_REPOSITORY }}
+          ref: ${{ env.PDYNAMO3_REF }}
+          path: pDynamo3
+
+      - name: Build pDynamo3
+        run: |
+          set -o pipefail
+          cd pDynamo3/installation
+          python Install.py -f -q 2>&1 | tail -30
+          cd ../..
+          PYTHONPATH="$(cygpath -m "$PWD/pDynamo3")" python -c "import pCore, pBabel, pMolecule, pScientific, pSimulation; print('PDYNAMO3_IMPORT=OK')" | tee -a platform-results.txt
+          echo "PDYNAMO3_REF=$PDYNAMO3_REF" | tee -a platform-results.txt
+
+      - name: Run the full EasyHybrid application with pDynamo3
+        env:
+          EASYHYBRID_RUN_FULL_APP_GRAPHICS: "1"
+          EASYHYBRID_FULL_APP_CYCLES: "5"
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+        run: |
+          set -o pipefail
+          export PDYNAMO3_HOME="$(cygpath -m "$PWD/pDynamo3")"
+          GALLIUM_DRIVER=llvmpipe python -m pytest -q -s -p no:cacheprovider tests/test_easyhybrid_full_app_smoke.py 2>&1 | tee -a platform-results.txt
 
       - name: Validate VisMol rendering, export, picking and resize at scale 1 and 2
         env:
@@ -601,6 +694,9 @@ jobs:
             pillow
             freetype-py
             pyyaml
+            scipy
+            psutil
+            setuptools
             pygobject
             pycairo
             pyopengl
@@ -681,6 +777,32 @@ jobs:
         run: |
           set -o pipefail
           micromamba run -n easyhybrid-gtk-src python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_vismol_components_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
+
+      - name: Check out pinned pDynamo3
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ env.PDYNAMO3_REPOSITORY }}
+          ref: ${{ env.PDYNAMO3_REF }}
+          path: pDynamo3
+
+      - name: Build pDynamo3
+        run: |
+          set -o pipefail
+          cd pDynamo3/installation
+          micromamba run -n easyhybrid-gtk-src python Install.py -f -q 2>&1 | tail -30
+          cd ../..
+          PYTHONPATH="${{ github.workspace }}/pDynamo3" micromamba run -n easyhybrid-gtk-src python -c "import pCore, pBabel, pMolecule, pScientific, pSimulation; print('PDYNAMO3_IMPORT=OK')" | tee -a platform-results.txt
+          echo "PDYNAMO3_REF=$PDYNAMO3_REF" | tee -a platform-results.txt
+
+      - name: Run the full EasyHybrid application with pDynamo3
+        env:
+          EASYHYBRID_RUN_FULL_APP_GRAPHICS: "1"
+          EASYHYBRID_FULL_APP_CYCLES: "5"
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+        run: |
+          set -o pipefail
+          export PDYNAMO3_HOME="${{ github.workspace }}/pDynamo3"
+          micromamba run -n easyhybrid-gtk-src python -m pytest -q -s -p no:cacheprovider tests/test_easyhybrid_full_app_smoke.py 2>&1 | tee -a platform-results.txt
 
       - name: Validate VisMol rendering, export, picking and resize at scale 1 and 2
         env:
