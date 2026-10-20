@@ -41,6 +41,7 @@ _FULL_APP_CYCLE = textwrap.dedent(
     state = {
         "started": time.monotonic(), "scene_draws": 0,
         "core_renders": 0, "phase": "application_start", "picked": False,
+        "poll_calls": 0, "last_poll": None, "pick_render_calls": 0,
     }
 
     def fail(message):
@@ -108,8 +109,19 @@ _FULL_APP_CYCLE = textwrap.dedent(
             render_core = core.render
 
             def count_core_render(*args, **kwargs):
+                was_picking = core.picking
                 state["core_renders"] += 1
-                return render_core(*args, **kwargs)
+                result = render_core(*args, **kwargs)
+                if was_picking:
+                    state["pick_render_calls"] += 1
+                    state["last_pick_render"] = {
+                        "requested": was_picking,
+                        "pending_after": core.picking,
+                        "picked_after": getattr(core.atom_picked, "name", None),
+                        "xy": (float(core.picking_x), float(core.picking_y)),
+                        "size": (core.width, core.height),
+                    }
+                return result
 
             core.render = count_core_render
 
@@ -242,6 +254,8 @@ _FULL_APP_CYCLE = textwrap.dedent(
         return GLib.SOURCE_REMOVE
 
     def safe_poll_app():
+        state["poll_calls"] += 1
+        state["last_poll"] = time.monotonic()
         try:
             return poll_app()
         except Exception as error:
@@ -268,7 +282,8 @@ _FULL_APP_CYCLE = textwrap.dedent(
                 "gl_area(realized=%s,mapped=%s,visible=%s,size=%sx%s) "
                 "core_renders=%s scene_draws=%s active=%s picking=%s "
                 "pick_xy=%r pick_dimensions=%r pick_attempts=%s "
-                "pick_projection=%r atom_picked=%r"
+                "pick_projection=%r atom_picked=%r polls=%s poll_age=%r "
+                "pick_render_calls=%s last_pick_render=%r"
                 % (
                     widget.get_realized(), widget.get_mapped(),
                     widget.get_visible(), widget.get_width(), widget.get_height(),
@@ -285,6 +300,12 @@ _FULL_APP_CYCLE = textwrap.dedent(
                         getattr(main.vm_session.vm_glcore, "atom_picked", None),
                         "name", None,
                     ),
+                    state["poll_calls"],
+                    None if state["last_poll"] is None else round(
+                        time.monotonic() - state["last_poll"], 3
+                    ),
+                    state["pick_render_calls"],
+                    state.get("last_pick_render"),
                 )
             )
         return fail(
