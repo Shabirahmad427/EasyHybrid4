@@ -96,8 +96,8 @@ EDITS = (
             # . MSVC's traditional preprocessor mis-expands the nested _MakeToken
             # . token pasting (pScientific Array*_Header.i); use the conforming one.
             # . MSVC has no <unistd.h>, <strings.h>, <sys/time.h>, <sys/resource.h>;
-            # . minimal versions (PRIMME timers/hostname, strcasecmp) are in msvc_include.
-            if _UsesMSVC: item = item + [ "/Zc:preprocessor", "/I" + os.path.join ( os.path.dirname ( os.path.abspath ( __file__ ) ), "msvc_include" ) ]
+            # . minimal versions (PRIMME timers/hostname, strcasecmp) are in pDynamo3/msvc_include.
+            if _UsesMSVC: item = item + [ "/Zc:preprocessor", "/I" + os.path.join ( os.path.dirname ( os.path.dirname ( os.path.abspath ( __file__ ) ) ), "msvc_include" ) ]
             setattr ( self, "_compilerFlags", item )
 """,
     ),
@@ -124,7 +124,9 @@ def patch(root, force=False):
         text = text.replace(old, new)
     path.write_text(text, encoding="utf-8")
     shutil.copytree(Path(__file__).with_name("pdynamo3_msvc_include"),
-                    Path(root) / "installation" / "msvc_include", dirs_exist_ok=True)
+                    # Outside installation/: setup() runs there and setuptools'
+                    # flat-layout discovery rejects a second top-level folder.
+                    Path(root) / "msvc_include", dirs_exist_ok=True)
     print("PDYNAMO3_WINDOWS_PATCH=applied (%d edits)" % len(EDITS))
 
 
