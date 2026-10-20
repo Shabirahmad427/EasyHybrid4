@@ -33,12 +33,26 @@ _FULL_APP_CYCLE = textwrap.dedent(
     import easyhybrid
     from pCore import logFile
 
+    # Centering is a UI animation unrelated to the load/render/pick lifecycle
+    # under test. Use the production centering method with one animation step
+    # so the test does not depend on the host's main-loop scheduling cadence.
+    from gui.config import VismolConfig
+    original_config_init = VismolConfig.__init__
+
+    def fast_test_config(self, *args, **kwargs):
+        original_config_init(self, *args, **kwargs)
+        self.gl_parameters["center_steps"] = 1
+        self.gl_parameters["center_on_coord_sleep_time"] = 0.001
+
+    VismolConfig.__init__ = fast_test_config
+
     display = Gdk.Display.get_default()
     if display is None:
         raise RuntimeError("Full EasyHybrid smoke requires a native GTK display")
 
     fixture = os.path.abspath(sys.argv[1])
     app = easyhybrid.EasyHybridApplication()
+    print("EASYHYBRID_FULL_APP_TEST_CENTER_STEPS=1", flush=True)
     state = {
         "started": time.monotonic(), "scene_draws": 0,
         "core_renders": 0, "phase": "application_start", "picked": False,
