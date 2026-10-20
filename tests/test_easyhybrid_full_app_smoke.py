@@ -155,7 +155,6 @@ _FULL_APP_CYCLE = textwrap.dedent(
                 representation.draw_representation = count_draw
 
             state.update(molecule=molecule, oxygen=oxygen, scene_ready=True)
-            state["scene_ready_at"] = time.monotonic()
             state["phase"] = "waiting_for_scene_render"
             active_representations = [
                 name for name, representation in molecule.representations.items()
@@ -185,6 +184,7 @@ _FULL_APP_CYCLE = textwrap.dedent(
             core = vm_session.vm_glcore
             model_transform = np.asarray(state["molecule"].model_mat)
             transform_snapshot = model_transform.tobytes()
+            state.setdefault("center_wait_started", time.monotonic())
             previous_transform = state.get("last_model_transform_array")
             state["last_transform_delta"] = (
                 None if previous_transform is None else float(
@@ -202,7 +202,7 @@ _FULL_APP_CYCLE = textwrap.dedent(
                 state["stable_transform_ticks"] = 0
             if state["stable_transform_ticks"] < 3:
                 state["phase"] = "waiting_for_center_animation"
-                if time.monotonic() - state["scene_ready_at"] > 10:
+                if time.monotonic() - state["center_wait_started"] > 10:
                     return fail(
                         "molecular centering did not settle before pick "
                         "(stable_ticks=%s residual=%.7g transform_delta=%r "
