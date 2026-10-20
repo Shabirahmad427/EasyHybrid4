@@ -43,6 +43,7 @@ _FULL_APP_CYCLE = textwrap.dedent(
         "started": time.monotonic(), "scene_draws": 0,
         "core_renders": 0, "phase": "application_start", "picked": False,
         "poll_calls": 0, "last_poll": None, "pick_render_calls": 0,
+        "last_render_seconds": None, "max_render_seconds": 0.0,
     }
 
     def fail(message):
@@ -111,8 +112,14 @@ _FULL_APP_CYCLE = textwrap.dedent(
 
             def count_core_render(*args, **kwargs):
                 was_picking = core.picking
+                render_started = time.monotonic()
                 state["core_renders"] += 1
                 result = render_core(*args, **kwargs)
+                render_seconds = time.monotonic() - render_started
+                state["last_render_seconds"] = round(render_seconds, 3)
+                state["max_render_seconds"] = max(
+                    state["max_render_seconds"], render_seconds
+                )
                 if was_picking:
                     state["pick_render_calls"] += 1
                     state["last_pick_render"] = {
@@ -178,6 +185,16 @@ _FULL_APP_CYCLE = textwrap.dedent(
             core = vm_session.vm_glcore
             model_transform = np.asarray(state["molecule"].model_mat)
             transform_snapshot = model_transform.tobytes()
+            previous_transform = state.get("last_model_transform_array")
+            state["last_transform_delta"] = (
+                None if previous_transform is None else float(
+                    np.max(np.abs(model_transform - previous_transform))
+                )
+            )
+            state["last_model_transform_array"] = model_transform.copy()
+            target = np.append(state["molecule"].mass_center, 1.0)
+            centered_target = model_transform.T.dot(target)[:3]
+            state["centering_residual"] = float(np.linalg.norm(centered_target))
             if transform_snapshot == state.get("last_model_transform"):
                 state["stable_transform_ticks"] = state.get("stable_transform_ticks", 0) + 1
             else:
@@ -186,7 +203,18 @@ _FULL_APP_CYCLE = textwrap.dedent(
             if state["stable_transform_ticks"] < 3:
                 state["phase"] = "waiting_for_center_animation"
                 if time.monotonic() - state["scene_ready_at"] > 10:
-                    return fail("molecular centering did not settle before pick")
+                    return fail(
+                        "molecular centering did not settle before pick "
+                        "(stable_ticks=%s residual=%.7g transform_delta=%r "
+                        "last_render_seconds=%r max_render_seconds=%.3f)"
+                        % (
+                            state["stable_transform_ticks"],
+                            state["centering_residual"],
+                            state["last_transform_delta"],
+                            state["last_render_seconds"],
+                            state["max_render_seconds"],
+                        )
+                    )
                 return GLib.SOURCE_CONTINUE
 
             widget_width, widget_height = vm_widget.get_width(), vm_widget.get_height()
@@ -298,7 +326,9 @@ _FULL_APP_CYCLE = textwrap.dedent(
                 "core_renders=%s scene_draws=%s active=%s picking=%s "
                 "pick_xy=%r pick_dimensions=%r pick_attempts=%s "
                 "pick_projection=%r atom_picked=%r polls=%s poll_age=%r "
-                "pick_render_calls=%s last_pick_render=%r stable_transform_ticks=%s"
+                "pick_render_calls=%s last_pick_render=%r stable_transform_ticks=%s "
+                "centering_residual=%r transform_delta=%r last_render_seconds=%r "
+                "max_render_seconds=%.3f"
                 % (
                     widget.get_realized(), widget.get_mapped(),
                     widget.get_visible(), widget.get_width(), widget.get_height(),
@@ -322,6 +352,10 @@ _FULL_APP_CYCLE = textwrap.dedent(
                     state["pick_render_calls"],
                     state.get("last_pick_render"),
                     state.get("stable_transform_ticks", 0),
+                    state.get("centering_residual"),
+                    state.get("last_transform_delta"),
+                    state.get("last_render_seconds"),
+                    state["max_render_seconds"],
                 )
             )
         return fail(
