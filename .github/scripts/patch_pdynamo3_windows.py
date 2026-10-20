@@ -24,9 +24,16 @@ Windows it fails before any scientific code is involved:
   that gcc/clang accept and MSVC rejects (View1D.h(32): "syntax error:
   ';'"), which cascades into every pScientific array header.
   ``View2D_Fields`` already omits that semicolon; View1D is made to match.
+* MSVC only: ViewND_MakeIterator uses C99 variable length arrays, which
+  MSVC does not support (ViewND.c(364): "expected constant expression");
+  they become equivalent _alloca stack allocations.
+* MinGW only: pBabel's fastio.h selects its native Win32 I/O only for
+  ``_MSC_VER``, so MinGW took the Unix branch (``<sys/uio.h>``, absent);
+  it now selects Win32 for any ``_WIN32`` compiler.
 
-The edits touch only the installer and that one macro (no field, type or
-calculation changes), and each must match the pinned upstream text
+The edits touch only the installer, that macro, those two stack arrays
+and that platform condition
+(no field, type or calculation changes), and each must match the pinned upstream text
 exactly. Usage:
 
     python patch_pdynamo3_windows.py <pDynamo3 checkout> [--force]
@@ -134,6 +141,28 @@ SOURCE_EDITS = (
         "pScientific/Arrays/__extensions__/cinclude/View1D.h",
         "    Integer size   ; \\\n    Integer stride ;\n",
         "    Integer size   ; \\\n    Integer stride\n",
+    ),
+    # . fastio.h picks its native Win32 file I/O only for MSVC; MinGW gcc fell
+    # . into the Unix branch and its <sys/uio.h>. Use Win32 for any Windows.
+    (
+        "pBabel/__extensions__/cinclude/fastio.h",
+        "#if defined(_MSC_VER)\n",
+        "#if defined(_MSC_VER) || defined(_WIN32)\n",
+    ),
+    # . The only C99 variable length arrays in pDynamo3's C sources (gcc -Wvla
+    # . over every extension file); MSVC has none. _alloca gives the same
+    # . stack storage, size and lifetime.
+    (
+        "pScientific/Arrays/__extensions__/csource/ViewND.c",
+        "# include <stdio.h>\n",
+        "# include <stdio.h>\n# include <malloc.h>\n",
+    ),
+    (
+        "pScientific/Arrays/__extensions__/csource/ViewND.c",
+        "        auto Integer     rank, extents[self->rank], strides[self->rank] ;\n",
+        "        auto Integer     rank ;\n"
+        "        auto Integer    *extents = ( Integer * ) _alloca ( ( size_t ) self->rank * sizeof ( Integer ) ) ;\n"
+        "        auto Integer    *strides = ( Integer * ) _alloca ( ( size_t ) self->rank * sizeof ( Integer ) ) ;\n",
     ),
 )
 
