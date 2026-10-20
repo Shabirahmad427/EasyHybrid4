@@ -221,7 +221,7 @@ jobs:
         with:
           path: pDynamo3
           # One build per identical environment; saved only after a green job.
-          key: pdynamo3-${{ env.PDYNAMO3_REF }}-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.gtk }}-${{ matrix.distro || matrix.version || 'conda' }}-v10
+          key: pdynamo3-${{ env.PDYNAMO3_REF }}-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.gtk }}-${{ matrix.distro || matrix.version || 'conda' }}-v11
 
       - name: Check out pinned pDynamo3
         if: steps.pdynamo3-cache.outputs.cache-hit != 'true'
@@ -428,7 +428,7 @@ jobs:
         with:
           path: pDynamo3
           # One build per identical environment; saved only after a green job.
-          key: pdynamo3-${{ env.PDYNAMO3_REF }}-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.gtk }}-${{ matrix.distro || matrix.version || 'conda' }}-v10
+          key: pdynamo3-${{ env.PDYNAMO3_REF }}-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.gtk }}-${{ matrix.distro || matrix.version || 'conda' }}-v11
 
       - name: Check out pinned pDynamo3
         if: steps.pdynamo3-cache.outputs.cache-hit != 'true'
@@ -621,7 +621,7 @@ jobs:
         with:
           path: pDynamo3
           # One build per identical environment; saved only after a green job.
-          key: pdynamo3-${{ env.PDYNAMO3_REF }}-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.gtk }}-${{ matrix.distro || matrix.version || 'conda' }}-v10
+          key: pdynamo3-${{ env.PDYNAMO3_REF }}-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.gtk }}-${{ matrix.distro || matrix.version || 'conda' }}-v11
 
       - name: Check out pinned pDynamo3
         if: steps.pdynamo3-cache.outputs.cache-hit != 'true'
@@ -852,7 +852,7 @@ jobs:
         with:
           path: pDynamo3
           # One build per identical environment; saved only after a green job.
-          key: pdynamo3-${{ env.PDYNAMO3_REF }}-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.gtk }}-${{ matrix.distro || matrix.version || 'conda' }}-v10
+          key: pdynamo3-${{ env.PDYNAMO3_REF }}-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.gtk }}-${{ matrix.distro || matrix.version || 'conda' }}-v11
 
       - name: Check out pinned pDynamo3
         if: steps.pdynamo3-cache.outputs.cache-hit != 'true'

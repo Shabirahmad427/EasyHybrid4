@@ -30,6 +30,10 @@ Windows it fails before any scientific code is involved:
 * MSVC only: <math.h> defines M_PI, M_LN10, ... only with
   ``_USE_MATH_DEFINES`` (addOns/pcetk EnergyModel.c: "'M_LN10':
   undeclared identifier"), so it is defined for the whole build.
+* Both: f2c.h defines an ``abs(x)`` macro; files that include
+  f2clapack.h before <math.h> (Splines/CubicSpline.c) then break the
+  Windows runtime's abs() declaration (corecrt_math.h: "syntax error:
+  '('"). <stdlib.h> and <math.h> are force-included first.
 * MinGW only: pBabel's fastio.h selects its native Win32 I/O only for
   ``_MSC_VER``, so MinGW took the Unix branch (``<sys/uio.h>``, absent);
   it now selects Win32 for any ``_WIN32`` compiler.
@@ -117,8 +121,10 @@ EDITS = (
             # . MSVC lacks <unistd.h>, <strings.h>, <sys/time.h>, <sys/resource.h>;
             # . MinGW lacks <sys/resource.h>. See pDynamo3/windows_include.
             # . MSVC's <math.h> defines M_PI, M_LN10, ... only with _USE_MATH_DEFINES.
-            if _UsesMSVC  : item = item + [ "/Zc:preprocessor", "/D_USE_MATH_DEFINES", "/I" + os.path.join ( _WindowsIncludePath, "msvc" ) ]
-            elif _IsWindows: item = item + [ "-I" + os.path.join ( _WindowsIncludePath, "mingw" ) ]
+            # . f2c.h (f2clapack.h) defines abs/min/max macros; Windows runtimes declare
+            # . abs() in <math.h>/<stdlib.h>, so read those first (include guards keep them).
+            if _UsesMSVC  : item = item + [ "/Zc:preprocessor", "/D_USE_MATH_DEFINES", "/FIstdlib.h", "/FImath.h", "/I" + os.path.join ( _WindowsIncludePath, "msvc" ) ]
+            elif _IsWindows: item = item + [ "-include", "stdlib.h", "-include", "math.h", "-I" + os.path.join ( _WindowsIncludePath, "mingw" ) ]
             setattr ( self, "_compilerFlags", item )
 """,
     ),
