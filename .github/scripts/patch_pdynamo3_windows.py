@@ -28,6 +28,7 @@ Without ``--force`` it does nothing outside Windows.
 """
 
 import os
+import shutil
 import sys
 from pathlib import Path
 
@@ -94,7 +95,9 @@ EDITS = (
         """            else: item = []
             # . MSVC's traditional preprocessor mis-expands the nested _MakeToken
             # . token pasting (pScientific Array*_Header.i); use the conforming one.
-            if _UsesMSVC: item = item + [ "/Zc:preprocessor" ]
+            # . MSVC has no <unistd.h>, <strings.h>, <sys/time.h>, <sys/resource.h>;
+            # . minimal versions (PRIMME timers/hostname, strcasecmp) are in msvc_include.
+            if _UsesMSVC: item = item + [ "/Zc:preprocessor", "/I" + os.path.join ( os.path.dirname ( os.path.abspath ( __file__ ) ), "msvc_include" ) ]
             setattr ( self, "_compilerFlags", item )
 """,
     ),
@@ -120,6 +123,8 @@ def patch(root, force=False):
             raise SystemExit("pDynamo3 installer changed; expected one match, found %d: %r" % (count, old[:80]))
         text = text.replace(old, new)
     path.write_text(text, encoding="utf-8")
+    shutil.copytree(Path(__file__).with_name("pdynamo3_msvc_include"),
+                    Path(root) / "installation" / "msvc_include", dirs_exist_ok=True)
     print("PDYNAMO3_WINDOWS_PATCH=applied (%d edits)" % len(EDITS))
 
 
