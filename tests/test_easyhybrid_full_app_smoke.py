@@ -163,6 +163,10 @@ _FULL_APP_CYCLE = textwrap.dedent(
             vm_widget = vm_session.vm_widget
             core = vm_session.vm_glcore
             widget_width, widget_height = vm_widget.get_width(), vm_widget.get_height()
+            if min(widget_width, widget_height, core.width, core.height) <= 0:
+                state["phase"] = "waiting_for_gl_area_allocation"
+                vm_widget.queue_render()
+                return GLib.SOURCE_CONTINUE
             px, py, _depth = _project_local_point_to_pixel(
                 core, state["molecule"], state["oxygen"].coords(vm_session.frame)
             )
@@ -183,6 +187,9 @@ _FULL_APP_CYCLE = textwrap.dedent(
                 return GLib.SOURCE_CONTINUE
             x = px * widget_width / core.width
             y = py * widget_height / core.height
+            state["pick_dimensions"] = (
+                widget_width, widget_height, core.width, core.height
+            )
 
             class TestGesture:
                 def __init__(self, x, y):
@@ -201,6 +208,7 @@ _FULL_APP_CYCLE = textwrap.dedent(
             vm_widget._on_mouse_pressed(gesture, 1, x, y)
             vm_widget._on_mouse_released(gesture, 1, x, y)
             state["pick_started"] = True
+            vm_widget.queue_render()
             return GLib.SOURCE_CONTINUE
 
         core = vm_session.vm_glcore
@@ -259,11 +267,22 @@ _FULL_APP_CYCLE = textwrap.dedent(
             ]
             details = (
                 "gl_area(realized=%s,mapped=%s,visible=%s,size=%sx%s) "
-                "core_renders=%s scene_draws=%s active=%s"
+                "core_renders=%s scene_draws=%s active=%s picking=%s "
+                "pick_xy=%r pick_dimensions=%r atom_picked=%r"
                 % (
                     widget.get_realized(), widget.get_mapped(),
                     widget.get_visible(), widget.get_width(), widget.get_height(),
                     state["core_renders"], state["scene_draws"], ",".join(active),
+                    getattr(main.vm_session.vm_glcore, "picking", None),
+                    (
+                        getattr(main.vm_session.vm_glcore, "picking_x", None),
+                        getattr(main.vm_session.vm_glcore, "picking_y", None),
+                    ),
+                    state.get("pick_dimensions"),
+                    getattr(
+                        getattr(main.vm_session.vm_glcore, "atom_picked", None),
+                        "name", None,
+                    ),
                 )
             )
         return fail(

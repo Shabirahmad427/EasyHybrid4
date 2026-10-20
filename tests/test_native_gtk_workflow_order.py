@@ -31,5 +31,7 @@ def test_full_app_timeout_reports_gtk_scene_progress():
     smoke = (ROOT / "tests" / "test_easyhybrid_full_app_smoke.py").read_text()
 
     assert 'state["phase"] = "waiting_for_scene_render"' in smoke
-    assert 'core_renders=%s scene_draws=%s active=%s' in smoke
+    assert 'core_renders=%s scene_draws=%s active=%s picking=%s' in smoke
     assert 'widget.get_realized(), widget.get_mapped()' in smoke
+    assert 'state["phase"] = "waiting_for_gl_area_allocation"' in smoke
+    assert 'state["pick_dimensions"] = (' in smoke
