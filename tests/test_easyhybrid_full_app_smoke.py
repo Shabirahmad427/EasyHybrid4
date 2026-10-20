@@ -176,6 +176,9 @@ _FULL_APP_CYCLE = textwrap.dedent(
             # the oxygen has stopped moving; otherwise the pick reads a later
             # frame and slow runners intermittently miss.
             position = (round(px, 2), round(py, 2), float(core.width), float(core.height))
+            state["pick_projection"] = (
+                round(px, 5), round(py, 5), core.width, core.height
+            )
             if position != state.get("pick_position"):
                 state["pick_position"] = position
                 state["pick_stable_ticks"] = 0
@@ -268,7 +271,8 @@ _FULL_APP_CYCLE = textwrap.dedent(
             details = (
                 "gl_area(realized=%s,mapped=%s,visible=%s,size=%sx%s) "
                 "core_renders=%s scene_draws=%s active=%s picking=%s "
-                "pick_xy=%r pick_dimensions=%r atom_picked=%r"
+                "pick_xy=%r pick_dimensions=%r pick_position=%r "
+                "pick_stable_ticks=%s pick_projection=%r atom_picked=%r"
                 % (
                     widget.get_realized(), widget.get_mapped(),
                     widget.get_visible(), widget.get_width(), widget.get_height(),
@@ -279,6 +283,9 @@ _FULL_APP_CYCLE = textwrap.dedent(
                         getattr(main.vm_session.vm_glcore, "picking_y", None),
                     ),
                     state.get("pick_dimensions"),
+                    state.get("pick_position"),
+                    state.get("pick_stable_ticks", 0),
+                    state.get("pick_projection"),
                     getattr(
                         getattr(main.vm_session.vm_glcore, "atom_picked", None),
                         "name", None,
