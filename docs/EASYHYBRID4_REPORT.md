@@ -114,22 +114,33 @@ inspected and summarized here, per maintainer request), but both Windows GTK
 `xc_gga_exc_vxc`, `xc_lda_exc`, and `xc_gga_exc`. Inspection of pinned
 pDynamo3 source `6b28dd8958e1a705fcdca130f4ab862a8af8de82` found these wrappers
 declared as external in `xc.h` but defined using C `inline` in the bundled XC
-translation units. The current working-tree follow-up removes `inline` only
-from those five wrapper definitions on Windows; function bodies and
-calculations are unchanged. Its local patch regression passes (**1 passed**),
-but native rebuild and full-app checks remain **NOT TESTED** until the focused
-Windows 4.8/4.10 jobs run. Their GTK widget regressions passed (64 passed/4
-skipped on 4.8; 65 passed/3 skipped on 4.10), as did the five-cycle molecular
-scene smoke. The same Windows pDynamo linker failure reproduced on both
-versions.
+translation units. The Windows-only compatibility patch removes `inline`
+only from those five wrapper definitions; function bodies and calculations
+are unchanged.
+
+Focused verification run `39450153293` passed both Windows cells: GTK 4.8.2
+(Python 3.12.15, PyGObject 3.46.0, GLib 2.78.0) and GTK 4.10.1 (Python
+3.12.15, PyGObject 3.48.1, GLib 2.78.0). Each built and imported pinned
+pDynamo3 `6b28dd8958e1a705fcdca130f4ab862a8af8de82`, then passed the complete
+`EasyHybridApplication`/`MainWindow` smoke for five fresh cycles: generated
+water PDB load, 3-atom system verification, oxygen pick (`O:0`), render and
+clean close. GTK widget tests were 64 passed/4 skipped on 4.8 and 65 passed/3
+skipped on 4.10; five-cycle production menu/VisMol scene tests passed. The
+real-window rendering and scale-1/2 scene validations used Mesa 26.2.4
+llvmpipe WGL (OpenGL 4.6 Core). Full suite results are not implied by this
+focused run. The pick invokes GTK gesture callbacks with test coordinates;
+it does not inject an OS pointer event. Physical Windows GPUs remain
+**NOT TESTED**. The full Linux/Windows/macOS GTK matrix is still required
+before merge.
 
 The accidental Intel macOS 4.8/4.10 cells built pDynamo3 and passed GTK and
 component tests, then failed during the import preflight because
 `PDYNAMO3_SCRATCH` was not set (`TypeError` while joining the unset value to
-the MNDO test path). The workflow now supplies the runner temporary directory
-for this variable in each pDynamo preflight variant. `windows-legacy` now
-excludes the unintended Intel macOS include cells. Both changes have local
-workflow regression coverage; native follow-up is pending.
+the MNDO test path). The workflow supplies the runner temporary directory for
+this variable in each pDynamo preflight variant; this correction passed on
+Windows, while the Intel macOS case remains **NOT TESTED** after the update.
+`windows-legacy` now excludes unintended Intel macOS include cells. The
+workflow regression tests pass locally.
 
 **EH4-201 component-smoke evidence:** The GTK smoke creates a test-owned
 GTK window with EasyHybrid's production menu and bundled VisMol widget. It
