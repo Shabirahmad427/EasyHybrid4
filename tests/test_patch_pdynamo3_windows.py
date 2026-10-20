@@ -43,6 +43,14 @@ def test_windows_patch_replaces_empty_mndo_table_with_unused_zero_sentinel(tmp_p
     header = (tmp_path / "pMolecule/QCModel/__extensions__/cinclude/MNDOIntegralDefinitions.h").read_text()
     source = (tmp_path / "pMolecule/QCModel/__extensions__/csource/MNDOIntegralDefinitions.c").read_text()
     utility = (tmp_path / "pMolecule/QCModel/__extensions__/csource/MNDOIntegralUtilities.c").read_text()
+    xc_files = {
+        relative: (tmp_path / relative).read_text()
+        for relative in (
+            "pMolecule/QCModel/__extensions__/cxc/lda.c",
+            "pMolecule/QCModel/__extensions__/cxc/gga.c",
+            "pMolecule/QCModel/__extensions__/cxc/mgga.c",
+        )
+    }
     assert "extern const Integer  SNEGATIVE   [  1] ;" in header
     assert "const Integer  SNEGATIVE[ 1] = { 0 } ;" in source
     assert "SNEGATIVE   [  0]" not in header
@@ -50,8 +58,53 @@ def test_windows_patch_replaces_empty_mndo_table_with_unused_zero_sentinel(tmp_p
     assert "{ { 0, 0, 0 }, { 0, 0, 7 }, { 0, 7, 50 } }" in utility
     assert "if (jam == 0) negative = SNEGATIVE;" in utility
     assert "c < nnegative" in utility
+    assert "inline void \nXC(lda_exc)(" not in xc_files[
+        "pMolecule/QCModel/__extensions__/cxc/lda.c"
+    ]
+    assert "void \nXC(lda_exc)(" in xc_files[
+        "pMolecule/QCModel/__extensions__/cxc/lda.c"
+    ]
+    assert "inline void \nXC(lda_exc_vxc)(" not in xc_files[
+        "pMolecule/QCModel/__extensions__/cxc/lda.c"
+    ]
+    assert "void \nXC(lda_exc_vxc)(" in xc_files[
+        "pMolecule/QCModel/__extensions__/cxc/lda.c"
+    ]
+    assert "inline void \nXC(gga_exc)(" not in xc_files[
+        "pMolecule/QCModel/__extensions__/cxc/gga.c"
+    ]
+    assert "void \nXC(gga_exc)(" in xc_files[
+        "pMolecule/QCModel/__extensions__/cxc/gga.c"
+    ]
+    assert "inline void \nXC(gga_exc_vxc)(" not in xc_files[
+        "pMolecule/QCModel/__extensions__/cxc/gga.c"
+    ]
+    assert "void \nXC(gga_exc_vxc)(" in xc_files[
+        "pMolecule/QCModel/__extensions__/cxc/gga.c"
+    ]
+    assert "inline void \nXC(mgga_exc_vxc)(" not in xc_files[
+        "pMolecule/QCModel/__extensions__/cxc/mgga.c"
+    ]
+    assert "void \nXC(mgga_exc_vxc)(" in xc_files[
+        "pMolecule/QCModel/__extensions__/cxc/mgga.c"
+    ]
 
     # Applying the compatibility patch to a cached/retried checkout is safe.
     namespace["patch"](tmp_path, force=True)
     assert "const Integer  SNEGATIVE[ 1] = { 0 } ;" in source
+    assert {
+        relative: (tmp_path / relative).read_text()
+        for relative in xc_files
+    } == xc_files
+
+
+def test_native_matrix_uses_scratch_and_keeps_windows_legacy_dispatch_focused():
+    workflow = (ROOT / ".github" / "workflows" / "native-gtk-matrix.yml").read_text()
+
+    # pDynamo's import preflight requires PDYNAMO3_SCRATCH (including on macOS).
+    assert workflow.count('export PDYNAMO3_SCRATCH="$RUNNER_TEMP"') == 4
+
+    # The legacy-only rerun is intended to cover GTK 4.8/4.10 on Windows and
+    # must not inject unrelated Intel macOS cells into a focused failure retry.
+    assert "(inputs.scope == 'windows' || inputs.scope == 'windows-legacy') && '[]'" in workflow
 

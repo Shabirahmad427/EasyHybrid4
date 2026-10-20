@@ -34,6 +34,11 @@ Windows it fails before any scientific code is involved:
   ``SNEGATIVE`` table as a zero-length C array. MSVC rejects it (C2466),
   although the associated ``NNEGATIVE`` count is zero whenever this table is
   selected. A one-element zero sentinel preserves the zero-term behavior.
+* MSVC only: the bundled XC implementation declares externally visible
+  wrappers in ``xc.h`` but defines five used wrappers as C ``inline`` in
+  separate translation units. MSVC does not emit those external definitions,
+  so the DFT extension fails to link. Those wrapper definitions are made
+  ordinary external functions; their numerical bodies are unchanged.
 * Both: f2c.h defines an ``abs(x)`` macro; files that include
   f2clapack.h before <math.h> (Splines/CubicSpline.c) then break the
   Windows runtime's abs() declaration (corecrt_math.h: "syntax error:
@@ -43,7 +48,7 @@ Windows it fails before any scientific code is involved:
   it now selects Win32 for any ``_WIN32`` compiler.
 
 The edits touch only the installer, that macro, the stack arrays, the empty
-MNDO table, and that platform condition
+MNDO table, five XC linkage specifiers, and that platform condition
 (no field, type or calculation changes), and each must match the pinned upstream text
 exactly. Usage:
 
@@ -191,6 +196,37 @@ SOURCE_EDITS = (
         "const Integer  SNEGATIVE[ 0] = {} ;",
         "const Integer  SNEGATIVE[ 1] = { 0 } ;",
     ),
+    # . These public XC wrappers are declared without inline in xc.h and are
+    # . called from other translation units. MSVC C inline semantics do not
+    # . emit the external definitions that GCC provides, producing unresolved
+    # . xc_*_exc[_vxc] symbols when linking DFTFunctionalModel / dcXC.
+    # . Remove inline from only the five wrappers required by this build;
+    # . function bodies and numerical calculations remain unchanged.
+    (
+        "pMolecule/QCModel/__extensions__/cxc/lda.c",
+        "inline void \nXC(lda_exc)(",
+        "void \nXC(lda_exc)(",
+    ),
+    (
+        "pMolecule/QCModel/__extensions__/cxc/lda.c",
+        "inline void \nXC(lda_exc_vxc)(",
+        "void \nXC(lda_exc_vxc)(",
+    ),
+    (
+        "pMolecule/QCModel/__extensions__/cxc/gga.c",
+        "inline void \nXC(gga_exc)(",
+        "void \nXC(gga_exc)(",
+    ),
+    (
+        "pMolecule/QCModel/__extensions__/cxc/gga.c",
+        "inline void \nXC(gga_exc_vxc)(",
+        "void \nXC(gga_exc_vxc)(",
+    ),
+    (
+        "pMolecule/QCModel/__extensions__/cxc/mgga.c",
+        "inline void \nXC(mgga_exc_vxc)(",
+        "void \nXC(mgga_exc_vxc)(",
+    ),
 )
 
 
@@ -200,27 +236,31 @@ def patch(root, force=False):
         print("PDYNAMO3_WINDOWS_PATCH=not-needed")
         return
     text = path.read_text(encoding="utf-8")
-    if MARKER in text:
-        print("PDYNAMO3_WINDOWS_PATCH=already-applied")
-        return
-    for old, new in EDITS:
-        count = text.count(old)
-        if count != 1:
-            raise SystemExit("pDynamo3 installer changed; expected one match, found %d: %r" % (count, old[:80]))
-        text = text.replace(old, new)
-    path.write_text(text, encoding="utf-8")
+    installer_changed = MARKER not in text
+    if installer_changed:
+        for old, new in EDITS:
+            count = text.count(old)
+            if count != 1:
+                raise SystemExit("pDynamo3 installer changed; expected one match, found %d: %r" % (count, old[:80]))
+            text = text.replace(old, new)
+        path.write_text(text, encoding="utf-8")
+    source_changes = 0
     for relative, old, new in SOURCE_EDITS:
         source = Path(root) / relative
         content = source.read_text(encoding="utf-8")
-        if content.count(old) != 1:
-            raise SystemExit("pDynamo3 source changed; expected one match in %s" % relative)
-        source.write_text(content.replace(old, new), encoding="utf-8")
+        count = content.count(old)
+        if count == 1:
+            source.write_text(content.replace(old, new), encoding="utf-8")
+            source_changes += 1
+        elif count != 0 or content.count(new) != 1:
+            raise SystemExit("pDynamo3 source changed; expected one original or patched match in %s" % relative)
     shutil.copytree(Path(__file__).with_name("pdynamo3_windows_include"),
                     # Outside installation/: setup() runs there and setuptools'
                     # flat-layout discovery rejects a second top-level folder.
                     Path(root) / "windows_include", dirs_exist_ok=True)
-    print("PDYNAMO3_WINDOWS_PATCH=applied (%d installer edits, %d source edits)"
-          % (len(EDITS), len(SOURCE_EDITS)))
+    state = "applied" if installer_changed or source_changes else "already-applied"
+    print("PDYNAMO3_WINDOWS_PATCH=%s (%d installer edits, %d source edits)"
+          % (state, len(EDITS) if installer_changed else 0, source_changes))
 
 
 if __name__ == "__main__":

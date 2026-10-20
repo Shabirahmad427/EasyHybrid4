@@ -39,9 +39,9 @@ jobs:
         # conda-forge publishes no GTK 4.16/4.18 builds, and GTK 4.8/4.10 only
         # for osx-64. Those cells are covered by the distro, MSYS2 and
         # source-build jobs below; GTK 4.8/4.10 also run here on Intel macOS.
-        # The "windows" scope runs Windows cells only.
+        # Focused Windows dispatches must not also add Intel macOS cells.
         include: >-
-          ${{ fromJSON(inputs.scope == 'windows' && '[]' || '[{"os": "macos-x86_64", "gtk": "4.8"}, {"os": "macos-x86_64", "gtk": "4.10"}]') }}
+          ${{ fromJSON((inputs.scope == 'windows' || inputs.scope == 'windows-legacy') && '[]' || '[{"os": "macos-x86_64", "gtk": "4.8"}, {"os": "macos-x86_64", "gtk": "4.10"}]') }}
         exclude:
           - os: linux-x86_64
             gtk: "4.16"
@@ -254,6 +254,7 @@ jobs:
           cd ../..
           export PDYNAMO3_HOME="${{ github.workspace }}/pDynamo3"
           export PDYNAMO3_PARAMETERS="$PDYNAMO3_HOME/parameters"
+          export PDYNAMO3_SCRATCH="$RUNNER_TEMP"
           PYTHONPATH="$PDYNAMO3_HOME" micromamba run -n easyhybrid-gtk python -c "import pCore, pBabel, pMolecule, pScientific, pSimulation; print('PDYNAMO3_IMPORT=OK')" | tee -a platform-results.txt
           echo "PDYNAMO3_REF=$PDYNAMO3_REF" | tee -a platform-results.txt
 
@@ -461,6 +462,7 @@ jobs:
           cd ../..
           export PDYNAMO3_HOME="$PWD/pDynamo3"
           export PDYNAMO3_PARAMETERS="$PDYNAMO3_HOME/parameters"
+          export PDYNAMO3_SCRATCH="$RUNNER_TEMP"
           PYTHONPATH="$PDYNAMO3_HOME" python3 -c "import pCore, pBabel, pMolecule, pScientific, pSimulation; print('PDYNAMO3_IMPORT=OK')" | tee -a platform-results.txt
           echo "PDYNAMO3_REF=$PDYNAMO3_REF" | tee -a platform-results.txt
 
@@ -654,6 +656,7 @@ jobs:
           cd ../..
           export PDYNAMO3_HOME="$(cygpath -m "$PWD/pDynamo3")"
           export PDYNAMO3_PARAMETERS="$PDYNAMO3_HOME/parameters"
+          export PDYNAMO3_SCRATCH="$RUNNER_TEMP"
           PYTHONPATH="$PDYNAMO3_HOME" python -c "import pCore, pBabel, pMolecule, pScientific, pSimulation; print('PDYNAMO3_IMPORT=OK')" | tee -a platform-results.txt
           echo "PDYNAMO3_REF=$PDYNAMO3_REF" | tee -a platform-results.txt
 
@@ -885,6 +888,7 @@ jobs:
           cd ../..
           export PDYNAMO3_HOME="${{ github.workspace }}/pDynamo3"
           export PDYNAMO3_PARAMETERS="$PDYNAMO3_HOME/parameters"
+          export PDYNAMO3_SCRATCH="$RUNNER_TEMP"
           PYTHONPATH="$PDYNAMO3_HOME" micromamba run -n easyhybrid-gtk-src python -c "import pCore, pBabel, pMolecule, pScientific, pSimulation; print('PDYNAMO3_IMPORT=OK')" | tee -a platform-results.txt
           echo "PDYNAMO3_REF=$PDYNAMO3_REF" | tee -a platform-results.txt
 

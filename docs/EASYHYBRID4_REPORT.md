@@ -87,8 +87,8 @@ macOS, or across GTK 4.8–4.24. This pass does not resolve the macOS selection
 failures above. A pDynamo import without a system label also exposed and fixed
 a production display-name fallback to the loaded coordinate file's basename.
 
-**Windows full-app CI blocker (2026-10-20):** run
-[`39368203653`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39368203653)
+**Windows full-app CI blocker (2026-10-20):** diagnostic run `39368203653`
+(its Actions record was deleted at the maintainer's request after inspection)
 passed native GTK/window/Gio/GLArea and five-cycle production menu/VisMol
 checks on Windows GTK 4.8.2 and 4.10.1 (Python 3.12.15, PyGObject 3.46.0 and
 3.48.1 respectively, Mesa 26.2.4 llvmpipe WGL). It then failed to build the
@@ -98,10 +98,38 @@ when `jam == 0`; every `NNEGATIVE[iam][0]` count is zero, and its only reads
 are bounded by that count. The Windows-only CI patch now changes the array
 declaration and definition to one zero sentinel without changing the count or
 calculation loop. The local patch regression passes; native pDynamo3 rebuild
-and full-app smoke are pending. Windows conda GTK 4.8–4.24 jobs showed the
+and full-app smoke are pending in verification run
+`39448296274` (the run's Actions record will be removed after artifacts are
+inspected, per maintainer request).
+Windows conda GTK 4.8–4.24 jobs showed the
 same build failure; Windows source GTK 4.16/4.18 jobs were cancelled before
 the build step. Linux/macOS were skipped in this Windows-scoped run. This is a
 Windows pDynamo3 compiler-portability issue, separate from GTK compatibility.
+
+The zero-sentinel patch passed its MSVC compile stage in verification run
+`39448296274` (run record deleted after the artifacts and job logs were
+inspected and summarized here, per maintainer request), but both Windows GTK
+4.8.2 and 4.10.1 then failed linking
+`DFTFunctionalModel` with unresolved `xc_mgga_exc_vxc`, `xc_lda_exc_vxc`,
+`xc_gga_exc_vxc`, `xc_lda_exc`, and `xc_gga_exc`. Inspection of pinned
+pDynamo3 source `6b28dd8958e1a705fcdca130f4ab862a8af8de82` found these wrappers
+declared as external in `xc.h` but defined using C `inline` in the bundled XC
+translation units. The current working-tree follow-up removes `inline` only
+from those five wrapper definitions on Windows; function bodies and
+calculations are unchanged. Its local patch regression passes (**1 passed**),
+but native rebuild and full-app checks remain **NOT TESTED** until the focused
+Windows 4.8/4.10 jobs run. Their GTK widget regressions passed (64 passed/4
+skipped on 4.8; 65 passed/3 skipped on 4.10), as did the five-cycle molecular
+scene smoke. The same Windows pDynamo linker failure reproduced on both
+versions.
+
+The accidental Intel macOS 4.8/4.10 cells built pDynamo3 and passed GTK and
+component tests, then failed during the import preflight because
+`PDYNAMO3_SCRATCH` was not set (`TypeError` while joining the unset value to
+the MNDO test path). The workflow now supplies the runner temporary directory
+for this variable in each pDynamo preflight variant. `windows-legacy` now
+excludes the unintended Intel macOS include cells. Both changes have local
+workflow regression coverage; native follow-up is pending.
 
 **EH4-201 component-smoke evidence:** The GTK smoke creates a test-owned
 GTK window with EasyHybrid's production menu and bundled VisMol widget. It
