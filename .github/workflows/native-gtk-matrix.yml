@@ -209,6 +209,21 @@ jobs:
             micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_gtk_icon_theme_smoke.py::test_easyhybrid_menu_vismol_components_open_and_close_cleanly 2>&1 | tee -a platform-results.txt
           fi
 
+      - name: Run complete regression suite with real GTK smoke enabled
+        if: matrix.gtk == '4.24'
+        env:
+          EASYHYBRID_RUN_GTK_GUI_TESTS: "1"
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+        run: |
+          set -o pipefail
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe PYOPENGL_PLATFORM=glx xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" micromamba run -n easyhybrid-gtk python -m pytest -q -p no:cacheprovider --ignore=tests/test_gtk4_widget_patterns.py tests/ 2>&1 | tee -a platform-results.txt
+          elif [[ "$RUNNER_OS" == "Windows" ]]; then
+            GALLIUM_DRIVER=llvmpipe micromamba run -n easyhybrid-gtk python -m pytest -q -p no:cacheprovider --ignore=tests/test_gtk4_widget_patterns.py tests/ 2>&1 | tee -a platform-results.txt
+          else
+            micromamba run -n easyhybrid-gtk python -m pytest -q -p no:cacheprovider --ignore=tests/test_gtk4_widget_patterns.py tests/ 2>&1 | tee -a platform-results.txt
+          fi
+
       - name: Validate VisMol rendering, export, picking and resize at scale 1 and 2
         env:
           EASYHYBRID_RUN_GRAPHICS_TESTS: "1"
@@ -228,25 +243,12 @@ jobs:
       - name: Measure macOS GTK startup after render validation (diagnostic)
         if: runner.os == 'macOS'
         run: |
-          ps -axo pid,ppid,etime,pcpu,rss,command | grep -iE "python|gtk|caffeinate" | grep -v grep | tee -a platform-results.txt || true
+          ps -axo pid,ppid,etime,pcpu,rss,command | grep -iE "python|gtk" | grep -v grep | tee -a platform-results.txt || true
+          echo "MACOS_TOP_CPU_AFTER_VALIDATION:" | tee -a platform-results.txt
+          ps -axro pcpu,etime,comm | head -8 | tee -a platform-results.txt
           start=$(date +%s)
           micromamba run -n easyhybrid-gtk python tests/test_gtk_icon_theme_smoke.py 2>&1 | tail -3 | tee -a platform-results.txt || true
           echo "MACOS_GTK_STARTUP_AFTER_VALIDATION_SECONDS=$(( $(date +%s) - start ))" | tee -a platform-results.txt
-
-      - name: Run complete regression suite with real GTK smoke enabled
-        if: matrix.gtk == '4.24'
-        env:
-          EASYHYBRID_RUN_GTK_GUI_TESTS: "1"
-          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
-        run: |
-          set -o pipefail
-          if [[ "$RUNNER_OS" == "Linux" ]]; then
-            LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe PYOPENGL_PLATFORM=glx xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" micromamba run -n easyhybrid-gtk python -m pytest -q -p no:cacheprovider --ignore=tests/test_gtk4_widget_patterns.py tests/ 2>&1 | tee -a platform-results.txt
-          elif [[ "$RUNNER_OS" == "Windows" ]]; then
-            GALLIUM_DRIVER=llvmpipe micromamba run -n easyhybrid-gtk python -m pytest -q -p no:cacheprovider --ignore=tests/test_gtk4_widget_patterns.py tests/ 2>&1 | tee -a platform-results.txt
-          else
-            micromamba run -n easyhybrid-gtk python -m pytest -q -p no:cacheprovider --ignore=tests/test_gtk4_widget_patterns.py tests/ 2>&1 | tee -a platform-results.txt
-          fi
 
       - name: Upload runtime and test evidence
         if: always()
@@ -691,7 +693,9 @@ jobs:
       - name: Measure macOS GTK startup after render validation (diagnostic)
         if: runner.os == 'macOS'
         run: |
-          ps -axo pid,ppid,etime,pcpu,rss,command | grep -iE "python|gtk|caffeinate" | grep -v grep | tee -a platform-results.txt || true
+          ps -axo pid,ppid,etime,pcpu,rss,command | grep -iE "python|gtk" | grep -v grep | tee -a platform-results.txt || true
+          echo "MACOS_TOP_CPU_AFTER_VALIDATION:" | tee -a platform-results.txt
+          ps -axro pcpu,etime,comm | head -8 | tee -a platform-results.txt
           start=$(date +%s)
           micromamba run -n easyhybrid-gtk-src python tests/test_gtk_icon_theme_smoke.py 2>&1 | tail -3 | tee -a platform-results.txt || true
           echo "MACOS_GTK_STARTUP_AFTER_VALIDATION_SECONDS=$(( $(date +%s) - start ))" | tee -a platform-results.txt
