@@ -27,9 +27,9 @@ def test_failed_macos_gtk424_cell_can_be_dispatched_alone():
     assert workflow.count("inputs.scope != 'macos-gtk424'") == 3
 
 
-def test_macos_gtk424_full_app_smoke_enables_hang_stack_diagnostics():
-    workflow = (ROOT / ".github" / "workflows" / "native-gtk-matrix.yml").read_text()
+def test_full_app_timeout_reports_gtk_scene_progress():
     smoke = (ROOT / "tests" / "test_easyhybrid_full_app_smoke.py").read_text()
 
-    assert "EASYHYBRID_FULL_APP_TRACE: ${{ runner.os == 'macOS' && matrix.gtk == '4.24'" in workflow
-    assert 'faulthandler.dump_traceback_later(20, repeat=True)' in smoke
+    assert 'state["phase"] = "waiting_for_scene_render"' in smoke
+    assert 'core_renders=%s scene_draws=%s active=%s' in smoke
+    assert 'widget.get_realized(), widget.get_mapped()' in smoke

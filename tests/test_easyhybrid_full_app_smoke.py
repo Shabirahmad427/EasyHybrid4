@@ -19,7 +19,6 @@ _FULL_APP_CYCLE = textwrap.dedent(
     import os
     import sys
     import time
-    import faulthandler
 
     from src.os_integration.gtk_startup import configure_startup_environment
     configure_startup_environment(os.path.abspath("."))
@@ -39,7 +38,10 @@ _FULL_APP_CYCLE = textwrap.dedent(
 
     fixture = os.path.abspath(sys.argv[1])
     app = easyhybrid.EasyHybridApplication()
-    state = {"started": time.monotonic(), "scene_draws": 0, "picked": False}
+    state = {
+        "started": time.monotonic(), "scene_draws": 0,
+        "core_renders": 0, "phase": "application_start", "picked": False,
+    }
 
     def fail(message):
         print("EASYHYBRID_FULL_APP_ERROR=" + message, flush=True)
@@ -60,6 +62,7 @@ _FULL_APP_CYCLE = textwrap.dedent(
             if not isinstance(main, easyhybrid.MainWindow):
                 return fail("application did not construct the production MainWindow")
             state["observing"] = True
+            state["phase"] = "main_window_ready"
             print("EASYHYBRID_FULL_APP_MAIN_WINDOW=True", flush=True)
 
         # The fixture is supplied as a normal command-line open request. The
@@ -87,6 +90,7 @@ _FULL_APP_CYCLE = textwrap.dedent(
             return GLib.SOURCE_CONTINUE
 
         if not state.get("scene_ready"):
+            state["phase"] = "initializing_gl_area"
             vm_widget = vm_session.vm_widget
             core = vm_session.vm_glcore
             vm_widget.make_current()
@@ -100,6 +104,14 @@ _FULL_APP_CYCLE = textwrap.dedent(
                 return fail("production MainWindow has no current OpenGL context")
             state["gl_version"] = bytes(gl_version)
             state["gl_renderer"] = bytes(gl_renderer)
+
+            render_core = core.render
+
+            def count_core_render(*args, **kwargs):
+                state["core_renders"] += 1
+                return render_core(*args, **kwargs)
+
+            core.render = count_core_render
 
             molecule = next(iter(vm_session.vm_objects_dic.values()))
             atoms = list(molecule.atoms.values())
@@ -123,6 +135,21 @@ _FULL_APP_CYCLE = textwrap.dedent(
                 representation.draw_representation = count_draw
 
             state.update(molecule=molecule, oxygen=oxygen, scene_ready=True)
+            state["phase"] = "waiting_for_scene_render"
+            active_representations = [
+                name for name, representation in molecule.representations.items()
+                if representation is not None and representation.active
+            ]
+            print(
+                "EASYHYBRID_FULL_APP_GLAREA="
+                "realized:%s,mapped:%s,visible:%s,size:%sx%s,active:%s"
+                % (
+                    vm_widget.get_realized(), vm_widget.get_mapped(),
+                    vm_widget.get_visible(), vm_widget.get_width(),
+                    vm_widget.get_height(), ",".join(active_representations),
+                ),
+                flush=True,
+            )
             vm_widget.queue_render()
             return GLib.SOURCE_CONTINUE
 
@@ -130,6 +157,7 @@ _FULL_APP_CYCLE = textwrap.dedent(
             return GLib.SOURCE_CONTINUE
 
         if not state.get("pick_started"):
+            state["phase"] = "waiting_for_pick"
             from gui.windows.builder.click_mode import _project_local_point_to_pixel
 
             vm_widget = vm_session.vm_widget
@@ -216,16 +244,35 @@ _FULL_APP_CYCLE = textwrap.dedent(
                 type(error).__name__, error
             ))
 
-    if os.environ.get("EASYHYBRID_FULL_APP_TRACE") == "1":
-        # A timeout callback cannot run while startup is blocked in a
-        # synchronous load/render call. Dump the Python call stack from a
-        # watchdog thread so native CI artifacts identify that call site.
-        faulthandler.dump_traceback_later(20, repeat=True)
-
     GLib.timeout_add(50, safe_poll_app)
-    GLib.timeout_add_seconds(45, lambda: fail("full-app lifecycle timed out"))
+
+    def lifecycle_timeout():
+        main = getattr(app, "main_window", None)
+        widget = getattr(getattr(main, "vm_session", None), "vm_widget", None)
+        if widget is None:
+            details = "gl_area=unavailable"
+        else:
+            molecule = state.get("molecule")
+            active = [] if molecule is None else [
+                name for name, representation in molecule.representations.items()
+                if representation is not None and representation.active
+            ]
+            details = (
+                "gl_area(realized=%s,mapped=%s,visible=%s,size=%sx%s) "
+                "core_renders=%s scene_draws=%s active=%s"
+                % (
+                    widget.get_realized(), widget.get_mapped(),
+                    widget.get_visible(), widget.get_width(), widget.get_height(),
+                    state["core_renders"], state["scene_draws"], ",".join(active),
+                )
+            )
+        return fail(
+            "full-app lifecycle timed out phase=%s %s" %
+            (state["phase"], details)
+        )
+
+    GLib.timeout_add_seconds(45, lifecycle_timeout)
     status = app.run([sys.argv[0], fixture])
-    faulthandler.cancel_dump_traceback_later()
     print("EASYHYBRID_FULL_APP_STATUS=%d CLOSED=%s" % (status, state.get("closed")), flush=True)
     if status != 0 or not state.get("closed"):
         raise SystemExit(2)
