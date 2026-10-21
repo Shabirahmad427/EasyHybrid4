@@ -37,6 +37,10 @@ for _p in (
         sys.path.insert(0, _p)
 
 from gui.windows.builder.atom_ops import (  # noqa: E402
+    add_atom,
+    move_atom,
+    push_undo_snapshot,
+    undo,
     set_bond_order,
     unset_bond,
     resolve_frame_arg,
@@ -236,3 +240,34 @@ def test_dynamic_bonds_do_not_touch_static_topology(make_vismol_object):
     assert set(vobj.bonds.keys()) == set(static_bonds_before.keys()), (
         "a topologia estatica (vismol_object.bonds) nao deveria mudar"
     )
+
+
+def test_builder_edit_undo_restores_atom_coordinates_charge_and_bonds(make_vismol_object):
+    """A logical Builder edit can be reversed without losing structure data."""
+    vobj = make_vismol_object(["O", "H"], [0, 1])
+    vobj.name = "water"
+    vobj.is_builder_only = True
+    vobj.e_id = None
+    vobj.manual_bonds = {(0, 1)}
+    vobj.manual_bond_orders = {(0, 1): 1}
+    vobj.manual_aromatic_bonds = set()
+    vobj.manual_atom_type_overrides = {}
+    vobj.dyff_parameter_edits = {}
+    vobj.atoms[0].formal_charge = -1
+    vobj.atoms[0].mm_charge = -0.8
+    vobj.frames[0, 0] = [1.0, 2.0, 3.0]
+    vobj.vm_session.atom_dic_id = {}
+    vobj.vm_session.atom_id_counter = 0
+
+    push_undo_snapshot(vobj)
+    move_atom(vobj, 0, 4.0, 5.0, 6.0, update_representation=False)
+    add_atom(vobj, "H", -1.0, 0.0, 0.0, name="H2", bonded_to=0)
+    assert len(vobj.atoms) == 3
+    assert undo(vobj) is True
+
+    assert len(vobj.atoms) == 2
+    assert tuple(vobj.frames[0, 0]) == (1.0, 2.0, 3.0)
+    assert vobj.atoms[0].formal_charge == -1
+    assert vobj.atoms[0].mm_charge == -0.8
+    assert set(vobj.bonds) == {(0, 1)}
+    assert undo(vobj) is False
