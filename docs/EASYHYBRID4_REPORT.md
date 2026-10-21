@@ -1,10 +1,26 @@
 # EasyHybrid4 Development and Compatibility Report
 
-**Report date:** 2026-10-20
+**Report date:** 2026-10-21
 
 **Purpose:** One consolidated source for repository, architecture, dependency,
 GTK/Python compatibility, parity, platform, testing, and known-limitation
 status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).
+
+**EH4-205 focused implementation (2026-10-21):** the production VisMol
+`Gtk.GLArea` now checks the realized OpenGL version before initializing its
+shaders, requires OpenGL 3.3+, and shows a portable GTK4 error window for
+context, capability, initialization, or render failures. Repeated GL callbacks
+are suppressed after a failure; the application remains open so the user can
+read the reason and close it normally. Local Linux x86_64/X11 testing used
+Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib 2.80.0. A real Gtk.GLArea
+with an injected OpenGL 2.1 version presented the fallback dialog and skipped
+VisMol initialization; an injected render exception produced one dialog and
+prevented further scene renders. All six diagnostics tests passed. The full
+Linux Xvfb regression suite passed (168 passed, 14 skipped, one existing GLib
+warning). A separate GTK GL smoke used Mesa 25.2.8 llvmpipe (OpenGL 4.5 Core)
+and passed three window lifecycle cycles. All other GTK/platform cells are
+**NOT TESTED** for this change; EH4-205 remains unchecked until the required
+full native matrix runs.
 
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
@@ -1467,7 +1483,7 @@ reason to change scientific behavior without regression evidence.
 | KL-001 | EasyHybrid4 remote and graphics-engine source revision are not established. `.gitmodules` lists the graphics path, but it is tracked as ordinary files. | No configured parent remote and no Git submodule pointer; no upstream SHA is known. This is a provenance/publishing gap, not a current Linux test blocker. Do not guess URLs or revisions. | EH4-000 / EH4-200 when new provenance evidence or an owner-provided remote becomes available. |
 | KL-002 | GTK minor range is selected but not fully validated. | GTK 4.8 target and upstream stable GTK 4.22.5 have not been run; local evidence is GTK 4.14.5 only. GTK 4.6 is unsupported. | Native GTK_MIN and current-stable CI jobs in EH4-501; UI/GL in EH4-502/503. |
 | KL-003 | Cross-platform support is unverified. | Windows, macOS, Linux Wayland, and alternate Linux distributions were not tested. Bash launch/build scripts and native pDynamo dependencies need platform-specific validation. | EH4-300 through EH4-304 and EH4-500 onward. |
-| KL-004 | Real GUI and OpenGL rendering are unverified. | Automated tests run without GTK/display/GL. The VisMol widget requests OpenGL 3.3+ core. | EH4-102, EH4-201 through EH4-205, EH4-502/503. |
+| KL-004 | Graphics fallback coverage is only locally verified on one GTK runtime. | Linux X11/Xvfb GTK 4.14.5 confirms actual GL rendering and an injected unsupported-version diagnostic; native unsupported-driver failures and cross-platform/minor behavior remain unverified. | EH4-205 native matrix; real unsupported drivers where available. |
 | KL-005 | EasyHybrid startup emitted two GTK critical messages. | User-provided terminal output reported `gtk_box_remove: assertion 'gtk_widget_get_parent (child) == (GtkWidget *)box' failed` twice. Visible impact and responsible removal path are unknown. | Reproduce under GTK 4.14.5, isolate the parent/child removal path, add a lifecycle regression in EH4-102/105. |
 | KL-006 | Generic pip installation of the graphics package failed metadata generation. | Isolated `pip install --target` failed with `ModuleNotFoundError: No module named 'src'`; the project's `build_ext --inplace` path and all seven extension imports passed. | Packaging/build audit EH4-200 or EH4-303. |
 | KL-007 | pDynamo3 is only validated in one configured environment. | Linux Python 3.12.3 environment resolves `pCore`, `pMolecule`, `pSimulation`, and `pScientific`; Windows/macOS and other Python runtimes are untested. | Python/platform integration matrix in EH4-004/500/504. |
