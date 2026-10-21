@@ -28,6 +28,15 @@ and the NVIDIA GeForce RTX 4060 Ti OpenGL 4.6.0 backend. This is Linux GTK
 locks, packaged launchers, and full pDynamo3 installation remain **NOT
 TESTED**. EH4-303 remains unchecked.
 
+The lock replay's GTK window smoke must be launched with `conda run` (or an
+activated environment) so the prefix's GTK runtime variables and libraries
+are present. Calling the prefix `python` directly bypassed these and could
+not open the Xvfb display. The installer-manifest test passed separately with
+`pytest --noconftest` (2 passed); the default repository `conftest.py` imports
+existing source-tree binary extensions built against NumPy 1.x, which cannot
+load in the locked NumPy 2.5.4 environment. This test invocation adjustment
+does not change the recorded clean-copy build/import evidence.
+
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
 used GTK 4.24.1 / GLib 2.90.0 / PyGObject 3.58.1 / Python 3.12.15 on
