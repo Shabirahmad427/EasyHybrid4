@@ -328,7 +328,9 @@ _FULL_APP_CYCLE = textwrap.dedent(
                         return Gdk.ModifierType(0)
 
                     def get_current_event(self):
-                        return None
+                        raise AssertionError(
+                            "release handler must not marshal GdkButtonEvent"
+                        )
 
                 gesture = TestGesture(x, y)
                 vm_widget._on_mouse_pressed(gesture, 1, x, y)

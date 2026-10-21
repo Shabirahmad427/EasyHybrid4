@@ -145,12 +145,12 @@ pure coordinate conversion cases; these do not prove native OS injection.
 The full matrix for the initial Linux harness change failed GTK 4.8.2/Linux: the real
 XTest click reached the release handler, where `GestureClick.get_current_event()`
 raised `TypeError: No means to translate argument or return value for
-'GdkButtonEvent'`. GTK 4.8's PyGObject typelib does not always translate this
-optional event wrapper. The handler now catches `TypeError`/`RuntimeError` and
-passes `event=None`; button and modifier state continue to come from the GTK
-gesture APIs. A direct fallback check passed locally. The GTK 4.14.5 Linux
-Xvfb/XTest full-app smoke also passed one fresh-app cycle, but does not validate
-GTK 4.8. Focused workflow run
+'GdkButtonEvent'`. Since this event is optional context-menu metadata and the
+release coordinates are already saved for menu placement, the handler now
+omits that API call completely; regression fakes fail if it is invoked. The
+GTK 4.14.5 Linux Xvfb/XTest full-app smoke passed five fresh launches, each with
+an actual XTest click and `O:0` pick, rendering and clean close. This does not
+validate GTK 4.8. Focused workflow run
 [`39526363320`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39526363320)
 passed the exact GTK 4.8.2/Linux cell (Python 3.12.15, PyGObject 3.46.0,
 GLib 2.78.0, Mesa 25.2.8 llvmpipe/OpenGL 4.5): five XTest-injected clicks

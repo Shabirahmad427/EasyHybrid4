@@ -384,7 +384,9 @@ _EASYHYBRID_GRAPHICS_SMOKE = textwrap.dedent(
                             return Gdk.ModifierType(0)
 
                         def get_current_event(self):
-                            return None
+                            raise AssertionError(
+                                "release handler must not marshal GdkButtonEvent"
+                            )
 
                     from gui.windows.builder.click_mode import (
                         _project_local_point_to_pixel,
