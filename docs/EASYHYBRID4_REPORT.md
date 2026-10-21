@@ -15,6 +15,13 @@ window closed cleanly. Runtime: Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5
 macOS pointer injectors are implemented but remain **NOT TESTED** locally.
 EH4-202 remains unchecked pending complete native matrix verification.
 
+**EH4-202 Windows/macOS injector unit coverage (2026-10-21):** added mocked
+tests for Win32 coordinate scaling and `SendInput` button ordering, and for
+macOS Cocoa-to-Quartz coordinate conversion and event posting. Local Linux
+Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib 2.80.0: **2 passed**.
+These tests do not establish native Windows/macOS behavior; those paths remain
+**NOT TESTED** pending native full-app matrix runs. EH4-202 remains unchecked.
+
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
 used GTK 4.24.1 / GLib 2.90.0 / PyGObject 3.58.1 / Python 3.12.15 on
