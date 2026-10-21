@@ -13,6 +13,16 @@ autosave recovery or Windows/macOS/other GTK runtimes. Python pickle files
 remain trusted local project data; schema checks do not make untrusted pickle
 loading safe.
 
+**Simulation worker errors (partial, EH4-405):** an unsupported simulation
+type previously put `RUNNING` on the multiprocessing queue and returned without
+an error, leaving the process-manager row active indefinitely. The child now
+reports it through the normal `ERROR` message path. Exception details are
+serialized as strings so exceptions that cannot be pickled do not silently
+break queue delivery. A direct worker queue regression passes locally under
+Linux Xvfb with Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib 2.80.0.
+Cancellation, progress reporting, GUI responsiveness, and unexpected worker
+crash detection remain unverified.
+
 **Purpose:** One consolidated source for repository, architecture, dependency,
 GTK/Python compatibility, parity, platform, testing, and known-limitation
 status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).
