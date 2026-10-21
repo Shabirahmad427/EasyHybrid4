@@ -38,6 +38,18 @@ This evidence is limited to Linux GTK 4.14.5.
 Other GTK minors, Windows, macOS, Wayland, and Retina remain **NOT TESTED** for
 this change; EH4-204 remains open.
 
+Fresh native Linux X11 verification on 2026-10-21 ran the current branch
+(`ed918ad`) through five full-app cycles: **1 passed** (all five subprocess
+cycles picked, rendered and closed). Runtime: Linux Mint 22.3 x86_64, Python
+3.12.3, PyGObject 3.48.2, GTK 4.14.5, GLib 2.80.0, OpenGL 4.6.0 on NVIDIA
+GeForce RTX 4060 Ti; pDynamo3 was built for Python 3.12.3 at
+`/home/shabir/software/pDynamo3-py312`. Each cycle used XTest to pick `O:0`,
+checked atom/residue selection, labels, measurement and camera/session
+round-trip, then closed cleanly. The serialization failure-path regression
+passed (**1 passed**) with `PDYNAMO3_SCRATCH` configured. This confirms only
+Linux GTK 4.14.5; other GTK minors and Windows/macOS remain **NOT TESTED** for
+EH4-204.
+
 The focused `tests/test_session_row_serialization.py` failure-path regression
 also passes locally (**1 passed**): when pickle writing raises, both transient
 GTK row references are restored. It used the Linux Mint 22.3 x86_64 GTK
