@@ -105,7 +105,10 @@ Distribution should follow each platform's native runtime model rather than
 trying to ship one identical archive everywhere:
 
 - **Linux:** provide a relocatable conda environment archive with a small
-  desktop-entry installer. Keep system display, OpenGL drivers, and pDynamo3
+  desktop-entry installer. The bundle launcher is
+  [`packaging/linux/run-easyhybrid4.sh`](packaging/linux/run-easyhybrid4.sh);
+  it expects `app/` and a conda-packed `runtime/` alongside it and uses an
+  external compiled pDynamo3 checkout. Keep system display and OpenGL drivers
   outside the archive; verify GTK typelibs and graphics-driver discovery on
   the target distribution.
 - **Windows:** provide a per-user installer/bootstrapper that creates or

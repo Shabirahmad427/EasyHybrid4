@@ -1,10 +1,21 @@
 # EasyHybrid4 Development and Compatibility Report
 
-**Report date:** 2026-10-20
+**Report date:** 2026-10-21
 
 **Purpose:** One consolidated source for repository, architecture, dependency,
 GTK/Python compatibility, parity, platform, testing, and known-limitation
 status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).
+
+**EH4-304 Linux launcher prototype (2026-10-21; partial):** added
+`packaging/linux/run-easyhybrid4.sh` for a bundle containing `app/` and a
+relocated conda runtime under `runtime/`, while using an external compiled
+pDynamo3 checkout. It initializes a conda-packed runtime once, sets the
+application and pDynamo search paths, and chooses a user-cache scratch path.
+Two shell-wrapper tests pass on Linux Mint 22.3 x86_64 (Python 3.12.3); they
+use a fake Python executable and do not launch GTK or the scientific app. No
+runtime archive, desktop installer, or independently installable package was
+built. Windows and macOS packaging remain **NOT TESTED**. EH4-304 stays
+unchecked.
 
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
