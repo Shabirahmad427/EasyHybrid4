@@ -1,6 +1,6 @@
 # EasyHybrid4 Development and Compatibility Report
 
-**Report date:** 2026-10-20
+**Report date:** 2026-10-21
 
 **Purpose:** One consolidated source for repository, architecture, dependency,
 GTK/Python compatibility, parity, platform, testing, and known-limitation
@@ -733,7 +733,7 @@ migration is claimed but end-to-end behavior is not demonstrated.
 | Workflow | EasyHybrid4 status | Evidence / remaining work |
 |---|---|---|
 | Atom/bond mutation and bond-order perception logic | **WORKING (logic slice only)** | 23 tests cover bond edits, valence/order handling, representations' bookkeeping, and frame-specific dynamic bonds. No GTK UI, GL rendering, or pDynamo sync claim. |
-| Interactive Builder (create/edit, undo, charges/hydrogens, fragments, structures, solvation, DYFF/OPLS) | **PARTIAL** | `tests/test_atom_ops_bonds.py` now exercises one atom-coordinate/add-bonded-atom/undo round trip and verifies restored atom count, coordinates, formal/MM charge and topology (13 tests pass). No GTK Builder UI, linked pDynamo edit, selection/measurement workflow, or project save/load round-trip has run. |
+| Interactive Builder (create/edit, undo, charges/hydrogens, fragments, structures, solvation, DYFF/OPLS) | **PARTIAL** | `tests/test_atom_ops_bonds.py` exercises coordinate/add-bonded-atom/undo restoration plus atom multi-select/toggle/clear and numeric distance/angle measurements (15 tests pass). Selection-clear now resets atom selection flags. No GTK Builder UI, linked pDynamo edit, or project save/load round-trip has run. |
 | VisMol viewer, picking, selection, representations, camera and playback | **PARTIAL** | Real GTK GLArea, production renderer, picking, representation/export/resize checks pass in native matrix run `39485989866`; component matrix picking calls GTK handlers with synthetic coordinates. Full app passed focused native Linux, Windows GTK 4.8/4.10, and macOS GTK 4.24.1 checks. Local Linux X11/XTest full-app picking passes five cycles; hosted full-matrix confirmation is pending. Windows/macOS native OS input, physical GPU, Retina/trackpad, Wayland, and real trajectory playback remain **NOT TESTED**. |
 | GTK widget startup/lifecycle | **BROKEN (diagnostic observed)** | User-provided launch output showed two `gtk_box_remove` parent assertion critical messages. Visible impact and responsible removal path are unknown. |
 | System import, force-field assignment, merge/prune, trajectory import, `.easy` save/load | **UNTESTED** | Matching dialogs/session/serialization code exists; no representative import or project round-trip fixture was run. |

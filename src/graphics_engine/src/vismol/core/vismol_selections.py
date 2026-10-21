@@ -91,6 +91,8 @@ class VismolViewingSelection:
         """ Takes a selected atom and passes it to the appropriate selection function.
         """
         if selected is None:
+            for atom in self.selected_atoms:
+                atom.selected = False
             self.selected_atoms.clear()
             self.active = False
             for vm_object in self.vm_session.vm_objects_dic.values():
