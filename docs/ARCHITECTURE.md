@@ -93,3 +93,66 @@ The read-only EasyHybrid3 comparison checkout is
 `6a25a2eaf27c7627dba171104fc7fc8a4c9295fd`; that comparison SHA does not
 establish the EasyHybrid4 vendored source SHA. EH4-000 remains open for this
 unresolved graphics ancestry and contributor/license ownership evidence.
+
+### Repository-state re-audit (2026-10-21)
+
+This read-only audit was performed on `eh4-000-repository-provenance` at
+`12ec192857a0d765149c9671f57bf5685b09efef`, clean before the documentation
+update. The owner-supplied `origin` fetch/push URL is
+`https://github.com/Shabirahmad427/EasyHybrid4.git`. `main` and
+`origin/main` are both `0f21022a345e1fda80b2cc18b048e9ed91c1b867` with zero
+ahead/behind commits. There are 32 local branches, only the `origin/main`
+remote-tracking ref, and no tags. The graphics subtree object at this audited
+HEAD is `e2dd787a9b1f20d1e47ccba3bd484c45573bef73`; it is mode `040000`, its
+files are individually indexed, and `git submodule status --recursive` is
+empty. The subtree object ID identifies the current content tree only; it
+does not identify the source revision from which it was copied.
+
+Local branch refs at the audit (branch : commit):
+
+```text
+eh4-000-repository-provenance: 12ec192857a0
+eh4-200-graphics-engine-provenance: 0f21022a345e
+eh4-202-cross-platform-pointer-injection: 139d6c455fc3
+eh4-202-gtk-gesture-release-marshalling: 4cd83bac348f
+eh4-202-native-pointer-cross-platform: 44afbc66c739
+eh4-202-native-pointer-windows-macos: dcf19b1c6504
+eh4-203-input-semantics: fe1220fa1678
+eh4-203-scroll-input-semantics: 60e0c3deeb1f
+eh4-203-scroll-input-semantics-stacked: 31ba850f1b7d
+eh4-204-molecular-interaction-regression: c0fa66042746
+eh4-204-selection-camera-state: d151f33ccf81
+eh4-204-selection-camera-state-stacked: 981cd8e0c279
+eh4-205-graphics-fallback-diagnostics: 687762da83ca
+eh4-205-graphics-fallback-messaging: d8f0ad121e54
+eh4-205-graphics-fallback-messaging-stacked: f14d6249f6bf
+eh4-301-native-os-integration: e34ccbf491c1
+eh4-302-display-scaling: 2ea775576f75
+eh4-303-reproducible-installation: 9e2320a01e63
+eh4-304-platform-packaging: a25e29042578
+eh4-400-visualization-fixture-integrity: 93ee5bacc381
+eh4-401-selection-edit-undo-roundtrip: c91031bfb8ac
+eh4-402-mm-qmmm-workflow-validation: ae66eee605b9
+eh4-403-simulation-export-regressions: 4dd8a4fe20a2
+eh4-404-project-persistence-recovery: 8e1356f96d23
+eh4-404-project-persistence-roundtrip: f071794064e8
+eh4-405-background-computation-cancellation: 131aa3bdee64
+eh4-405-background-job-cancellation: e834fb01f575
+eh4-500-ci-quality-gates: 0c94b9dd50c9
+eh4-501-gtk-version-matrix-guard: 38cb0909a932
+eh4-502-native-ui-acceptance: ceafa14450a9
+eh4-503-gl-smoke-evidence: 0f21022a345e
+main: 0f21022a345e
+```
+
+The separate EasyHybrid3 checkout was inspected read-only at
+`b2113b8c11ba3dff51b93fd2f52fc1a7dc9d1098` (`dev`, 18 commits ahead of
+`origin/dev`), with remote
+`git@github.com:Shabirahmad427/EasyHybrid3.git`. It remains dirty in seven
+tracked paths and untracked `bin/`; none were changed. Its declared graphics
+submodule resolves recursively to
+`6a25a2eaf27c7627dba171104fc7fc8a4c9295fd`, comparison evidence only. The
+EasyHybrid4 root license is GPL-3.0; the vendored engine license file says CC
+BY-NC 4.0, while its package metadata also includes an MIT classifier and
+`setup.py` declares CC BY-NC. No license or contributor ownership conclusion
+is inferred from these conflicting notices.

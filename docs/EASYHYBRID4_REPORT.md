@@ -576,6 +576,21 @@ after rerunning its initially aborted Windows GTK 4.24 full-suite job.
 | EasyHybrid3 graphics submodule | Declared at `https://github.com/Shabirahmad427/Vismol`, branch `vismol_easyhybrid`; checked-out SHA `6a25a2eaf27c7627dba171104fc7fc8a4c9295fd`. This is comparison evidence only, not the missing EasyHybrid4 revision. |
 | Licenses | Root application `LICENSE`: GNU GPL v3. Vendored graphics `src/graphics_engine/LICENSE`: CC BY-NC 4.0. Graphics metadata is inconsistent: `pyproject.toml` includes an MIT classifier, `setup.py` includes a CC BY-NC classifier, and some source files carry GPL notices. Preserve all notices; ownership, file-level licensing, and distribution compatibility require authoritative reconciliation and legal review before packaging. |
 
+**Repository state re-audit (2026-10-21):** the current provenance task
+branch was clean at `12ec192857a0d765149c9671f57bf5685b09efef` before this
+documentation update. The configured parent remote is `origin` at
+`https://github.com/Shabirahmad427/EasyHybrid4.git`; `main` and `origin/main`
+are synchronized at `0f21022a345e1fda80b2cc18b048e9ed91c1b867`. The local
+repository has 32 task/main branches, only the `origin/main` remote-tracking
+ref and no tags. Full branch-name/object-ID inventory is in
+[`ARCHITECTURE.md`](ARCHITECTURE.md#repository-state-re-audit-2026-10-21).
+The current graphics tree object is `e2dd787a9b1f20d1e47ccba3bd484c45573bef73`
+but still does not identify its source commit. `git submodule status --recursive`
+is empty in EasyHybrid4. EasyHybrid3 remains at its previously recorded dirty
+`dev` checkout; no files there were modified. Parent/reference identities,
+licenses and Git state are recorded; exact graphics ancestry and contributor
+ownership remain unavailable, so EH4-000 stays unchecked.
+
 The EasyHybrid4 parent remote and EasyHybrid3 comparison root were reverified
 on 2026-10-20. The local EasyHybrid3 checkout is on `dev` at
 `b2113b8c11ba3dff51b93fd2f52fc1a7dc9d1098`, tracks `origin/dev` and is 18
