@@ -6,6 +6,18 @@
 GTK/Python compatibility, parity, platform, testing, and known-limitation
 status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).
 
+**EH4-203 implementation (2026-10-20; validation pending):** GTK's
+`EventControllerScroll.get_unit()`/`Gdk.ScrollUnit` capability is available
+from GTK 4.8. VisMol now requests continuous deltas wherever that capability
+exists on any OS, normalizes wheel detents and surface logical pixels to one
+positive-down convention, and applies the existing scroll action with one
+direction mapping. Feature detection preserves a discrete fallback for older
+or incomplete typelibs. Regression cases for delta accumulation and
+equivalent wheel/surface directions are written but were not run, per the
+maintainer's request to reserve test execution for the final batch. No native
+GTK matrix or macOS trackpad review has been run for this implementation;
+EH4-203 remains unchecked and unverified.
+
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
 used GTK 4.24.1 / GLib 2.90.0 / PyGObject 3.58.1 / Python 3.12.15 on

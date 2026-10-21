@@ -522,20 +522,29 @@ def test_normal_mode_playback_wraps_on_main_loop_and_stops():
     assert player._playback_source_id is None
 
 
-def test_scroll_delta_conversion_preserves_smooth_steps_and_wheel_sign():
+def test_scroll_delta_conversion_uses_downward_semantics_for_both_units():
     from src.gtk4_compat import scroll_delta_to_steps
 
     steps, remainder = scroll_delta_to_steps(12, surface=True)
     assert steps == 0
-    assert remainder == pytest.approx(-0.4)
+    assert remainder == pytest.approx(0.4)
 
     steps, remainder = scroll_delta_to_steps(19, surface=True, remainder=remainder)
-    assert steps == -1
-    assert remainder == pytest.approx(-1.0 / 30.0)
+    assert steps == 1
+    assert remainder == pytest.approx(1.0 / 30.0)
 
     steps, remainder = scroll_delta_to_steps(-2.5, surface=False, remainder=remainder)
     assert steps == -2
-    assert remainder == pytest.approx(-0.5 - 1.0 / 30.0)
+    assert remainder == pytest.approx(-0.5 + 1.0 / 30.0)
+
+    # A detent and 30 surface logical pixels have the same direction and
+    # produce the same normalized action.
+    wheel_down, _ = scroll_delta_to_steps(1, surface=False)
+    surface_down, _ = scroll_delta_to_steps(30, surface=True)
+    wheel_up, _ = scroll_delta_to_steps(-1, surface=False)
+    surface_up, _ = scroll_delta_to_steps(-30, surface=True)
+    assert (wheel_down, surface_down) == (1, 1)
+    assert (wheel_up, surface_up) == (-1, -1)
 
     steps, remainder = scroll_delta_to_steps(0.25, surface=False, remainder=0.0)
     assert steps == 0
