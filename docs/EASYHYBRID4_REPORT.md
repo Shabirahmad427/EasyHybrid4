@@ -38,6 +38,14 @@ This evidence is limited to Linux GTK 4.14.5.
 Other GTK minors, Windows, macOS, Wayland, and Retina remain **NOT TESTED** for
 this change; EH4-204 remains open.
 
+The EH4-204 full-app interaction and camera round-trip was rerun locally on
+2026-10-21 under Linux X11/Xvfb with Mesa 25.2.8 llvmpipe/OpenGL 4.5 Core.
+One fresh application cycle passed using Python 3.12.3, PyGObject 3.48.2,
+GTK 4.14.5, and GLib 2.80.0: XTest picked oxygen, residue/atom selection and
+labels were checked, the O–H1 distance was 0.957 Å, camera state survived
+session serialization/reload, and the window closed cleanly. This remains
+Linux-only evidence; other supported GTK/OS combinations are not inferred.
+
 The repeated failure was in the test's centering wait: it required multiple
 unchanged GLib timer samples after the center residual had reached zero and
 the transform delta was zero. macOS serviced too few timer polls before the
