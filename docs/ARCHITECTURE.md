@@ -84,6 +84,17 @@ vendored tree's base revision. Do not publish these graphics changes or
 convert the directory to a submodule before source ancestry and ownership are
 authoritatively reconciled.
 
+An additional GitHub API comparison on 2026-10-21 found public commit
+`2827f069355f990e3022fba41aac23239e0cda2e` (2022-07-15, “Moved to
+development package”) in `casebor/Vismol` history. Its `.gitignore`, `LICENSE`,
+`README.md`, and `build_vismol_BCK.py` blob IDs match the vendored files
+byte-for-byte. The candidate's `MANIFEST.in` and `setup.py` differ, it has no
+matching `pyproject.toml` or `scripts` directory, and its `src` tree object
+`115eacd3b61152a5abb65fa0b53c26ce0a6ec7f5` differs from the vendored `src`
+tree `1868dfde6e3d80681635f96778507e4fc15bc788`. This is a partial content
+match, not proof that this commit is the base revision or that later
+contributors authorized the vendored changes.
+
 The read-only EasyHybrid3 comparison checkout is
 `/home/shabir/software/EasyHybrid3`, branch `dev`, commit
 `b2113b8c11ba3dff51b93fd2f52fc1a7dc9d1098`, remote

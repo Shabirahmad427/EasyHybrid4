@@ -591,6 +591,14 @@ is empty in EasyHybrid4. EasyHybrid3 remains at its previously recorded dirty
 licenses and Git state are recorded; exact graphics ancestry and contributor
 ownership remain unavailable, so EH4-000 stays unchecked.
 
+The public upstream audit found a historical candidate commit
+`2827f069355f990e3022fba41aac23239e0cda2e` in `casebor/Vismol`. Four top-level
+blob IDs match exactly (`.gitignore`, `LICENSE`, `README.md`, and
+`build_vismol_BCK.py`), but the setup/manifest and source tree differ, and the
+vendored tree contains additional files. This narrows a possible historical
+relationship but does not establish ancestry or contributor ownership; it is
+not acceptable as a source-base SHA claim.
+
 The EasyHybrid4 parent remote and EasyHybrid3 comparison root were reverified
 on 2026-10-20. The local EasyHybrid3 checkout is on `dev` at
 `b2113b8c11ba3dff51b93fd2f52fc1a7dc9d1098`, tracks `origin/dev` and is 18
