@@ -142,11 +142,15 @@ matrix for this harness change initially failed GTK 4.8.2/Linux: the real
 XTest click reached the release handler, where `GestureClick.get_current_event()`
 raised `TypeError: No means to translate argument or return value for
 'GdkButtonEvent'`. GTK 4.8's PyGObject typelib does not always translate this
-optional event wrapper. The handler now catches `TypeError`/`RuntimeError` and
-passes `event=None`; button and modifier state continue to come from the GTK
-gesture APIs. A direct fallback check passed locally. The GTK 4.14.5 Linux
-Xvfb/XTest full-app smoke also passed one fresh-app cycle, but does not validate
-GTK 4.8. Focused workflow run
+optional event wrapper. The first correction caught this error and passed
+`event=None`; the 30-cell matrix then passed. A later native-pointer log again
+showed the getter's marshalling error and an oxygen pick miss. The current
+implementation removes `get_current_event()` from the gesture path entirely:
+the GL core uses the event only as optional context-menu metadata, while the
+menu position already comes from saved gesture coordinates. This follow-up has
+not yet been tested; matrix validation is deferred to the maintainer's final
+batch as requested. The GTK 4.14.5 Linux Xvfb/XTest full-app smoke also passed
+one fresh-app cycle, but does not validate GTK 4.8. Focused workflow run
 [`39526363320`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39526363320)
 passed the exact GTK 4.8.2/Linux cell (Python 3.12.15, PyGObject 3.46.0,
 GLib 2.78.0, Mesa 25.2.8 llvmpipe/OpenGL 4.5): five XTest-injected clicks
@@ -157,7 +161,8 @@ passed **30/30 jobs** across Linux, Windows, macOS arm64, and provisioned Intel
 macOS for GTK 4.8–4.24. Each cell's artifact records the actual runtime and
 backend. Linux full-app paths use XTest; Windows/macOS full-app paths still use
 synthetic GTK callbacks, so native OS pointer injection on those platforms is
-**NOT TESTED**. EH4-202 remains unchecked for that limitation and broader
+**NOT TESTED**. The later getter-removal implementation has no validation
+evidence yet. EH4-202 remains unchecked for that limitation and broader
 real-device acceptance.
 
 **Windows full-app CI blocker (2026-10-20):** diagnostic run `39368203653`
