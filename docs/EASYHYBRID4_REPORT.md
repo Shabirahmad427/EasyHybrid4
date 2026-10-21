@@ -35,6 +35,17 @@ Windows/macOS clipboard behavior, native chooser selection, hardware keyboard
 conventions, accessibility/screen-reader behavior, or other GTK minors;
 EH4-301 remains unchecked.
 
+The same focused X11/Xvfb GTK interaction slice passed on 2026-10-21 under
+both local Linux GTK runtimes: GTK 4.14.5 / Python 3.12.3 / PyGObject 3.48.2 /
+GLib 2.80.0 and GTK 4.24.1 / Python 3.12.15 / PyGObject 3.58.1 / GLib
+2.90.0. Each run reports **20 passed, 5 skipped, 45 deselected**, covering
+event-controller payloads, popovers, response/chooser windows and same-process
+and cross-process Unicode clipboard transfers. Xvfb kept the tests from
+changing the host desktop clipboard. GTK 4.24.1 printed an unrecognized
+`gl-glx` debug-flag warning, a Mesa DRI3 warning, and an unavailable IBus
+module warning; the tests passed. This remains Linux-only test coverage; all
+other GTK minors and Windows/macOS native integration are **NOT TESTED**.
+
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
 used GTK 4.24.1 / GLib 2.90.0 / PyGObject 3.58.1 / Python 3.12.15 on
