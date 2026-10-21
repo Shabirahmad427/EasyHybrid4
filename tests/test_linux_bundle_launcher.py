@@ -14,10 +14,18 @@ def make_bundle(tmp_path):
     bundle = tmp_path / "bundle"
     app = bundle / "app"
     runtime_bin = bundle / "runtime" / "bin"
+    activation_dir = bundle / "runtime" / "etc" / "conda" / "activate.d"
+    schema_dir = bundle / "runtime" / "share" / "glib-2.0" / "schemas"
     launcher = bundle / "run-easyhybrid4.sh"
     pdynamo = tmp_path / "pDynamo3"
     (app / "src" / "graphics_engine" / "src").mkdir(parents=True)
     runtime_bin.mkdir(parents=True)
+    activation_dir.mkdir(parents=True)
+    schema_dir.mkdir(parents=True)
+    (activation_dir / "runtime.sh").write_text(
+        'export GSETTINGS_SCHEMA_DIR="$CONDA_PREFIX/share/glib-2.0/schemas"\n',
+        encoding="utf-8",
+    )
     (app / "easyhybrid.py").write_text("# fixture entry point\n", encoding="utf-8")
     (pdynamo / "pCore").mkdir(parents=True)
     (pdynamo / "parameters" / "ccsStyleSheets").mkdir(parents=True)
@@ -29,7 +37,8 @@ def make_bundle(tmp_path):
         "printf '%s\\n' \"$@\" > \"$CAPTURE_ARGS\"\n"
         "printf '%s\\n' \"$PDYNAMO3_HOME\" \"$PDYNAMO3_PARAMETERS\" "
         "\"$PDYNAMO3_SCRATCH\" \"$PDYNAMO3_STYLE\" \"$PYTHONNOUSERSITE\" "
-        "\"$PYTHONPATH\" > \"$CAPTURE_ENV\"\n",
+        "\"$PYTHONPATH\" \"$PYOPENGL_PLATFORM\" \"$CONDA_PREFIX\" "
+        "\"$GSETTINGS_SCHEMA_DIR\" > \"$CAPTURE_ENV\"\n",
         encoding="utf-8",
     )
     fake_python.chmod(0o755)
@@ -88,6 +97,11 @@ def test_linux_bundle_launcher_sets_runtime_and_external_pdynamo_paths(tmp_path)
         str(pdynamo),
         "/existing/python/path",
     ]
+    assert values[6] == "egl"
+    assert values[7] == str(bundle / "runtime")
+    assert values[8] == str(
+        bundle / "runtime" / "share" / "glib-2.0" / "schemas"
+    )
     second_run = subprocess.run(
         [str(launcher)], cwd=bundle, env=environment, capture_output=True,
         text=True, check=False,

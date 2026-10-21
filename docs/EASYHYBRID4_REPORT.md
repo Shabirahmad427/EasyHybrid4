@@ -11,10 +11,18 @@ status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).
 relocated conda runtime under `runtime/`, while using an external compiled
 pDynamo3 checkout. It initializes a conda-packed runtime once, sets the
 application and pDynamo search paths, and chooses a user-cache scratch path.
-Two shell-wrapper tests pass on Linux Mint 22.3 x86_64 (Python 3.12.3); they
-use a fake Python executable and do not launch GTK or the scientific app. No
-runtime archive, desktop installer, or independently installable package was
-built. Windows and macOS packaging remain **NOT TESTED**. EH4-304 stays
+It sources the relocated runtime's conda activation hooks and selects EGL for
+PyOpenGL. Two shell-wrapper tests pass on Linux Mint 22.3 x86_64 (Python 3.12.3).
+A temporary conda-pack archive was extracted at a different prefix; after
+rebuilding the seven VisMol Cython extensions against that environment's
+NumPy, the full-app test passed one real pDynamo3 load/render/XTest oxygen-pick
+and close cycle under X11/Xvfb with Python 3.12.15, PyGObject 3.58.1, GTK
+4.24.1, GLib 2.90.0 and Mesa llvmpipe OpenGL 4.5/EGL. However, directly
+starting the application through the shell launcher still fails at GTK splash
+initialization because no default display is available; the full-app harness
+initializes Gdk before importing EasyHybrid. Therefore the packaged launcher
+has not passed its own installed-style launch acceptance. No desktop installer
+was built; Windows and macOS packaging remain **NOT TESTED**. EH4-304 stays
 unchecked.
 
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test

@@ -27,6 +27,16 @@ if [[ -x "$runtime/bin/conda-unpack" && ! -e "$runtime/.easyhybrid4-unpacked" ]]
   touch "$runtime/.easyhybrid4-unpacked"
 fi
 
+export CONDA_PREFIX="$runtime"
+export CONDA_DEFAULT_ENV=easyhybrid4
+export PATH="$runtime/bin:$PATH"
+for activation_script in "$runtime"/etc/conda/activate.d/*.sh; do
+  [[ -f "$activation_script" ]] && source "$activation_script"
+done
+
 export PYTHONNOUSERSITE=1
+# The relocatable conda GTK runtime uses EGL on Linux. Keep PyOpenGL on the
+# same backend as Gtk.GLArea so VisMol can see GTK's current context.
+export PYOPENGL_PLATFORM="${PYOPENGL_PLATFORM:-egl}"
 export PYTHONPATH="$app_root:$app_root/src/graphics_engine/src:$PDYNAMO3_HOME${PYTHONPATH:+:$PYTHONPATH}"
 exec "$python" "$app_root/easyhybrid.py" "$@"
