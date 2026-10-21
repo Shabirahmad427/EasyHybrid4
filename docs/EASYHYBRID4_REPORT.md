@@ -56,6 +56,17 @@ assertion only on the local GTK runtime; the cross-platform/minor matrix has
 not been rerun for it. PNG captures were written under
 `/tmp/eh4-202-render-evidence` for local inspection.
 
+The same Linux x86_64 host also passed five fresh full-app cycles under
+Xvfb/X11 using the real EasyHybridApplication/MainWindow, pDynamo3-backed
+water fixture loading and an XTest-injected pointer click that selected
+`O:0`; each cycle rendered and closed cleanly. Runtime: Python 3.12.3 /
+PyGObject 3.48.2 / GTK 4.14.5 / GLib 2.80.0 / Mesa 25.2.8 llvmpipe,
+OpenGL 4.5 Core. The pDynamo3 source/build revision
+`09e583049de5d1cdca6c9b4009c7c75e451a5ae0` was supplied on `PYTHONPATH`,
+not installed in the GTK environment. This is Linux GTK 4.14.5 evidence only;
+Windows/macOS native pointer injection and full-app tests on other GTK/platform
+cells remain **NOT TESTED**.
+
 **EH4-202 input-picking history and current acceptance state.** GTK
 pointer events arrive in widget-local logical units, while VisMol pick reads
 use framebuffer pixels. `widget_to_framebuffer_coordinates()` now converts
