@@ -38,6 +38,13 @@ This evidence is limited to Linux GTK 4.14.5.
 Other GTK minors, Windows, macOS, Wayland, and Retina remain **NOT TESTED** for
 this change; EH4-204 remains open.
 
+The focused `tests/test_session_row_serialization.py` failure-path regression
+also passes locally (**1 passed**): when pickle writing raises, both transient
+GTK row references are restored. It used the Linux Mint 22.3 x86_64 GTK
+environment (Python 3.12.3, PyGObject 3.48.2, GTK 4.14.5, GLib 2.80.0); the
+pDynamo3 source/build was supplied on `PYTHONPATH`, not installed into that
+GTK environment. Cross-platform GTK/runtime coverage remains **NOT TESTED**.
+
 The EH4-204 full-app interaction and camera round-trip was rerun locally on
 2026-10-21 under Linux X11/Xvfb with Mesa 25.2.8 llvmpipe/OpenGL 4.5 Core.
 One fresh application cycle passed using Python 3.12.3, PyGObject 3.48.2,
