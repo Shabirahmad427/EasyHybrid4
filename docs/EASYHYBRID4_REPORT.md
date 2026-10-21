@@ -161,9 +161,14 @@ passed **30/30 jobs** across Linux, Windows, macOS arm64, and provisioned Intel
 macOS for GTK 4.8–4.24. Each cell's artifact records the actual runtime and
 backend. Linux full-app paths use XTest; Windows/macOS full-app paths still use
 synthetic GTK callbacks, so native OS pointer injection on those platforms is
-**NOT TESTED**. The later getter-removal implementation has no validation
-evidence yet. EH4-202 remains unchecked for that limitation and broader
-real-device acceptance.
+**NOT TESTED** in that run. A later implementation branch now enables native
+OS input for every full-app cell: XTest on Linux, PyAutoGUI/SendInput on
+Windows, and PyAutoGUI/Quartz on macOS. It maps the projected GTK widget point
+to screen coordinates using the current OS pointer and GDK's measured
+surface-relative pointer position. The Windows/macOS paths and the subsequent
+release-event getter removal have no validation evidence yet; the final native
+matrix is pending. EH4-202 remains unchecked until those paths pass and broader
+real-device acceptance is documented.
 
 **Windows full-app CI blocker (2026-10-20):** diagnostic run `39368203653`
 (its Actions record was deleted at the maintainer's request after inspection)

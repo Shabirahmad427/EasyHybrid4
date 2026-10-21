@@ -32,8 +32,8 @@ _FULL_APP_CYCLE = textwrap.dedent(
     gi.require_version("Graphene", "1.0")
     if sys.platform.startswith("linux"):
         gi.require_version("GdkX11", "4.0")
-        from gi.repository import GdkX11, Graphene
-    from gi.repository import Gdk, GLib, Gtk
+        from gi.repository import GdkX11
+    from gi.repository import Gdk, GLib, Graphene, Gtk
 
     import easyhybrid
     from pCore import logFile
@@ -270,43 +270,94 @@ _FULL_APP_CYCLE = textwrap.dedent(
             state["pick_projection"] = (round(px, 5), round(py, 5))
 
             if os.environ.get("EASYHYBRID_FULL_APP_NATIVE_POINTER") == "1":
-                if not sys.platform.startswith("linux"):
-                    return fail("native pointer injection is currently Linux X11 only")
-                import shutil
-
-                xdotool = shutil.which("xdotool")
-                if xdotool is None:
-                    return fail("native Linux pointer smoke requires xdotool")
                 native = vm_widget.get_native()
                 surface = native.get_surface()
-                if surface is None or not isinstance(surface, GdkX11.X11Surface):
-                    return fail("native pointer smoke requires a GDK X11 surface")
                 mapped, window_point = vm_widget.compute_point(
                     main.window, Graphene.Point().init(x, y)
                 )
                 if not mapped:
                     return fail("could not map projected atom point into main window")
-                scale = surface.get_scale_factor()
-                window_xid = GdkX11.X11Surface.get_xid(surface)
-                click_x = round(window_point.x * scale)
-                click_y = round(window_point.y * scale)
-                try:
-                    result = subprocess.run(
-                        [
-                            xdotool, "mousemove", "--window",
-                            str(window_xid), str(click_x), str(click_y),
-                            "click", "1",
-                        ],
-                        capture_output=True,
-                        text=True,
-                        timeout=5,
-                        check=False,
+
+                if sys.platform.startswith("linux"):
+                    import shutil
+
+                    if surface is None or not isinstance(surface, GdkX11.X11Surface):
+                        return fail("native Linux pointer smoke requires a GDK X11 surface")
+                    xdotool = shutil.which("xdotool")
+                    if xdotool is None:
+                        return fail("native Linux pointer smoke requires xdotool")
+                    scale = surface.get_scale_factor()
+                    window_xid = GdkX11.X11Surface.get_xid(surface)
+                    click_x = round(window_point.x * scale)
+                    click_y = round(window_point.y * scale)
+                    command = [
+                        xdotool, "mousemove", "--window", str(window_xid),
+                        str(click_x), str(click_y), "click", "1",
+                    ]
+                    pointer_name = "linux-x11-xtest"
+                elif sys.platform == "win32" or sys.platform == "darwin":
+                    # Map the target from GTK window coordinates to desktop
+                    # coordinates using the current pointer as the origin.
+                    # This avoids backend-specific title-bar/window-origin APIs
+                    # and scales correctly when GTK application pixels differ
+                    # from the native automation library's screen pixels.
+                    try:
+                        import pyautogui
+
+                        pyautogui.FAILSAFE = False
+                        seat = display.get_default_seat()
+                        pointer = seat.get_pointer()
+                        pointer_on_surface, pointer_x, pointer_y, _mask = \
+                            surface.get_device_position(pointer)
+                        if pointer_x is None or pointer_y is None:
+                            return fail("GDK could not measure the current native pointer")
+                        cursor_x, cursor_y = pyautogui.position()
+                        screen_width, screen_height = pyautogui.size()
+                        monitor = display.get_monitor_at_surface(surface)
+                        if monitor is None:
+                            return fail("GDK could not identify the window's native monitor")
+                        geometry = monitor.get_geometry()
+                        if geometry.width <= 0 or geometry.height <= 0:
+                            return fail("GDK returned an invalid native monitor size")
+                        scale_x = screen_width / geometry.width
+                        scale_y = screen_height / geometry.height
+                        click_x = round(
+                            cursor_x + (window_point.x - pointer_x) * scale_x
+                        )
+                        click_y = round(
+                            cursor_y + (window_point.y - pointer_y) * scale_y
+                        )
+                        if not (0 <= click_x < screen_width and 0 <= click_y < screen_height):
+                            return fail(
+                                "projected native pointer target is outside the screen "
+                                "(target=%s,%s screen=%s,%s pointer_on_surface=%s)"
+                                % (click_x, click_y, screen_width, screen_height,
+                                   pointer_on_surface)
+                            )
+                        pyautogui.click(x=click_x, y=click_y)
+                    except Exception as error:
+                        return fail("native %s pointer click failed: %s" % (
+                            "Windows" if sys.platform == "win32" else "macOS", error
+                        ))
+                    state["pointer_input"] = (
+                        "windows-sendinput" if sys.platform == "win32"
+                        else "macos-quartz"
                     )
-                except (OSError, subprocess.TimeoutExpired) as error:
-                    return fail("native xdotool click failed: %s" % error)
-                if result.returncode != 0:
-                    return fail("native xdotool click failed: %s" % result.stderr.strip())
-                state["pointer_input"] = "linux-x11-xtest"
+                    command = None
+                else:
+                    return fail("native pointer smoke has no injector for %s" % sys.platform)
+
+                if command is not None:
+                    try:
+                        result = subprocess.run(
+                            command, capture_output=True, text=True, timeout=5,
+                            check=False,
+                        )
+                    except (OSError, subprocess.TimeoutExpired) as error:
+                        return fail("native pointer click failed: %s" % error)
+                    if result.returncode != 0:
+                        return fail("native pointer click failed: %s" % result.stderr.strip())
+                    state["pointer_input"] = pointer_name
             else:
                 class TestGesture:
                     def __init__(self, x, y):
@@ -518,7 +569,13 @@ def test_real_easyhybrid_application_mainwindow_load_render_pick_close():
             assert "EASYHYBRID_FULL_APP_MAIN_WINDOW=True" in result.stdout
             assert "EASYHYBRID_FULL_APP_PICK=O:" in result.stdout
             if os.environ.get("EASYHYBRID_FULL_APP_NATIVE_POINTER") == "1":
-                assert "EASYHYBRID_FULL_APP_POINTER=linux-x11-xtest" in result.stdout
+                expected_pointer = {
+                    "linux": "linux-x11-xtest",
+                    "win32": "windows-sendinput",
+                    "darwin": "macos-quartz",
+                }.get(sys.platform)
+                assert expected_pointer is not None
+                assert "EASYHYBRID_FULL_APP_POINTER=%s" % expected_pointer in result.stdout
             assert "EASYHYBRID_FULL_APP_SYSTEMS=1" in result.stdout
             assert "EASYHYBRID_FULL_APP_SYSTEM_LABEL=water" in result.stdout
             assert "EASYHYBRID_FULL_APP_ATOMS=3" in result.stdout
