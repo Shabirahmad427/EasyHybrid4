@@ -18,6 +18,15 @@ input in this test is a synthetic GTK callback. Windows/macOS, other GTK
 runtimes, additional fixture types and broader molecular invariants remain
 **NOT TESTED**; EH4-400 stays unchecked.
 
+The VisMol scale/resize test now reads its six-atom input from the checked-in
+`tests/fixtures/render_validation.pdb`; a fixture test locks the atom names,
+elements, residue identities and coordinates for both PDB inputs. On Linux
+Mint 22.3 x86_64, the GTK 4.14.5/Xvfb renderer test passed at scale 1 and 2
+(Python 3.12.3 / PyGObject 3.48.2 / GLib 2.80.0): all eight representations,
+resize, export, and 9/9 sphere-pick samples passed with llvmpipe OpenGL 4.5
+Core. Additional OS/GTK runtimes, other structure formats and wider scientific
+invariants remain **NOT TESTED**.
+
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
 used GTK 4.24.1 / GLib 2.90.0 / PyGObject 3.58.1 / Python 3.12.15 on
