@@ -42,6 +42,13 @@ and host/runtime details are in the uploaded artifacts and
 software-renderer evidence; it does not establish physical-GPU, Retina,
 trackpad, Wayland, or native OS input behavior.
 
+**CI quality gate update (2026-10-20):** the native matrix now runs Python
+`compileall` across `src/` and `tests/`, then repo-wide Ruff critical checks
+(`E9,F63,F7`) in every GTK runtime job. Local Linux validation passed. The
+updated hosted jobs have not yet run. Existing matrix steps already build
+graphics extensions and pDynamo3, perform pDynamo imports, run tests, and
+upload per-cell logs; no static type checker is configured yet.
+
 **EH4-202 input-picking history and current acceptance state.** GTK
 pointer events arrive in widget-local logical units, while VisMol pick reads
 use framebuffer pixels. `widget_to_framebuffer_coordinates()` now converts

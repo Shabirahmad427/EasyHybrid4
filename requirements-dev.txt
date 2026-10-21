@@ -4,3 +4,4 @@
 # its coverage limits; pytest passing does not verify the GUI or OpenGL.
 
 pytest>=7.0
+ruff>=0.6,<1
