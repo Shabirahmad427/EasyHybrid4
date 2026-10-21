@@ -53,6 +53,52 @@ def test_graphics_failure_is_reported_once(monkeypatch):
     assert len(shown) == 1
 
 
+def test_gl_area_context_error_enters_user_visible_fallback(monkeypatch):
+    shown = []
+    error = RuntimeError("context negotiation failed")
+    monkeypatch.setattr(
+        "gui.message_dialogs.show_message",
+        lambda *args, **kwargs: shown.append((args, kwargs)),
+    )
+    widget = SimpleNamespace(
+        make_current=lambda: None,
+        get_error=lambda: error,
+        set_sensitive=lambda value: setattr(widget, "sensitive", value),
+    )
+
+    vismol_gtkwidget.VismolGTKWidget.initialize(widget, widget)
+
+    assert widget.sensitive is False
+    assert widget._graphics_failure_reported is True
+    assert len(shown) == 1
+    assert "context negotiation failed" in shown[0][1]["details"]
+
+
+def test_gl_core_initialization_exception_enters_user_visible_fallback(monkeypatch):
+    shown = []
+    monkeypatch.setattr(
+        "gui.message_dialogs.show_message",
+        lambda *args, **kwargs: shown.append((args, kwargs)),
+    )
+
+    def fail_initialization():
+        raise RuntimeError("shader compiler rejected GLSL")
+
+    widget = SimpleNamespace(
+        make_current=lambda: None,
+        get_error=lambda: None,
+        vm_glcore=SimpleNamespace(initialize=fail_initialization),
+        set_sensitive=lambda value: setattr(widget, "sensitive", value),
+    )
+
+    vismol_gtkwidget.VismolGTKWidget.initialize(widget, widget)
+
+    assert widget.sensitive is False
+    assert widget._graphics_failure_reported is True
+    assert len(shown) == 1
+    assert "shader compiler rejected GLSL" in shown[0][1]["details"]
+
+
 def test_disabled_graphics_view_stops_rendering():
     calls = []
     widget = SimpleNamespace(

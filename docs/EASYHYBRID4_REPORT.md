@@ -10,14 +10,14 @@ status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).
 handles Gtk.GLArea context errors and renderer initialization exceptions by
 disabling the 3D widget, logging the cause, and presenting an actionable
 message when dialogs are available. A reported failure is shown once and
-rendering stops. The three helper tests pass on Linux Mint
-22.3 x86_64 with Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib
-2.80.0. A fourth display-backed test now calls the failure path on a real GTK
-GLArea, verifies the application window remains open, and reads the actionable
-error details from the displayed dialog. All **4 tests pass** under native
-Xvfb/X11 with Linux GTK 4.14.5. This simulates the renderer error while using
-real GTK widgets; an actual unsupported driver/context failure and other
-OS/GTK runtimes remain **NOT TESTED**. EH4-205 stays unchecked.
+rendering stops. On Linux Mint 22.3 x86_64 with Python 3.12.3 / PyGObject
+3.48.2 / GTK 4.14.5 / GLib 2.80.0, all **6 tests pass** under Xvfb/X11. Two
+new tests exercise the production `initialize()` callback for both a
+`Gtk.GLArea.get_error()` result and a renderer initialization exception. The
+display-backed test verifies the parent window remains open and reads the
+actionable error details from a real GTK dialog. The failure itself is
+simulated; actual driver/context failure and Windows/macOS/other GTK runtimes
+remain **NOT TESTED**. EH4-205 stays unchecked.
 
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
