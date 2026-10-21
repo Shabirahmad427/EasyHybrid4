@@ -42,6 +42,14 @@ and host/runtime details are in the uploaded artifacts and
 software-renderer evidence; it does not establish physical-GPU, Retina,
 trackpad, Wayland, or native OS input behavior.
 
+**Native UI acceptance (EH4-502):** matrix run
+[`39526661552`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39526661552)
+completed successfully across all 30 provisioned OS/GTK cells. Native GTK
+window, Gio action, real GLArea, and widget-pattern/dialog steps succeeded in
+the cells. Local GTK 4.14.5/Xvfb widget tests passed 62 with 6 skips; the
+startup/window smoke passed. Wayland, physical GPU, Retina, and trackpad
+coverage remain separate and untested.
+
 **EH4-202 input-picking history and current acceptance state.** GTK
 pointer events arrive in widget-local logical units, while VisMol pick reads
 use framebuffer pixels. `widget_to_framebuffer_coordinates()` now converts
