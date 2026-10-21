@@ -308,6 +308,12 @@ authoritative source ancestry and license/ownership review. No graphics source
 or submodule pointer was changed, and no conclusion about distribution rights
 is made here.
 
+The 2026-10-21 public-history follow-up found candidate commit
+[`2827f069`](https://github.com/casebor/Vismol/commit/2827f069355f990e3022fba41aac23239e0cda2e)
+with four exact top-level file blob matches. Its source subtree does not match
+the original vendored baseline, so the candidate cannot establish the base
+revision or authorship. EH4-200 stays partial; see the roadmap evidence log.
+
 EH4-300 moved preferences and transient autosaves out of the installed source
 tree into platform-standard per-user config/cache directories. Existing
 `.config.json` settings migrate to the user config while the source file stays
