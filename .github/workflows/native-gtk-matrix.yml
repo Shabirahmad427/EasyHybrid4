@@ -154,6 +154,10 @@ jobs:
         # psutil and now runs in every cell, not only the 4.24 full suite.
         run: micromamba run -n easyhybrid-gtk python -m pip install --disable-pip-version-check scipy psutil
 
+      - name: Install macOS native pointer test dependencies
+        if: runner.os == 'macOS'
+        run: micromamba run -n easyhybrid-gtk python -m pip install --disable-pip-version-check pyobjc-framework-Cocoa pyobjc-framework-Quartz
+
       - name: Record actual runtime and host
         run: |
           set -o pipefail
@@ -247,7 +251,7 @@ jobs:
         env:
           EASYHYBRID_RUN_FULL_APP_GRAPHICS: "1"
           EASYHYBRID_FULL_APP_CYCLES: "5"
-          EASYHYBRID_FULL_APP_NATIVE_POINTER: ${{ runner.os == 'Linux' && '1' || '0' }}
+          EASYHYBRID_FULL_APP_NATIVE_POINTER: "1"
           PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
         run: |
           set -o pipefail
@@ -460,7 +464,7 @@ jobs:
         env:
           EASYHYBRID_RUN_FULL_APP_GRAPHICS: "1"
           EASYHYBRID_FULL_APP_CYCLES: "5"
-          EASYHYBRID_FULL_APP_NATIVE_POINTER: ${{ runner.os == 'Linux' && '1' || '0' }}
+          EASYHYBRID_FULL_APP_NATIVE_POINTER: "1"
           PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
         run: |
           set -o pipefail
@@ -659,7 +663,7 @@ jobs:
         env:
           EASYHYBRID_RUN_FULL_APP_GRAPHICS: "1"
           EASYHYBRID_FULL_APP_CYCLES: "5"
-          EASYHYBRID_FULL_APP_NATIVE_POINTER: ${{ runner.os == 'Linux' && '1' || '0' }}
+          EASYHYBRID_FULL_APP_NATIVE_POINTER: "1"
           PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
         run: |
           set -o pipefail
@@ -889,11 +893,12 @@ jobs:
         env:
           EASYHYBRID_RUN_FULL_APP_GRAPHICS: "1"
           EASYHYBRID_FULL_APP_CYCLES: "5"
-          EASYHYBRID_FULL_APP_NATIVE_POINTER: ${{ runner.os == 'Linux' && '1' || '0' }}
+          EASYHYBRID_FULL_APP_NATIVE_POINTER: "1"
           PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
         run: |
           set -o pipefail
           export PDYNAMO3_HOME="${{ github.workspace }}/pDynamo3"
+          micromamba run -n easyhybrid-gtk-src python -m pip install --disable-pip-version-check pyobjc-framework-Cocoa pyobjc-framework-Quartz
           micromamba run -n easyhybrid-gtk-src python -m pytest -q -s -p no:cacheprovider tests/test_easyhybrid_full_app_smoke.py 2>&1 | tee -a platform-results.txt
 
       - name: Run 5 EasyHybrid molecular scene pick and close cycles

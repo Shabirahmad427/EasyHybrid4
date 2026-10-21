@@ -130,15 +130,20 @@ pair; the separate component matrix must not be represented as full-app
 coverage. A pDynamo import without a system label also exposed and fixed a
 production display-name fallback to the loaded coordinate file's basename.
 
-The full-app harness now has an opt-in Linux X11 path that uses `xdotool`/XTest
-to click the projected oxygen through the actual window-system input queue.
-Five local fresh-app cycles under Xvfb/X11 passed: the real pDynamo3-backed
-MainWindow loaded water, the XTest click picked `O:0`, the GL scene rendered,
-and each window closed cleanly (Python 3.12.3, PyGObject 3.48.2, GTK 4.14.5,
-GLib 2.80.0, Mesa 25.2.8 llvmpipe/OpenGL 4.5). The Linux matrix path now
-installs `xdotool` and enables this input route. Windows/macOS retain the
-synthetic callback path; native injection there is **NOT TESTED**. The full
-matrix for this harness change initially failed GTK 4.8.2/Linux: the real
+The full-app harness now routes the projected oxygen click through native OS
+input on each supported desktop: Linux X11 uses `xdotool`/XTest, Windows uses
+`SendInput`, and macOS uses Quartz/CoreGraphics events mapped through the
+native window. The opt-in full-app test requires the platform-specific backend
+marker, so synthetic GTK callbacks cannot satisfy that check. A five-cycle
+local real-app run passed under Xvfb/X11: pDynamo3 loaded the water fixture,
+each native XTest event picked `O:0`, the scene rendered, and every window
+closed cleanly (Linux Mint 22.3 x86_64, Python 3.12.3, PyGObject 3.48.2,
+GTK 4.14.5, GLib 2.80.0, Mesa 25.2.8 llvmpipe/OpenGL 4.5). The isolated
+native pointer test also received a real XTest click through a GTK gesture.
+macOS CI installs PyObjC for its CoreGraphics path, including GTK source-build
+cells. Native Windows/macOS pointer injection and other GTK/platform cells
+remain **NOT TESTED** until the final native matrix runs. The full matrix for
+the earlier Linux-only harness change initially failed GTK 4.8.2/Linux: the real
 XTest click reached the release handler, where `GestureClick.get_current_event()`
 raised `TypeError: No means to translate argument or return value for
 'GdkButtonEvent'`. GTK 4.8's PyGObject typelib does not always translate this
@@ -155,10 +160,10 @@ and closed; GTK widget tests passed 64 with 4 skipped. Full native matrix run
 [`39526661552`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39526661552)
 passed **30/30 jobs** across Linux, Windows, macOS arm64, and provisioned Intel
 macOS for GTK 4.8–4.24. Each cell's artifact records the actual runtime and
-backend. Linux full-app paths use XTest; Windows/macOS full-app paths still use
-synthetic GTK callbacks, so native OS pointer injection on those platforms is
-**NOT TESTED**. EH4-202 remains unchecked for that limitation and broader
-real-device acceptance.
+backend. Those earlier runs used native XTest only on Linux; Windows/macOS
+OS-injected full-app picking remains pending the final matrix with the new
+SendInput/Quartz paths. EH4-202 remains unchecked for that limitation and
+broader real-device acceptance.
 
 **Windows full-app CI blocker (2026-10-20):** diagnostic run `39368203653`
 (its Actions record was deleted at the maintainer's request after inspection)
