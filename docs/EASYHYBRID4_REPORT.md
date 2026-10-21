@@ -2,6 +2,17 @@
 
 **Report date:** 2026-10-21
 
+**Project persistence (partial, EH4-404):** EasyHybrid `.easy` payloads now
+write format version 1; payloads without a version key are treated as legacy
+version 0. The loader validates the deserialized mapping, systems list and
+system entries, and rejects unsupported future versions before restarting
+the active application. Linux Xvfb/pDynamo tests pass 7 cases for legacy and
+current payloads, malformed schemas and truncated pickle files. This does not
+yet verify a full UI session round-trip, older historical project fixtures,
+autosave recovery or Windows/macOS/other GTK runtimes. Python pickle files
+remain trusted local project data; schema checks do not make untrusted pickle
+loading safe.
+
 **Purpose:** One consolidated source for repository, architecture, dependency,
 GTK/Python compatibility, parity, platform, testing, and known-limitation
 status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).

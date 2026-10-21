@@ -71,6 +71,28 @@ from vismol.model.atom import Atom
 from logging import getLogger
 logger = getLogger(__name__)
 
+PROJECT_FORMAT_VERSION = 1
+
+
+def _read_project_payload(filename):
+    """Read and validate a project before mutating the active application."""
+    with open(filename, "rb") as project_file:
+        payload = pickle.load(project_file)
+    if not isinstance(payload, dict):
+        raise ValueError("Invalid EasyHybrid project: expected a mapping")
+    version = payload.get("format_version", 0)
+    if not isinstance(version, int) or version < 0 or version > PROJECT_FORMAT_VERSION:
+        raise ValueError("Unsupported EasyHybrid project format version: {!r}".format(version))
+    systems = payload.get("systems")
+    if not isinstance(systems, list):
+        raise ValueError("Invalid EasyHybrid project: systems must be a list")
+    for index, system_data in enumerate(systems):
+        if not isinstance(system_data, dict) or "system" not in system_data or not isinstance(
+            system_data.get("vobjects"), list
+        ):
+            raise ValueError("Invalid EasyHybrid project: malformed system entry {}".format(index))
+    return payload
+
 #---------------------------------------
 from pBabel                    import*                                     
 from pCore                     import*  
@@ -169,6 +191,7 @@ class LoadAndSaveData:
         temporary file and deletes it.
         """
         easyhybrid_session_data = {}
+        easyhybrid_session_data['format_version'] = PROJECT_FORMAT_VERSION
         backup = {}
         
         '''- - - - - - - - - - pDynamo systems - - - - - - - - - - - '''
@@ -380,14 +403,14 @@ class LoadAndSaveData:
         #'''- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - '''
 
     def load_easyhybrid_serialization_file (self, filename = None, tmp = False):
-        self.main.restart() 
-        self.main.bottom_notebook.status_teeview_add_new_item(message = ':  {}  loaded'.format(filename), 
-                                                               system =  None )
         if filename is None:
             return None
-        with open(filename, "rb") as f:
-            # Load the object from the file
-            easyhybrid_session_data = pickle.load(f)
+        # Validate/deserialise first: corrupt or newer files must not clear the
+        # currently open project as a side effect of a failed load.
+        easyhybrid_session_data = _read_project_payload(filename)
+        self.main.restart()
+        self.main.bottom_notebook.status_teeview_add_new_item(message = ':  {}  loaded'.format(filename),
+                                                               system = None)
         #print(easyhybrid_session_data)
         
         '''- - - - - - - - - - camera/view orientation - - - - - - - - - - '''
