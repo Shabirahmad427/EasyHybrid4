@@ -371,6 +371,29 @@ _FULL_APP_CYCLE = textwrap.dedent(
             return fail("project save did not restore the live system-choice row")
         if getattr(original_system, "tree_row", None) is not original_tree_row:
             return fail("project save did not restore the live system tree row")
+        import pdynamo.pDynamo2EasyHybrid.io_data as project_io
+        original_pickle_dump = project_io.pickle.dump
+
+        def fail_pickle_dump(*_args, **_kwargs):
+            raise OSError("injected project write failure")
+
+        project_io.pickle.dump = fail_pickle_dump
+        try:
+            try:
+                project_io._write_easyhybrid_session_data(
+                    project_file + ".failure", {}, [original_system]
+                )
+            except OSError as error:
+                if str(error) != "injected project write failure":
+                    raise
+            else:
+                return fail("injected project write failure was not raised")
+        finally:
+            project_io.pickle.dump = original_pickle_dump
+        if getattr(original_system, "system_choice_row", None) is not original_system_row:
+            return fail("failed project save did not restore the system-choice row")
+        if getattr(original_system, "tree_row", None) is not original_tree_row:
+            return fail("failed project save did not restore the system tree row")
         main.p_session.load_easyhybrid_serialization_file(filename=project_file)
         restored_systems = main.p_session.psystem
         restored_objects = main.vm_session.vm_objects_dic
