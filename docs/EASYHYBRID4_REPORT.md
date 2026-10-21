@@ -1,6 +1,6 @@
 # EasyHybrid4 Development and Compatibility Report
 
-**Report date:** 2026-10-20
+**Report date:** 2026-10-21
 
 **Purpose:** One consolidated source for repository, architecture, dependency,
 GTK/Python compatibility, parity, platform, testing, and known-limitation
@@ -15,6 +15,13 @@ coverage, projected sizes, picking, viewport resize and export checks passed.
 This is Xvfb/X11 evidence only. Native Wayland, physical HiDPI displays,
 Retina, multi-monitor transitions, Windows/macOS and other GTK runtimes remain
 **NOT TESTED**. EH4-302 stays unchecked.
+
+The renderer check was rerun on 2026-10-21 on the same GTK 4.14.5 environment:
+**1 passed**. With `GDK_SCALE=2`, GTK applied widget scale 2 and doubled the
+GLArea framebuffer to 840x600 from 420x300. All representation, projected
+size, selection, resize, export-difference and GL checks passed at scale 1 and
+2. This remains virtual X11 evidence; physical displays, Wayland, Retina,
+multi-monitor transitions and non-Linux platforms are still **NOT TESTED**.
 
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
