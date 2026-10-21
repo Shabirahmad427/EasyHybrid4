@@ -18,6 +18,15 @@ maintainer's request to reserve test execution for the final batch. No native
 GTK matrix or macOS trackpad review has been run for this implementation;
 EH4-203 remains unchecked and unverified.
 
+**EH4-204 implementation (2026-10-20; validation pending):** clearing a
+viewing selection now clears the atom-level `selected` flags along with the
+selection container and per-object atom IDs. This prevents stale flags from
+appearing in later selection and representation operations. A regression test
+was added but not run, per the maintainer's request to defer test execution to
+the final batch. This is only the selection-reset sub-scope: label display,
+measurement workflows, representation switching, camera save/load, and native
+OS/GTK matrix behavior remain **NOT TESTED**. EH4-204 remains unchecked.
+
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
 used GTK 4.24.1 / GLib 2.90.0 / PyGObject 3.58.1 / Python 3.12.15 on
