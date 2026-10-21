@@ -29,6 +29,19 @@ passed five full-app cycles with the updated harness. Other platform/version
 cells were not rerun for this test-only correction; previous component-matrix
 evidence remains separate.
 
+**EH4-202 native pointer branch recheck (2026-10-21):** branch
+`eh4-202-cross-platform-pointer-injection` at `68a7dd3` passed the local
+pointer-helper, workflow-order, and real full-app smoke tests (**12 passed**)
+on Linux Mint 22.3 x86_64 with Python 3.12.3, PyGObject 3.48.2, GTK 4.14.5,
+GLib 2.80.0, X11/Xvfb, and Mesa 25.2.8 llvmpipe/OpenGL 4.5 Core. The real
+EasyHybridApplication loaded its generated water fixture, received an XTest
+pointer click, picked oxygen (`O:0`), rendered, and closed cleanly. The pDynamo3
+runtime was a disposable Python 3.12 build at `/tmp/eh4-401-pdynamo3`, not the
+user's installed pDynamo environment. Win32 and Quartz injection code has not
+been run natively here; all other GTK/platform cells, Wayland, and physical
+hardware remain **NOT TESTED**. EH4-202 remains unchecked pending its required
+matrix and native Windows/macOS pointer validation.
+
 **Current native matrix (2026-10-20):** run
 [`39485989866`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39485989866)
 completed successfully at main commit `e096a024bb2ccc0755b5ba632f1d5aa5a74a3b13`.
