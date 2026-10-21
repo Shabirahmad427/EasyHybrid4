@@ -28,7 +28,7 @@ remain open.
 Linux Mint 22.3 x86_64 / Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 /
 GLib 2.80.0, native Xvfb/X11 widget tests for chooser lifecycles, response
 dialogs, context-menu placement, event-controller payloads, and clipboard
-passed **19** with **6 skipped**. GDK clipboard tests verified Unicode
+passed **20** with **5 skipped** on the latest run. GDK clipboard tests verified Unicode
 round-trips both in-process and from a separate GTK reader process while the
 owner serviced its GLib context. The X11 cross-process result does not verify
 Windows/macOS clipboard behavior, native chooser selection, hardware keyboard
