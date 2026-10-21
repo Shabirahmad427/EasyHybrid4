@@ -344,6 +344,57 @@ _FULL_APP_CYCLE = textwrap.dedent(
                 return GLib.SOURCE_CONTINUE
             return fail("production MainWindow GTK gesture pick missed oxygen: %r" % picked)
 
+        # Exercise the production viewing-selection model with the atom
+        # returned by the actual GTK pick path. The water fixture provides a
+        # compact atom/residue check and verifies that clearing the selection
+        # removes atom flags used by later representation filtering.
+        viewing_selection = vm_session.selections[vm_session.current_selection]
+        # The production release handler can already have updated the current
+        # selection, depending on which GTK gesture path delivered the event.
+        # Start the explicit mode checks from a known empty selection.
+        vm_session._selection_function_set(None)
+        vm_session.viewing_selection_mode("atom")
+        vm_session._selection_function_set([picked])
+        if len(viewing_selection.selected_atoms) != 1 or picked not in viewing_selection.selected_atoms:
+            return fail(
+                "atom-mode viewing selection mismatch mode=%r selected=%r picked=%r"
+                % (
+                    viewing_selection.selection_mode,
+                    [(atom.name, atom.atom_id) for atom in viewing_selection.selected_atoms],
+                    (picked.name, picked.atom_id),
+                )
+            )
+        vm_session.vm_widget.make_current()
+        picked.label_text = picked.name
+        vm_session.show_or_hide(
+            rep_type="labels", selection=viewing_selection, show=True
+        )
+        label_representation = state["molecule"].representations["labels"]
+        if not picked.labels or label_representation is None or not label_representation.active:
+            return fail("selected-atom label representation did not activate")
+        vm_session.show_or_hide(
+            rep_type="labels", selection=viewing_selection, show=False
+        )
+        if picked.labels or label_representation.active:
+            return fail("selected-atom label representation did not deactivate")
+        if picked.atom_id not in picked.vm_object.selected_atom_ids:
+            return fail("atom-mode selection did not update the object atom-ID set")
+        vm_session._selection_function_set(None)
+        if picked.selected or picked.vm_object.selected_atom_ids:
+            return fail("clearing atom-mode selection left stale atom flags")
+
+        vm_session.viewing_selection_mode("residue")
+        vm_session._selection_function_set([picked])
+        if viewing_selection.selected_atoms != set(state["molecule"].atoms.values()):
+            return fail("residue-mode selection did not select the water residue")
+        vm_session._selection_function_set(None)
+        if any(atom.selected for atom in state["molecule"].atoms.values()):
+            return fail("clearing residue-mode selection left stale atom flags")
+        print(
+            "EASYHYBRID_FULL_APP_VIEW_SELECTION=atom:1,residue:3,label:toggled,cleared:true",
+            flush=True,
+        )
+
         vm_session.vm_widget.make_current()
         gl_error = GL.glGetError()
         if gl_error != GL.GL_NO_ERROR:
