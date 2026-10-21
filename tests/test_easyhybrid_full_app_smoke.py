@@ -354,6 +354,18 @@ _FULL_APP_CYCLE = textwrap.dedent(
         system = next(iter(main.p_session.psystem.values()))
         print("EASYHYBRID_FULL_APP_SYSTEM_LABEL=%s" % system.label, flush=True)
         print("EASYHYBRID_FULL_APP_ATOMS=%d" % len(state["molecule"].atoms), flush=True)
+        expected_coordinates = np.asarray(
+            ((0.000, 0.000, 0.000), (0.957, 0.000, 0.000), (-0.240, 0.927, 0.000)),
+            dtype=np.float64,
+        )
+        loaded_coordinates = np.asarray(state["molecule"].frames[0], dtype=np.float64)
+        if loaded_coordinates.shape != expected_coordinates.shape or not np.allclose(
+            loaded_coordinates, expected_coordinates, rtol=0.0, atol=5.0e-4
+        ):
+            return fail(
+                "fixture coordinates changed during load: %r" % loaded_coordinates.tolist()
+            )
+        print("EASYHYBRID_FULL_APP_FIXTURE_COORDINATES_PRESERVED=True", flush=True)
         print("EASYHYBRID_FULL_APP_SCENE_DRAWS=%d" % state["scene_draws"], flush=True)
         print("EASYHYBRID_FULL_APP_GL_VERSION=%s" % state["gl_version"].decode("ascii", "replace"), flush=True)
         print("EASYHYBRID_FULL_APP_GL_RENDERER=%s" % state["gl_renderer"].decode("utf-8", "replace"), flush=True)

@@ -6,6 +6,16 @@
 GTK/Python compatibility, parity, platform, testing, and known-limitation
 status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).
 
+**EH4-400 frozen water-fixture check (2026-10-20; partial):** the real app
+smoke now compares loaded VisMol coordinates against the generated PDB values
+with a 0.0005 Å tolerance. Five fresh production MainWindow cycles on Linux
+Mint 22.3 x86_64 preserved all three water atom coordinates, loaded three
+atoms, rendered, picked oxygen (`O:0`), and closed cleanly. Runtime: Python
+3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib 2.80.0, pDynamo3 rebuilt for
+Python 3.12.3, Mesa 25.2.8 llvmpipe OpenGL 4.5. Windows/macOS and other GTK
+runtime results, additional fixture types and broader molecular invariants
+remain **NOT TESTED**; EH4-400 stays unchecked.
+
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
 used GTK 4.24.1 / GLib 2.90.0 / PyGObject 3.58.1 / Python 3.12.15 on
