@@ -16,11 +16,17 @@ seven Cython extensions built using that environment's NumPy headers and
 imported successfully; the native GTK startup/icon smoke passed three window
 cycles under Xvfb/X11 and Mesa 25.2.8 llvmpipe (OpenGL 4.5 Core). An initial
 build exposed contamination by the host's user-site NumPy 1.x headers, so the
-README now advises disabling user-site packages during builds. This is Linux
-GTK 4.24.1 developer-install evidence only: other GTK minors, Windows/macOS
-interactive installation, packaged launchers, and pDynamo3 installation are
-not verified. EH4-303 remains unchecked; the package command is not a complete
-transitive lock.
+README now advises disabling user-site packages during builds.
+
+An explicit package-URL lock for Linux x86_64 was exported from that verified
+runtime. On Linux Mint 22.3 x86_64, the lock recreated a fresh conda prefix;
+all seven extensions built from a clean source copy and imported, and the GTK
+startup/icon smoke again passed three open/close cycles. The replay used
+Python 3.12.15 / PyGObject 3.58.1 / GTK 4.24.1 / GLib 2.90.0 / NumPy 2.5.4
+and the NVIDIA GeForce RTX 4060 Ti OpenGL 4.6.0 backend. This is Linux GTK
+4.24.1 developer-install evidence only: Windows/macOS and other GTK minor
+locks, packaged launchers, and full pDynamo3 installation remain **NOT
+TESTED**. EH4-303 remains unchecked.
 
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)

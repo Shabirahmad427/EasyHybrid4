@@ -97,6 +97,19 @@ micromamba create -n easyhybrid4 -c conda-forge \
 micromamba activate easyhybrid4
 ```
 
+For an exact Linux x86_64 replay of the clean developer environment verified
+on 2026-10-21, create it from
+[`environments/easyhybrid4-linux-64.lock`](environments/easyhybrid4-linux-64.lock):
+
+```bash
+conda create --prefix "$PWD/.conda/easyhybrid4-linux-64" \
+  --file environments/easyhybrid4-linux-64.lock
+```
+
+This explicit package-URL lock is Linux x86_64 only. Use the conda-forge
+environment command above for Windows and macOS; those install paths still
+need separate clean-environment verification.
+
 When building from an environment on a machine with user-installed Python
 packages, disable the user site so NumPy headers and Python packages come from
 the selected environment. For Bash, run `export PYTHONNOUSERSITE=1` before the
