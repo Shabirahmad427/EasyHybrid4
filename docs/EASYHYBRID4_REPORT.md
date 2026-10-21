@@ -1,6 +1,6 @@
 # EasyHybrid4 Development and Compatibility Report
 
-**Report date:** 2026-10-20
+**Report date:** 2026-10-21
 
 **Purpose:** One consolidated source for repository, architecture, dependency,
 GTK/Python compatibility, parity, platform, testing, and known-limitation
@@ -404,6 +404,13 @@ Linux x86_64, Python 3.12.3, PyGObject 3.48.2, GTK 4.14.5, GLib 2.80.0:
 focused compatibility/scroll tests **9 passed**. This verifies the GTK callback
 logic but does not exercise a physical trackpad. macOS trackpad review and the
 full GTK/platform matrix remain **NOT TESTED**; EH4-203 stays open.
+
+On 2026-10-21, local Linux X11/Xvfb verification on the existing
+`eh4-203-input-semantics` branch reran the scroll-targeted widget tests (**2
+passed**) and full widget-pattern file (**62 passed, 7 skipped**, one existing
+GLib chooser-test warning) using Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5
+/ GLib 2.80.0. This confirms the GTK 4.14 callback path; it does not replace
+GTK-minor/platform coverage or a physical macOS trackpad review.
 
 **EH4-105 async lifecycle and playback thread-boundary work (2026-10-18):**
 The xTB fragment-charge worker posted progress and completion callbacks that
