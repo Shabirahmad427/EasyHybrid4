@@ -1,20 +1,23 @@
 # EasyHybrid4 Development and Compatibility Report
 
-**Report date:** 2026-10-20
+**Report date:** 2026-10-21
 
 **Purpose:** One consolidated source for repository, architecture, dependency,
 GTK/Python compatibility, parity, platform, testing, and known-limitation
 status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).
 
-**EH4-205 graphics failure fallback (2026-10-20; partial):** VisMol now
+**EH4-205 graphics failure fallback (2026-10-21; partial):** VisMol now
 handles Gtk.GLArea context errors and renderer initialization exceptions by
 disabling the 3D widget, logging the cause, and presenting an actionable
 message when dialogs are available. A reported failure is shown once and
-rendering stops. Three focused regression tests pass locally on Linux Mint
+rendering stops. The three helper tests pass on Linux Mint
 22.3 x86_64 with Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib
-2.80.0. Tests exercise the reporting helper with simulated errors; native
-driver/context-failure behavior and other OS/GTK runtimes remain **NOT
-TESTED**. EH4-205 stays unchecked.
+2.80.0. A fourth display-backed test now calls the failure path on a real GTK
+GLArea, verifies the application window remains open, and reads the actionable
+error details from the displayed dialog. All **4 tests pass** under native
+Xvfb/X11 with Linux GTK 4.14.5. This simulates the renderer error while using
+real GTK widgets; an actual unsupported driver/context failure and other
+OS/GTK runtimes remain **NOT TESTED**. EH4-205 stays unchecked.
 
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)

@@ -4,6 +4,9 @@ import sys
 from pathlib import Path
 from types import SimpleNamespace
 
+import gi
+import pytest
+
 
 ROOT = Path(__file__).resolve().parents[1]
 for source_path in (ROOT / "src", ROOT / "src" / "graphics_engine" / "src"):
@@ -11,6 +14,9 @@ for source_path in (ROOT / "src", ROOT / "src" / "graphics_engine" / "src"):
         sys.path.insert(0, str(source_path))
 
 from vismol.gui import vismol_gtkwidget
+
+gi.require_version("Gtk", "4.0")
+from gi.repository import Gdk, Gtk
 
 
 def test_graphics_failure_disables_view_and_shows_actionable_dialog(monkeypatch):
@@ -56,3 +62,35 @@ def test_disabled_graphics_view_stops_rendering():
 
     assert vismol_gtkwidget.VismolGTKWidget.render(widget, None, None) is True
     assert calls == []
+
+
+@pytest.mark.skipif(
+    Gdk.Display.get_default() is None,
+    reason="native graphics failure dialog test requires a GTK display",
+)
+def test_graphics_failure_shows_real_dialog_and_keeps_parent_window_open():
+    parent = Gtk.Window(title="Graphics failure test")
+    widget = Gtk.GLArea()
+    parent.set_child(widget)
+    parent.present()
+    try:
+        vismol_gtkwidget._report_graphics_failure(
+            widget, RuntimeError("simulated driver context failure")
+        )
+        dialog = widget._graphics_error_dialog
+        assert parent.get_visible()
+        assert dialog.get_visible()
+        assert dialog.get_title() == "3D graphics unavailable"
+        assert dialog.dialog_kind == "error"
+        assert not widget.get_sensitive()
+
+        text_buffer = dialog.details_view.get_buffer()
+        details = text_buffer.get_text(
+            text_buffer.get_start_iter(), text_buffer.get_end_iter(), True
+        )
+        assert "OpenGL 3.3 or newer core context" in details
+        assert "simulated driver context failure" in details
+    finally:
+        if getattr(widget, "_graphics_error_dialog", None) is not None:
+            widget._graphics_error_dialog.destroy()
+        parent.destroy()
