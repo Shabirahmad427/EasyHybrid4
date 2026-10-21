@@ -56,27 +56,32 @@ Reaction path calculations
 
 # Cloning and Installation
 
-EasyHybrid4 is currently maintained as a separate local port of EasyHybrid3.
-The original EasyHybrid3 project remains available independently.
-
-Clone it using:
+Clone the EasyHybrid4 repository using:
 
 ```bash
-git clone --recurse-submodules https://github.com/ferbachega/EasyHybrid3.git EasyHybrid4
+git clone --recurse-submodules https://github.com/Shabirahmad427/EasyHybrid4.git EasyHybrid4
 ```
 
-This command obtains the upstream behavioral reference. The GTK4 port changes
-must then be applied in the separate `EasyHybrid4` working tree.
+EasyHybrid4 includes the graphics engine as ordinary tracked files under
+`src/graphics_engine`. The `.gitmodules` entry is historical metadata; there
+is no graphics-engine gitlink for `--recurse-submodules` to fetch. EasyHybrid3
+remains an independent behavioral reference and is not cloned by this command.
 
-## Verify Submodules
+## Verify the graphics engine source
 
-Make sure the graphics engine was cloned correctly by checking whether the following directory exists:
+After cloning, verify that the vendored engine sources are present:
 
 ```bash
-../EasyHybrid4/src/graphics_engine
+test -f EasyHybrid4/src/graphics_engine/setup.py
+test -f EasyHybrid4/src/graphics_engine/src/vismol/__init__.py
 ```
 
-If this folder is missing, the submodules were not downloaded properly.
+Build its Cython extensions from the repository root:
+
+```bash
+cd EasyHybrid4/src/graphics_engine
+python3 setup.py build_ext --inplace
+```
 
 ## Installation
 

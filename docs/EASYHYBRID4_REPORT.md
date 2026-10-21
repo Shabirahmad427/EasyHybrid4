@@ -29,7 +29,20 @@ passed five full-app cycles with the updated harness. Other platform/version
 cells were not rerun for this test-only correction; previous component-matrix
 evidence remains separate.
 
-**Current roadmap work (2026-10-19): EH4-202 HiDPI picking correction.** GTK
+**Current native matrix (2026-10-20):** run
+[`39485989866`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39485989866)
+completed successfully at main commit `e096a024bb2ccc0755b5ba632f1d5aa5a74a3b13`.
+Every workflow cell built the seven graphics Cython extensions and passed its
+native GTK/GL checks; component cells completed five production menu/VisMol
+open/pick/render/close cycles. The focused full-app smoke also passed wherever
+enabled by the workflow, but its pick invokes GTK callbacks with synthetic
+coordinates rather than injecting an OS pointer event. Exact patch versions
+and host/runtime details are in the uploaded artifacts and
+[`GTK4_COMPATIBILITY.md`](GTK4_COMPATIBILITY.md). This is matrix-backed hosted
+software-renderer evidence; it does not establish physical-GPU, Retina,
+trackpad, Wayland, or native OS input behavior.
+
+**EH4-202 input-picking history and current acceptance state.** GTK
 pointer events arrive in widget-local logical units, while VisMol pick reads
 use framebuffer pixels. `widget_to_framebuffer_coordinates()` now converts
 press/release/motion input using the live widget and GL framebuffer dimensions.
@@ -64,9 +77,10 @@ passed **20/20** fresh scene cycles; each picked `O:0`, confirmed GL state
 restoration, rendered and closed cleanly. The failure harness now records
 selection draw calls, active representation shader/VAO state, framebuffer and
 viewport bindings, raw target and nearby pixels, and GL state/error. That
-instrumentation passed 20/20 local Linux component cycles; the macOS-only
-diagnostic run is pending. A cause-based correction and then the full matrix
-are still required.
+instrumentation passed 20/20 local Linux component cycles. The macOS cause was
+later identified as its one-pixel line-width limit and fixed with shader-built
+hit geometry; full-matrix acceptance is recorded below. The preceding failures
+are retained here as diagnosis history, not current blockers.
 Earlier matrix run
 [`39305083176`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39305083176)
 passed **30/30** after the coordinate conversion was first added, confirming
@@ -94,8 +108,11 @@ accepted by the same run and both are merged to `main`. The `spheres`
 selection VAO now binds its radius/instance attributes to the selection
 program (fix from the Codex session); run `39321285586` passed **30/30**
 with it. Only a static test covers it; a real-context spheres pick is pending.
-EH4-202 remains unchecked until image-difference, resize and capability
-evidence is added.
+The image-difference, resize and capability checks are now present and pass in
+the native matrix (see run `39485989866`). EH4-202 remains unchecked for the
+separate full-interface/native-pointer acceptance: hosted full-app picks still
+invoke GTK callbacks with synthetic coordinates, and full-app coverage does not
+cover every GTK/platform cell.
 
 **Full-interface coverage:** the opt-in `tests/test_easyhybrid_full_app_smoke.py`
 launches `EasyHybridApplication`, constructs the production `MainWindow`, loads
@@ -244,19 +261,22 @@ every cell completed two scene open/render/close cycles. The macOS arm64
 source cells print their scene evidence only to the job log. The guard is
 merged to `main`.
 
-EH4-200's graphics provenance audit
-found the declared `casebor/graphics_engine` URL redirects to public
-`casebor/Vismol`; the `vismol_easyhybrid` branch exists at
-`2df3cd96f0b4970d62bd2c4e652faded411549a2`. It is not established as the
-vendored tree's base: 28 of 88 common tracked files differ, with three
-local-only and eight upstream-only files. The local `LICENSE` says CC BY-NC
-4.0, while package/repository metadata says MIT. No graphics source or
-submodule pointer was changed; EH4-200 remains blocked pending authoritative
-source ancestry and license/ownership clarification. The initial GTK 4.24
-matrix built the graphics extensions on Linux, Windows and macOS arm64. Its
-full-app scene test could not import pDynamo on hosted runners; the replacement
-matrix now builds the extensions and exercises the production menu and VisMol
-renderer in every GTK/OS job.
+EH4-200's clean-clone audit confirmed that the declared
+`casebor/graphics_engine` URL resolves to public `casebor/Vismol`, whose
+`vismol_easyhybrid` branch head is `2df3cd96f0b4970d62bd2c4e652faded411549a2`.
+This is not established as the vendored tree's base revision. Comparison found
+28 differing files among 88 common tracked files, four vendored-only files,
+and eight upstream-only files. The project clone reproduced the vendored tree
+because Git tracks it as ordinary files (tree mode `040000`), not a gitlink;
+`git submodule status --recursive` is empty. A fresh recursive clone built and
+imported all seven graphics extensions on Linux x86_64 (Python 3.12.3,
+NumPy 1.26.4, Cython 3.0.8). Native matrix run `39485989866` also built the
+extensions in all OS/version cells and passed five renderer/pick cycles per
+cell. The graphics `LICENSE` says CC BY-NC 4.0 while package metadata carries
+an MIT classifier; the root project is GPLv3. EH4-200 remains unchecked pending
+authoritative source ancestry and license/ownership review. No graphics source
+or submodule pointer was changed, and no conclusion about distribution rights
+is made here.
 
 EH4-300 moved preferences and transient autosaves out of the installed source
 tree into platform-standard per-user config/cache directories. Existing
@@ -519,15 +539,17 @@ after rerunning its initially aborted Windows GTK 4.24 full-suite job.
 
 | Item | Verified information |
 |---|---|
-| EasyHybrid4 baseline | Initial baseline: `main`, HEAD `bea94210ed7c23f71d2241f8abe3c849ade18561`, clean at EH4-000 verification, no tags. Current local HEAD is `b181a50`; roadmap/report updates remain uncommitted. `origin` is configured to the user-supplied private repository `https://github.com/Shabirahmad427/EasyHybrid4.git`; GitHub reports the repository currently has no commits. The URL is verified; graphics upstream revision remains unknown. |
-| Graphics engine in EasyHybrid4 | `.gitmodules` declares `src/graphics_engine` at `https://github.com/casebor/graphics_engine`, branch `vismol_easyhybrid`; however the index/tree tracks ordinary files, `git submodule status --recursive` is empty, and there is no nested Git metadata. Its upstream SHA is unknown. Do not infer the SHA or repository from the declaration. |
+| EasyHybrid4 baseline | Historical EH4-000 baseline: `main`, HEAD `bea94210ed7c23f71d2241f8abe3c849ade18561`, clean at that verification. Current checked-out state (2026-10-20): `main`, HEAD `e096a024bb2ccc0755b5ba632f1d5aa5a74a3b13`, clean before this documentation update; `origin` is `https://github.com/Shabirahmad427/EasyHybrid4.git`. The upstream graphics branch head is known, but its relationship to the vendored tree is not. |
+| Graphics engine in EasyHybrid4 | `.gitmodules` declares `src/graphics_engine` at `https://github.com/casebor/graphics_engine`, branch `vismol_easyhybrid`; the current index/tree tracks ordinary files, `git submodule status --recursive` is empty, and there is no nested Git metadata. The URL resolves to public `casebor/Vismol`; its branch head is `2df3cd96f0b4970d62bd2c4e652faded411549a2`, but comparison does not establish this as the vendored base revision. |
 | EasyHybrid3 comparison checkout | `~/software/EasyHybrid3`, branch `dev`, commit `b2113b8c11ba3dff51b93fd2f52fc1a7dc9d1098`; origin is `git@github.com:Shabirahmad427/EasyHybrid3.git`, tracking `origin/dev`, 18 commits ahead at inspection. Its working tree had pre-existing user changes and was not modified. |
 | EasyHybrid3 graphics submodule | Declared at `https://github.com/Shabirahmad427/Vismol`, branch `vismol_easyhybrid`; checked-out SHA `6a25a2eaf27c7627dba171104fc7fc8a4c9295fd`. This is comparison evidence only, not the missing EasyHybrid4 revision. |
 | Licenses | Root application `LICENSE`: GNU GPL v3. Vendored graphics `src/graphics_engine/LICENSE`: CC BY-NC 4.0. Preserve both notices; distribution implications need legal review before packaging. |
 
-These provenance limitations have already been recorded. Do not spend more
-cycles rechecking the same missing remote or historical SHA without new
-evidence. Phase 0 may continue on independent tasks.
+The EasyHybrid4 parent remote is now recorded as the repository owner supplied
+it. Do not equate that parent URL or the declared graphics branch head with
+proof of the vendored graphics base revision. The unresolved graphics ancestry
+and license/ownership questions still gate graphics publication or submodule
+conversion; independent local validation can continue.
 
 ## 2. Architecture and dependencies
 
@@ -682,7 +704,7 @@ migration is claimed but end-to-end behavior is not demonstrated.
 |---|---|---|
 | Atom/bond mutation and bond-order perception logic | **WORKING (logic slice only)** | 23 tests cover bond edits, valence/order handling, representations' bookkeeping, and frame-specific dynamic bonds. No GTK UI, GL rendering, or pDynamo sync claim. |
 | Interactive Builder (create/edit, undo, charges/hydrogens, fragments, structures, solvation, DYFF/OPLS) | **UNTESTED** | GTK4 source exists under `src/gui/windows/builder/`; current tests do not run the UI, full pDynamo editing, or round-trip persistence. |
-| VisMol viewer, picking, selection, representations, camera and playback | **UNTESTED** | Source exists under `src/graphics_engine/src/vismol/`; no real Gtk.GLArea context/render test. |
+| VisMol viewer, picking, selection, representations, camera and playback | **PARTIAL** | Real GTK GLArea, production renderer, picking, representation/export/resize checks pass in native matrix run `39485989866`; component matrix picking calls GTK handlers with synthetic coordinates. Full app passed focused native Linux, Windows GTK 4.8/4.10, and macOS GTK 4.24.1 checks. Native OS pointer injection, physical GPU, Retina/trackpad, Wayland, and real trajectory playback remain **NOT TESTED**. |
 | GTK widget startup/lifecycle | **BROKEN (diagnostic observed)** | User-provided launch output showed two `gtk_box_remove` parent assertion critical messages. Visible impact and responsible removal path are unknown. |
 | System import, force-field assignment, merge/prune, trajectory import, `.easy` save/load | **UNTESTED** | Matching dialogs/session/serialization code exists; no representative import or project round-trip fixture was run. |
 | MM/QC/QC-MM setup and calculations | **UNTESTED** | Setup modules and pDynamo dispatch exist; no calculation-level comparison was run. |
@@ -1086,12 +1108,12 @@ the direct Git results above are the current baseline.
 
 ## EH4-000 remaining blockers
 
-EH4-000 remains **in progress, not complete**. Branch, commit, and clean state
-are verified, but the clone has no configured remote, so its EasyHybrid4 fork
-root cannot be identified. The declared graphics submodule has no gitlink or
-checked-out Git metadata, so there is no resolved upstream revision to record.
-Keep these as unresolved issues; do not infer the graphics SHA from EasyHybrid3
-or the URL in `.gitmodules`.
+EH4-000 remains **in progress, not complete**. The current parent branch, commit,
+clean state and owner-supplied `origin` are verified. The declared graphics
+submodule has no gitlink or checked-out Git metadata. Its public branch head is
+known, but the exact vendored source base and contributor/license ownership
+remain unresolved. Do not infer the graphics base SHA from EasyHybrid3 or the
+current upstream branch head.
 
 
 ## 11.2 Package and dependency inventory
