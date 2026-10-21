@@ -18,12 +18,13 @@ maintainer's request to reserve test execution for the final batch. No native
 GTK matrix or macOS trackpad review has been run for this implementation;
 EH4-203 remains unchecked and unverified.
 
-**EH4-204 implementation (2026-10-20; validation pending):** clearing a
+**EH4-204 implementation (2026-10-20; focused state test passed):** clearing a
 viewing selection now clears the atom-level `selected` flags along with the
 selection container and per-object atom IDs. This prevents stale flags from
-appearing in later selection and representation operations. A regression test
-was added but not run, per the maintainer's request to defer test execution to
-the final batch. This is only the selection-reset sub-scope: label display,
+appearing in later selection and representation operations. Its regression
+test passed locally on Linux x86_64 with Python 3.12.3, PyGObject 3.48.2,
+GTK 4.14.5 and GLib 2.80.0. The test uses no display or GL context. This is
+only the selection-reset sub-scope: label display,
 measurement workflows, representation switching, camera save/load, and native
 OS/GTK matrix behavior remain **NOT TESTED**. EH4-204 remains unchecked.
 
