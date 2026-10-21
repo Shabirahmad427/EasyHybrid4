@@ -51,6 +51,7 @@ import random
 import string
 
 from pprint import pprint
+from pdynamo.pDynamo2EasyHybrid.project_file import read_project_file, write_project_file
 
 #VISMOL_HOME = os.environ.get('VISMOL_HOME')
 
@@ -323,22 +324,19 @@ class LoadAndSaveData:
             #.Saves a temporary file with the same name as the original session + "~"
             if filename:
                 tmpfile = filename+'~'
-                with open(tmpfile,'wb') as outfile:
-                    pickle.dump(easyhybrid_session_data, outfile)
+                write_project_file(tmpfile, easyhybrid_session_data)
             
             #.Saves a temporary file when there is no previous session name.
             else:
                 tmpfile = os.path.join(self.vm_session.vm_config.easyhybrid_tmp, 
                                        self.random_code+'.easy')
-                with open(tmpfile,'wb') as outfile:
-                    pickle.dump(easyhybrid_session_data, outfile)
+                write_project_file(tmpfile, easyhybrid_session_data)
                 
 
 
         else:
-            with open(filename,'wb') as outfile:
-                pickle.dump(easyhybrid_session_data, outfile)
-                self.changed = False
+            write_project_file(filename, easyhybrid_session_data)
+            self.changed = False
             if os.path.exists(filename+'~'):
                 os.remove(filename+'~')
             else:
@@ -380,14 +378,14 @@ class LoadAndSaveData:
         #'''- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - '''
 
     def load_easyhybrid_serialization_file (self, filename = None, tmp = False):
-        self.main.restart() 
-        self.main.bottom_notebook.status_teeview_add_new_item(message = ':  {}  loaded'.format(filename), 
-                                                               system =  None )
         if filename is None:
             return None
-        with open(filename, "rb") as f:
-            # Load the object from the file
-            easyhybrid_session_data = pickle.load(f)
+        # Read and validate before clearing the current session. A truncated,
+        # corrupt, or newer-format file must not destroy the live project.
+        easyhybrid_session_data = read_project_file(filename)
+        self.main.restart()
+        self.main.bottom_notebook.status_teeview_add_new_item(
+            message=':  {}  loaded'.format(filename), system=None)
         #print(easyhybrid_session_data)
         
         '''- - - - - - - - - - camera/view orientation - - - - - - - - - - '''
