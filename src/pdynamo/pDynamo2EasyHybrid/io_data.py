@@ -161,6 +161,33 @@ class LoadAndSaveData:
             logger.warning('Autosave failed: %s', e)
         self.autosave_change_counter = 0
 
+    def _write_session_pickle(self, filename, session_data):
+        """Write session data without serializing transient GTK tree rows.
+
+        pDynamo systems carry ``tree_row`` and ``system_choice_row`` references
+        while they are displayed in the GTK browser. Those objects are runtime
+        UI state, not project data, and are not pickleable. Temporarily clear
+        them for serialization and always restore the live references, even if
+        writing fails.
+        """
+        row_references = []
+        try:
+            for entry in session_data.get('systems', ()):
+                system = entry.get('system')
+                if system is None:
+                    continue
+                for attribute in ('tree_row', 'system_choice_row'):
+                    if hasattr(system, attribute):
+                        row_references.append(
+                            (system, attribute, getattr(system, attribute))
+                        )
+                        setattr(system, attribute, None)
+            with open(filename, 'wb') as outfile:
+                pickle.dump(session_data, outfile)
+        finally:
+            for system, attribute, row in row_references:
+                setattr(system, attribute, row)
+
     def save_easyhybrid_session (self, filename = 'session.easy', tmp = False):
         """   
         When the interface makes some modification to the session, 
@@ -323,22 +350,19 @@ class LoadAndSaveData:
             #.Saves a temporary file with the same name as the original session + "~"
             if filename:
                 tmpfile = filename+'~'
-                with open(tmpfile,'wb') as outfile:
-                    pickle.dump(easyhybrid_session_data, outfile)
+                self._write_session_pickle(tmpfile, easyhybrid_session_data)
             
             #.Saves a temporary file when there is no previous session name.
             else:
                 tmpfile = os.path.join(self.vm_session.vm_config.easyhybrid_tmp, 
                                        self.random_code+'.easy')
-                with open(tmpfile,'wb') as outfile:
-                    pickle.dump(easyhybrid_session_data, outfile)
+                self._write_session_pickle(tmpfile, easyhybrid_session_data)
                 
 
 
         else:
-            with open(filename,'wb') as outfile:
-                pickle.dump(easyhybrid_session_data, outfile)
-                self.changed = False
+            self._write_session_pickle(filename, easyhybrid_session_data)
+            self.changed = False
             if os.path.exists(filename+'~'):
                 os.remove(filename+'~')
             else:

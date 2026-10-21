@@ -19,6 +19,25 @@ validation passed at requested scales 1 and 2; GTK reported widget scale factor
 The test pick invokes GTK callbacks with synthetic coordinates and does not
 inject an OS pointer event.
 
+**EH4-204 local native progress (2026-10-21):** the full-app regression now
+exercises residue selection (all three water atoms), atom selection, the atom
+name label, sphere representation visibility, an O–H1 distance measurement
+(0.957 Å), and camera serialization/reload (model, view, projection, clipping,
+and reference-point state). Five independent Linux X11 cycles passed with
+`xdotool`/XTest pointer injection and clean closes; one additional cycle passed
+the expanded camera assertions. The run used Linux x86_64, Python 3.12.3,
+PyGObject 3.48.2, GTK 4.14.5, GLib 2.80.0, and OpenGL 4.6.0 on an NVIDIA
+GeForce RTX 4060 Ti. The first camera-save attempt exposed a pickle error
+because pDynamo systems held GTK `SystemChoiceRow` references. The serializer
+now clears only the transient `tree_row` and `system_choice_row` references
+during pickle and restores them in `finally`; save/reload and live row
+preservation pass locally. The full local suite under Xvfb reports 162 passed,
+14 skipped, and one GTK warning. Without a display, the suite segfaulted in a
+pre-existing unguarded ColorButton Builder test; under Xvfb it completes.
+This evidence is limited to Linux GTK 4.14.5.
+Other GTK minors, Windows, macOS, Wayland, and Retina remain **NOT TESTED** for
+this change; EH4-204 remains open.
+
 The repeated failure was in the test's centering wait: it required multiple
 unchanged GLib timer samples after the center residual had reached zero and
 the transform delta was zero. macOS serviced too few timer polls before the

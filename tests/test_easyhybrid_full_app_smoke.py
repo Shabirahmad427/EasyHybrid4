@@ -20,6 +20,7 @@ _FULL_APP_CYCLE = textwrap.dedent(
     import sys
     import subprocess
     import time
+    import pickle
     import numpy as np
 
     from src.os_integration.gtk_startup import configure_startup_environment
@@ -357,6 +358,95 @@ _FULL_APP_CYCLE = textwrap.dedent(
         print("EASYHYBRID_FULL_APP_SCENE_DRAWS=%d" % state["scene_draws"], flush=True)
         print("EASYHYBRID_FULL_APP_GL_VERSION=%s" % state["gl_version"].decode("ascii", "replace"), flush=True)
         print("EASYHYBRID_FULL_APP_GL_RENDERER=%s" % state["gl_renderer"].decode("utf-8", "replace"), flush=True)
+
+        # Exercise the production selection model against the molecule loaded
+        # through EasyHybridSession.load(), then verify labels, representation
+        # toggles, and a real two-atom measurement on the fixture.
+        molecule = state["molecule"]
+        oxygen = state["oxygen"]
+        hydrogen = next(atom for atom in molecule.atoms.values() if atom.name == "H1")
+        vm_session = main.vm_session
+        vm_session.viewing_selection_mode("residue")
+        vm_session._selection_function_set({oxygen}, disable=False)
+        selection = vm_session.selections[vm_session.current_selection]
+        if len(selection.selected_atoms) != 3:
+            return fail("residue selection should include all 3 water atoms")
+        vm_session._selection_function_set(None)
+        vm_session.viewing_selection_mode("atom")
+        vm_session._selection_function_set({oxygen}, disable=False)
+        if selection.selected_atoms != {oxygen}:
+            return fail("atom selection did not isolate the picked oxygen")
+
+        vm_session.show_or_hide(rep_type="labels", selection=selection, show=True)
+        oxygen.label_text = oxygen.name
+        if not molecule.representations["labels"].active or oxygen.label_text != "O":
+            return fail("atom label representation did not activate")
+        vm_session.show_or_hide(rep_type="spheres", selection=selection, show=True)
+        if not molecule.representations["spheres"].active:
+            return fail("sphere representation did not activate")
+        vm_session.show_or_hide(rep_type="spheres", selection=selection, show=False)
+
+        picks = vm_session.picking_selections
+        picks.selection_function_picking(oxygen)
+        picks.selection_function_picking(hydrogen)
+        if not np.isclose(picks.dist_pk1_pk2, 0.957, atol=1.0e-3):
+            return fail("O-H1 measurement mismatch: %r" % picks.dist_pk1_pk2)
+        print("EASYHYBRID_FULL_APP_SELECTION=residue:3,atom:1", flush=True)
+        print("EASYHYBRID_FULL_APP_LABEL=O", flush=True)
+        print("EASYHYBRID_FULL_APP_MEASUREMENT=%0.3f" % picks.dist_pk1_pk2, flush=True)
+
+        # Save through the application session API and reload its camera block
+        # after changing the live model transform. This checks persistence
+        # rather than merely checking that matrices exist in memory.
+        session_path = os.path.join(os.path.dirname(fixture), "roundtrip.easy")
+        core = vm_session.vm_glcore
+        saved_model = np.asarray(core.model_mat).copy()
+        camera = core.glcamera
+        saved_camera_state = {
+            "zero_reference_point": np.asarray(core.zero_reference_point).copy(),
+            "dist_cam_zrp": float(core.dist_cam_zrp),
+            "view_matrix": np.asarray(camera.view_matrix).copy(),
+            "projection_matrix": np.asarray(camera.projection_matrix).copy(),
+            "z_near": float(camera.z_near),
+            "z_far": float(camera.z_far),
+        }
+        system = next(iter(main.p_session.psystem.values()))
+        tree_row = getattr(system, "tree_row", None)
+        system_choice_row = getattr(system, "system_choice_row", None)
+        main.p_session.save_easyhybrid_session(filename=session_path)
+        if getattr(system, "tree_row", None) is not tree_row:
+            return fail("session save did not restore the live system tree row")
+        if getattr(system, "system_choice_row", None) is not system_choice_row:
+            return fail("session save did not restore the live system choice row")
+        with open(session_path, "rb") as stream:
+            saved_session = pickle.load(stream)
+        if "camera" not in saved_session:
+            return fail("saved EasyHybrid session omitted camera state")
+        core.model_mat = np.eye(4, dtype=np.float32)
+        main.p_session.load_easyhybrid_serialization_file(session_path)
+        restored_core = main.vm_session.vm_glcore
+        restored_camera = restored_core.glcamera
+        camera_checks = (
+            np.allclose(np.asarray(restored_core.model_mat), saved_model),
+            np.allclose(
+                np.asarray(restored_core.zero_reference_point),
+                saved_camera_state["zero_reference_point"],
+            ),
+            np.isclose(restored_core.dist_cam_zrp, saved_camera_state["dist_cam_zrp"]),
+            np.allclose(
+                np.asarray(restored_camera.view_matrix),
+                saved_camera_state["view_matrix"],
+            ),
+            np.allclose(
+                np.asarray(restored_camera.projection_matrix),
+                saved_camera_state["projection_matrix"],
+            ),
+            np.isclose(restored_camera.z_near, saved_camera_state["z_near"]),
+            np.isclose(restored_camera.z_far, saved_camera_state["z_far"]),
+        )
+        if not all(camera_checks):
+            return fail("camera state did not survive session reload: %r" % (camera_checks,))
+        print("EASYHYBRID_FULL_APP_CAMERA_ROUNDTRIP=True", flush=True)
 
         # A newly loaded system is dirty by design and would open the real
         # save-confirmation dialog. This renderer regression discards only its
