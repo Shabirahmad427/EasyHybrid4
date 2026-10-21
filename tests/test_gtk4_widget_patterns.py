@@ -380,6 +380,38 @@ def test_event_controllers_dispatch_mouse_and_keyboard_input():
         window.destroy()
 
 
+@needs_display
+def test_native_clipboard_round_trip_preserves_unicode_text():
+    """Exercise GDK's desktop clipboard provider on the active display."""
+    clipboard = Gdk.Display.get_default().get_clipboard()
+    expected = "EasyHybrid4 clipboard: água Δ"
+    value = GObject.Value()
+    value.init(GObject.TYPE_STRING)
+    value.set_string(expected)
+    provider = Gdk.ContentProvider.new_for_value(value)
+    assert clipboard.set_content(provider)
+
+    loop = GLib.MainLoop()
+    result = {"text": None, "error": None}
+
+    def on_read(source, async_result):
+        try:
+            result["text"] = source.read_text_finish(async_result)
+        except Exception as error:
+            result["error"] = error
+        finally:
+            loop.quit()
+
+    clipboard.read_text_async(None, on_read)
+    timeout = GLib.timeout_add(3000, lambda: (loop.quit(), GLib.SOURCE_REMOVE)[1])
+    loop.run()
+    if GLib.MainContext.default().find_source_by_id(timeout) is not None:
+        GLib.source_remove(timeout)
+
+    assert result["error"] is None
+    assert result["text"] == expected
+
+
 def test_xtb_worker_callbacks_skip_closed_window_widgets():
     from gui.windows.setup.xtb_fragment_charges_window import XtbFragmentChargesWindow
 
