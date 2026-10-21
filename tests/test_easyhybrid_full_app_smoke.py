@@ -18,6 +18,7 @@ _FULL_APP_CYCLE = textwrap.dedent(
     r"""
     import os
     import sys
+    import subprocess
     import time
     import numpy as np
 
@@ -28,6 +29,10 @@ _FULL_APP_CYCLE = textwrap.dedent(
     import gi
     gi.require_version("Gtk", "4.0")
     gi.require_version("Gdk", "4.0")
+    gi.require_version("Graphene", "1.0")
+    if sys.platform.startswith("linux"):
+        gi.require_version("GdkX11", "4.0")
+        from gi.repository import GdkX11, Graphene
     from gi.repository import Gdk, GLib, Gtk
 
     import easyhybrid
@@ -264,24 +269,66 @@ _FULL_APP_CYCLE = textwrap.dedent(
             )
             state["pick_projection"] = (round(px, 5), round(py, 5))
 
-            class TestGesture:
-                def __init__(self, x, y):
-                    self.x, self.y = x, y
+            if os.environ.get("EASYHYBRID_FULL_APP_NATIVE_POINTER") == "1":
+                if not sys.platform.startswith("linux"):
+                    return fail("native pointer injection is currently Linux X11 only")
+                import shutil
 
-                def get_current_button(self):
-                    return 1
+                xdotool = shutil.which("xdotool")
+                if xdotool is None:
+                    return fail("native Linux pointer smoke requires xdotool")
+                native = vm_widget.get_native()
+                surface = native.get_surface()
+                if surface is None or not isinstance(surface, GdkX11.X11Surface):
+                    return fail("native pointer smoke requires a GDK X11 surface")
+                mapped, window_point = vm_widget.compute_point(
+                    main.window, Graphene.Point().init(x, y)
+                )
+                if not mapped:
+                    return fail("could not map projected atom point into main window")
+                scale = surface.get_scale_factor()
+                window_xid = GdkX11.X11Surface.get_xid(surface)
+                click_x = round(window_point.x * scale)
+                click_y = round(window_point.y * scale)
+                try:
+                    result = subprocess.run(
+                        [
+                            xdotool, "mousemove", "--window",
+                            str(window_xid), str(click_x), str(click_y),
+                            "click", "1",
+                        ],
+                        capture_output=True,
+                        text=True,
+                        timeout=5,
+                        check=False,
+                    )
+                except (OSError, subprocess.TimeoutExpired) as error:
+                    return fail("native xdotool click failed: %s" % error)
+                if result.returncode != 0:
+                    return fail("native xdotool click failed: %s" % result.stderr.strip())
+                state["pointer_input"] = "linux-x11-xtest"
+            else:
+                class TestGesture:
+                    def __init__(self, x, y):
+                        self.x, self.y = x, y
 
-                def get_current_event_state(self):
-                    return Gdk.ModifierType(0)
+                    def get_current_button(self):
+                        return 1
 
-                def get_current_event(self):
-                    return None
+                    def get_current_event_state(self):
+                        return Gdk.ModifierType(0)
 
-            gesture = TestGesture(x, y)
-            vm_widget._on_mouse_pressed(gesture, 1, x, y)
-            vm_widget._on_mouse_released(gesture, 1, x, y)
+                    def get_current_event(self):
+                        return None
+
+                gesture = TestGesture(x, y)
+                vm_widget._on_mouse_pressed(gesture, 1, x, y)
+                vm_widget._on_mouse_released(gesture, 1, x, y)
+                state["pointer_input"] = "synthetic-gtk-callback"
             state["pick_started"] = True
             state["pick_attempts"] = state.get("pick_attempts", 0) + 1
+            if state["pick_attempts"] == 1:
+                print("EASYHYBRID_FULL_APP_POINTER=%s" % state["pointer_input"], flush=True)
             vm_widget.queue_render()
             return GLib.SOURCE_CONTINUE
 
@@ -470,6 +517,8 @@ def test_real_easyhybrid_application_mainwindow_load_render_pick_close():
             assert result.returncode == 0, result.stdout + result.stderr
             assert "EASYHYBRID_FULL_APP_MAIN_WINDOW=True" in result.stdout
             assert "EASYHYBRID_FULL_APP_PICK=O:" in result.stdout
+            if os.environ.get("EASYHYBRID_FULL_APP_NATIVE_POINTER") == "1":
+                assert "EASYHYBRID_FULL_APP_POINTER=linux-x11-xtest" in result.stdout
             assert "EASYHYBRID_FULL_APP_SYSTEMS=1" in result.stdout
             assert "EASYHYBRID_FULL_APP_SYSTEM_LABEL=water" in result.stdout
             assert "EASYHYBRID_FULL_APP_ATOMS=3" in result.stdout

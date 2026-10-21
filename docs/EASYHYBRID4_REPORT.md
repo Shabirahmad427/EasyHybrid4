@@ -130,6 +130,16 @@ pair; the separate component matrix must not be represented as full-app
 coverage. A pDynamo import without a system label also exposed and fixed a
 production display-name fallback to the loaded coordinate file's basename.
 
+The full-app harness now has an opt-in Linux X11 path that uses `xdotool`/XTest
+to click the projected oxygen through the actual window-system input queue.
+Five local fresh-app cycles under Xvfb/X11 passed: the real pDynamo3-backed
+MainWindow loaded water, the XTest click picked `O:0`, the GL scene rendered,
+and each window closed cleanly (Python 3.12.3, PyGObject 3.48.2, GTK 4.14.5,
+GLib 2.80.0, Mesa 25.2.8 llvmpipe/OpenGL 4.5). The Linux matrix path now
+installs `xdotool` and enables this input route. Windows/macOS retain the
+synthetic callback path; native injection there is **NOT TESTED**. The full
+matrix for this harness change is pending.
+
 **Windows full-app CI blocker (2026-10-20):** diagnostic run `39368203653`
 (its Actions record was deleted at the maintainer's request after inspection)
 passed native GTK/window/Gio/GLArea and five-cycle production menu/VisMol
@@ -704,7 +714,7 @@ migration is claimed but end-to-end behavior is not demonstrated.
 |---|---|---|
 | Atom/bond mutation and bond-order perception logic | **WORKING (logic slice only)** | 23 tests cover bond edits, valence/order handling, representations' bookkeeping, and frame-specific dynamic bonds. No GTK UI, GL rendering, or pDynamo sync claim. |
 | Interactive Builder (create/edit, undo, charges/hydrogens, fragments, structures, solvation, DYFF/OPLS) | **UNTESTED** | GTK4 source exists under `src/gui/windows/builder/`; current tests do not run the UI, full pDynamo editing, or round-trip persistence. |
-| VisMol viewer, picking, selection, representations, camera and playback | **PARTIAL** | Real GTK GLArea, production renderer, picking, representation/export/resize checks pass in native matrix run `39485989866`; component matrix picking calls GTK handlers with synthetic coordinates. Full app passed focused native Linux, Windows GTK 4.8/4.10, and macOS GTK 4.24.1 checks. Native OS pointer injection, physical GPU, Retina/trackpad, Wayland, and real trajectory playback remain **NOT TESTED**. |
+| VisMol viewer, picking, selection, representations, camera and playback | **PARTIAL** | Real GTK GLArea, production renderer, picking, representation/export/resize checks pass in native matrix run `39485989866`; component matrix picking calls GTK handlers with synthetic coordinates. Full app passed focused native Linux, Windows GTK 4.8/4.10, and macOS GTK 4.24.1 checks. Local Linux X11/XTest full-app picking passes five cycles; hosted full-matrix confirmation is pending. Windows/macOS native OS input, physical GPU, Retina/trackpad, Wayland, and real trajectory playback remain **NOT TESTED**. |
 | GTK widget startup/lifecycle | **BROKEN (diagnostic observed)** | User-provided launch output showed two `gtk_box_remove` parent assertion critical messages. Visible impact and responsible removal path are unknown. |
 | System import, force-field assignment, merge/prune, trajectory import, `.easy` save/load | **UNTESTED** | Matching dialogs/session/serialization code exists; no representative import or project round-trip fixture was run. |
 | MM/QC/QC-MM setup and calculations | **UNTESTED** | Setup modules and pDynamo dispatch exist; no calculation-level comparison was run. |
