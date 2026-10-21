@@ -18,6 +18,18 @@ def test_full_application_smoke_runs_before_component_shader_cycles():
     assert all(full < scene for full, scene in zip(full_app_positions, component_positions))
 
 
+def test_windows_source_gtk_jobs_install_native_pointer_injector():
+    workflow = (ROOT / ".github" / "workflows" / "native-gtk-matrix.yml").read_text()
+    source_job = workflow.split("  gtk-windows-msys2:", 1)[1].split(
+        "  gtk-macos-source:", 1
+    )[0]
+
+    assert "pyautogui==0.9.54" in source_job
+    assert source_job.index("Install native full-app pointer injector") < source_job.index(
+        "Run the full EasyHybrid application with pDynamo3"
+    )
+
+
 def test_failed_macos_gtk424_cell_can_be_dispatched_alone():
     workflow = (ROOT / ".github" / "workflows" / "native-gtk-matrix.yml").read_text()
 

@@ -19,6 +19,16 @@ validation passed at requested scales 1 and 2; GTK reported widget scale factor
 The test pick invokes GTK callbacks with synthetic coordinates and does not
 inject an OS pointer event.
 
+The follow-up branch `eh4-202-native-pointer-windows-macos` switches the full-app
+smoke to OS pointer injection on Linux, Windows, and macOS. On native Linux
+X11 with GTK 4.14.5 / Python 3.12.3 / PyGObject 3.48.2 / GLib 2.80.0, five
+fresh production app cycles passed with XTest clicks, oxygen (`O:0`) picks,
+rendering, and clean closes on NVIDIA GeForce RTX 4060 Ti (OpenGL 4.6.0,
+driver 595.99.02). Workflow review also found and fixed a missing PyAutoGUI
+install in the Windows MSYS2 GTK 4.16/4.18 source lane. The workflow guard
+tests pass locally. Windows SendInput and macOS Quartz delivery have not yet
+been run, so EH4-202 remains open pending the native matrix.
+
 The repeated failure was in the test's centering wait: it required multiple
 unchanged GLib timer samples after the center residual had reached zero and
 the transform delta was zero. macOS serviced too few timer polls before the
