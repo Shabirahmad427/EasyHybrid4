@@ -155,7 +155,11 @@ local real-app run passed under Xvfb/X11: pDynamo3 loaded the water fixture,
 each native XTest event picked `O:0`, the scene rendered, and every window
 closed cleanly (Linux Mint 22.3 x86_64, Python 3.12.3, PyGObject 3.48.2,
 GTK 4.14.5, GLib 2.80.0, Mesa 25.2.8 llvmpipe/OpenGL 4.5). The isolated
-native pointer test also received a real XTest click through a GTK gesture.
+native pointer injector unit and workflow tests passed **6/6**; the unit tests
+mock Win32/CoreGraphics system APIs and validate coordinate conversion and
+button event sequences. The five-cycle Linux full-app check was rerun through
+the shared injector and again passed. Windows/macOS OS event injection remains
+**NOT TESTED**; the passing Linux test does not verify those implementations.
 macOS CI installs PyObjC for its CoreGraphics path, including GTK source-build
 cells. Native Windows/macOS pointer injection and other GTK/platform cells
 remain **NOT TESTED** until the final native matrix runs. The full matrix for
