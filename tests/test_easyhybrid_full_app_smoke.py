@@ -456,21 +456,6 @@ _FULL_APP_CYCLE = textwrap.dedent(
 )
 
 
-def _write_water_pdb(path):
-    lines = []
-    for serial, name, x, y, z, element in (
-        (1, "O", 0.000, 0.000, 0.000, "O"),
-        (2, "H1", 0.957, 0.000, 0.000, "H"),
-        (3, "H2", -0.240, 0.927, 0.000, "H"),
-    ):
-        lines.append(
-            "ATOM  %5d %-4s HOH A%4d    %8.3f%8.3f%8.3f%6.2f%6.2f          %2s  "
-            % (serial, name, 1, x, y, z, 1.0, 0.0, element)
-        )
-    lines.extend(("CONECT    1    2    3", "MASTER        0    0    0    0    0    0    0    3    0    1    0", "END"))
-    path.write_text("\n".join(lines) + "\n", encoding="ascii")
-
-
 @pytest.mark.skipif(
     os.environ.get("EASYHYBRID_RUN_FULL_APP_GRAPHICS") != "1",
     reason="requires the real pDynamo3 runtime, bundled extensions, and a native GTK display",
@@ -511,8 +496,8 @@ def test_real_easyhybrid_application_mainwindow_load_render_pick_close():
         base_environment["HOME"] = str(home)
         if os.name == "nt":
             base_environment["USERPROFILE"] = str(home)
-        fixture = temp_root / "water.pdb"
-        _write_water_pdb(fixture)
+        fixture = Path(__file__).resolve().parent / "fixtures" / "water.pdb"
+        assert fixture.is_file(), "frozen water PDB fixture is missing"
 
         for cycle in range(1, cycles + 1):
             result = subprocess.run(

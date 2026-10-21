@@ -1,20 +1,22 @@
 # EasyHybrid4 Development and Compatibility Report
 
-**Report date:** 2026-10-20
+**Report date:** 2026-10-21
 
 **Purpose:** One consolidated source for repository, architecture, dependency,
 GTK/Python compatibility, parity, platform, testing, and known-limitation
 status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).
 
-**EH4-400 frozen water-fixture check (2026-10-20; partial):** the real app
-smoke now compares loaded VisMol coordinates against the generated PDB values
-with a 0.0005 Å tolerance. Five fresh production MainWindow cycles on Linux
-Mint 22.3 x86_64 preserved all three water atom coordinates, loaded three
-atoms, rendered, picked oxygen (`O:0`), and closed cleanly. Runtime: Python
-3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib 2.80.0, pDynamo3 rebuilt for
-Python 3.12.3, Mesa 25.2.8 llvmpipe OpenGL 4.5. Windows/macOS and other GTK
-runtime results, additional fixture types and broader molecular invariants
-remain **NOT TESTED**; EH4-400 stays unchecked.
+**EH4-400 frozen water-fixture check (2026-10-21; partial):** the real app
+smoke loads the checked-in `tests/fixtures/water.pdb` and compares all three
+VisMol coordinates against independent expected values with 0.0005 Å
+tolerance. Five fresh production MainWindow cycles on Linux x86_64 preserved
+the coordinates, loaded three atoms, rendered, picked oxygen (`O:0`), and
+closed cleanly. Runtime: Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 /
+GLib 2.80.0, pDynamo3 revision `09e583049de5d1cdca6c9b4009c7c75e451a5ae0`
+rebuilt for Python 3.12.3, Mesa 25.2.8 llvmpipe OpenGL 4.5 Core. Pointer
+input in this test is a synthetic GTK callback. Windows/macOS, other GTK
+runtimes, additional fixture types and broader molecular invariants remain
+**NOT TESTED**; EH4-400 stays unchecked.
 
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
