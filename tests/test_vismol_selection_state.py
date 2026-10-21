@@ -3,6 +3,7 @@
 from types import SimpleNamespace
 
 import numpy as np
+import pytest
 
 import vismol.core.vismol_selections as selections_module
 from vismol.core.vismol_selections import (
@@ -66,3 +67,12 @@ def test_picked_atom_pair_reports_current_frame_distance(monkeypatch):
 
     assert len(messages) == 1
     assert "O-H1: 0.95700" in messages[0]
+
+
+def test_picked_atom_triplet_angle_uses_middle_atom_as_vertex():
+    selection = object.__new__(VismolPickingSelection)
+    selection.xyz1 = np.array((1.0, 0.0, 0.0), dtype=np.float32)
+    selection.xyz2 = np.array((0.0, 0.0, 0.0), dtype=np.float32)
+    selection.xyz3 = np.array((0.0, 0.0, 1.0), dtype=np.float32)
+
+    assert selection.get_angle_pk1_pk2_pk3() == pytest.approx(90.0)
