@@ -138,7 +138,16 @@ and each window closed cleanly (Python 3.12.3, PyGObject 3.48.2, GTK 4.14.5,
 GLib 2.80.0, Mesa 25.2.8 llvmpipe/OpenGL 4.5). The Linux matrix path now
 installs `xdotool` and enables this input route. Windows/macOS retain the
 synthetic callback path; native injection there is **NOT TESTED**. The full
-matrix for this harness change is pending.
+matrix for this harness change initially failed GTK 4.8.2/Linux: the real
+XTest click reached the release handler, where `GestureClick.get_current_event()`
+raised `TypeError: No means to translate argument or return value for
+'GdkButtonEvent'`. GTK 4.8's PyGObject typelib does not always translate this
+optional event wrapper. The handler now catches `TypeError`/`RuntimeError` and
+passes `event=None`; button and modifier state continue to come from the GTK
+gesture APIs. A direct fallback check passed locally. The GTK 4.14.5 Linux
+Xvfb/XTest full-app smoke also passed one fresh-app cycle, but does not validate
+GTK 4.8. The focused GTK 4.8/Linux workflow rerun and subsequent full matrix
+are pending; EH4-202 remains unchecked.
 
 **Windows full-app CI blocker (2026-10-20):** diagnostic run `39368203653`
 (its Actions record was deleted at the maintainer's request after inspection)

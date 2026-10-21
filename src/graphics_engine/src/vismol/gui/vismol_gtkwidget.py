@@ -262,7 +262,14 @@ class VismolGTKWidget(_WidgetBase):
     def _on_mouse_released(self, gesture, _press_count, x, y):
         button = gesture.get_current_button()
         state = gesture.get_current_event_state()
-        event = gesture.get_current_event()
+        # GTK 4.8's PyGObject typelib may not expose GdkButtonEvent, causing
+        # get_current_event() to raise TypeError even though the gesture
+        # itself is valid. The GL core only uses this event as optional
+        # context; button/state are available through stable gesture APIs.
+        try:
+            event = gesture.get_current_event()
+        except (TypeError, RuntimeError):
+            event = None
         self._menu_x, self._menu_y = int(x), int(y)
         x, y = self._framebuffer_coordinates(x, y)
         self.vm_glcore.mouse_released(button, x, y, button_state=state, event=event)

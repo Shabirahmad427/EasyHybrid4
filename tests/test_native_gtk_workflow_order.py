@@ -27,6 +27,15 @@ def test_failed_macos_gtk424_cell_can_be_dispatched_alone():
     assert workflow.count("inputs.scope != 'macos-gtk424'") == 3
 
 
+def test_failed_linux_gtk48_cell_can_be_dispatched_alone():
+    workflow = (ROOT / ".github" / "workflows" / "native-gtk-matrix.yml").read_text()
+
+    assert "- linux-gtk48" in workflow
+    assert "inputs.scope == 'linux-gtk48' && '[\"linux-x86_64\"]'" in workflow
+    assert "inputs.scope == 'linux-gtk48' && '[\"4.8\"]'" in workflow
+    assert workflow.count("inputs.scope != 'linux-gtk48'") == 3
+
+
 def test_full_app_timeout_reports_gtk_scene_progress():
     smoke = (ROOT / "tests" / "test_easyhybrid_full_app_smoke.py").read_text()
 
