@@ -1,6 +1,6 @@
 # EasyHybrid4 Development and Compatibility Report
 
-**Report date:** 2026-10-20
+**Report date:** 2026-10-21
 
 **Purpose:** One consolidated source for repository, architecture, dependency,
 GTK/Python compatibility, parity, platform, testing, and known-limitation
@@ -129,6 +129,17 @@ OS-injected pointer events. Full-app runs do not cover every GTK minor/platform
 pair; the separate component matrix must not be represented as full-app
 coverage. A pDynamo import without a system label also exposed and fixed a
 production display-name fallback to the loaded coordinate file's basename.
+
+**EH4-202 cross-platform pointer branch local check (2026-10-21):** the
+`eh4-202-native-pointer-windows-macos` implementation was rerun on Linux
+x86_64/X11 with GTK 4.14.5, Python 3.12.3, PyGObject 3.48.2, GLib 2.80.0 and
+the Python 3.12 pDynamo build. Five real `EasyHybridApplication`/`MainWindow`
+cycles loaded water, injected an XTest pointer click, picked `O:0`, rendered,
+and closed cleanly (**1 passed in 15.23 s**, Mesa 25.2.8 llvmpipe/OpenGL 4.5
+Core). An initial attempt used pDynamo extensions built for Python 3.10 and
+failed before GTK startup; rerunning with the matching Python 3.12 build passed.
+Windows SendInput and macOS Quartz native pointer paths remain **NOT TESTED**;
+the full native GTK matrix remains pending.
 
 The full-app harness now has an opt-in Linux X11 path that uses `xdotool`/XTest
 to click the projected oxygen through the actual window-system input queue.
