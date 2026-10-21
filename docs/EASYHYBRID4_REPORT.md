@@ -151,8 +151,14 @@ GTK 4.8. Focused workflow run
 passed the exact GTK 4.8.2/Linux cell (Python 3.12.15, PyGObject 3.46.0,
 GLib 2.78.0, Mesa 25.2.8 llvmpipe/OpenGL 4.5): five XTest-injected clicks
 picked `O:0` through five fresh production full-app launches, each rendered
-and closed; GTK widget tests passed 64 with 4 skipped. The full native matrix
-after this fix remains pending, and EH4-202 remains unchecked.
+and closed; GTK widget tests passed 64 with 4 skipped. Full native matrix run
+[`39526661552`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39526661552)
+passed **30/30 jobs** across Linux, Windows, macOS arm64, and provisioned Intel
+macOS for GTK 4.8–4.24. Each cell's artifact records the actual runtime and
+backend. Linux full-app paths use XTest; Windows/macOS full-app paths still use
+synthetic GTK callbacks, so native OS pointer injection on those platforms is
+**NOT TESTED**. EH4-202 remains unchecked for that limitation and broader
+real-device acceptance.
 
 **Windows full-app CI blocker (2026-10-20):** diagnostic run `39368203653`
 (its Actions record was deleted at the maintainer's request after inspection)
