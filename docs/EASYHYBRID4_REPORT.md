@@ -27,12 +27,13 @@ remain open.
 **EH4-301 Linux GTK integration recheck (2026-10-21; partial):** under
 Linux Mint 22.3 x86_64 / Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 /
 GLib 2.80.0, native Xvfb/X11 widget tests for chooser lifecycles, response
-dialogs, context-menu placement, and event-controller payloads passed **18**
-with **6 skipped**. A new GDK clipboard round-trip test put Unicode text on
-the active display clipboard through a content provider and read it back
-asynchronously. This is same-process X11 clipboard evidence; cross-process
-clipboard behavior, Windows/macOS, keyboard hardware, and accessibility
-inspection remain **NOT TESTED**. EH4-301 remains unchecked.
+dialogs, context-menu placement, event-controller payloads, and clipboard
+passed **19** with **6 skipped**. GDK clipboard tests verified Unicode
+round-trips both in-process and from a separate GTK reader process while the
+owner serviced its GLib context. The X11 cross-process result does not verify
+Windows/macOS clipboard behavior, native chooser selection, hardware keyboard
+conventions, accessibility/screen-reader behavior, or other GTK minors;
+EH4-301 remains unchecked.
 
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)

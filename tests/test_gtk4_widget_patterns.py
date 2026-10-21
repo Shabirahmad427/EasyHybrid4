@@ -11,7 +11,9 @@ import ast
 import io
 import os
 import re
+import subprocess
 import sys
+import time
 import tokenize
 from pathlib import Path
 import xml.etree.ElementTree as ET
@@ -410,6 +412,63 @@ def test_native_clipboard_round_trip_preserves_unicode_text():
 
     assert result["error"] is None
     assert result["text"] == expected
+
+
+@needs_display
+def test_native_clipboard_text_is_available_to_another_process():
+    """Verify the desktop selection can be read outside its owner process."""
+    clipboard = Gdk.Display.get_default().get_clipboard()
+    expected = "EasyHybrid4 cross-process clipboard: água Δ"
+    value = GObject.Value()
+    value.init(GObject.TYPE_STRING)
+    value.set_string(expected)
+    assert clipboard.set_content(Gdk.ContentProvider.new_for_value(value))
+
+    reader = r"""
+import gi
+gi.require_version("Gdk", "4.0")
+gi.require_version("Gtk", "4.0")
+from gi.repository import Gdk, GLib, Gtk
+Gtk.init()
+
+result = {"text": None, "error": None}
+clipboard = Gdk.Display.get_default().get_clipboard()
+loop = GLib.MainLoop()
+def on_read(source, async_result):
+    try:
+        result["text"] = source.read_text_finish(async_result)
+    except Exception as error:
+        result["error"] = error
+    finally:
+        loop.quit()
+clipboard.read_text_async(None, on_read)
+timeout = GLib.timeout_add(4000, lambda: (loop.quit(), GLib.SOURCE_REMOVE)[1])
+loop.run()
+if GLib.MainContext.default().find_source_by_id(timeout) is not None:
+    GLib.source_remove(timeout)
+if result["error"] is not None:
+    raise result["error"]
+if result["text"] is None:
+    raise RuntimeError("clipboard read timed out")
+print(result["text"])
+"""
+    process = subprocess.Popen(
+        [sys.executable, "-c", reader],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    deadline = time.monotonic() + 6
+    context = GLib.MainContext.default()
+    while process.poll() is None and time.monotonic() < deadline:
+        while context.pending():
+            context.iteration(False)
+        time.sleep(0.01)
+    if process.poll() is None:
+        process.kill()
+    stdout, stderr = process.communicate(timeout=1)
+    assert process.returncode == 0, stdout + stderr
+    assert stdout.rstrip("\r\n") == expected
 
 
 def test_xtb_worker_callbacks_skip_closed_window_widgets():
