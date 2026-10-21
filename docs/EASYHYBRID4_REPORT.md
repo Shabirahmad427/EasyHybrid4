@@ -23,6 +23,15 @@ size, selection, resize, export-difference and GL checks passed at scale 1 and
 2. This remains virtual X11 evidence; physical displays, Wayland, Retina,
 multi-monitor transitions and non-Linux platforms are still **NOT TESTED**.
 
+The main window now bounds restored/default logical dimensions against GDK's
+connected-monitor geometries, with margins for decorations and panels. It
+uses the smallest connected dimensions so a window opened on a secondary
+monitor remains reachable. The compatibility tests passed **9/9**, and a
+display-backed Xvfb monitor-geometry check passed **1/1** on 2026-10-21.
+Restoring an oversized window on physical displays, monitor hot-plug or scale
+transitions, Wayland, Retina, Windows/macOS and other GTK runtimes remain
+**NOT TESTED**; EH4-302 stays unchecked.
+
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
 used GTK 4.24.1 / GLib 2.90.0 / PyGObject 3.58.1 / Python 3.12.15 on
