@@ -42,6 +42,17 @@ and host/runtime details are in the uploaded artifacts and
 software-renderer evidence; it does not establish physical-GPU, Retina,
 trackpad, Wayland, or native OS input behavior.
 
+**One runtime per native matrix cell:** each cell creates one GTK/Python
+environment, builds the VisMol extensions with that interpreter, and builds
+and imports the pinned pDynamo3 source in that same environment before running
+the full-app checks. The separate user pDynamo3 Python 3.10 environment is for
+its own scientific workflows; its compiled extensions are not loaded into the
+GTK/Python 3.12 matrix runtime. VisMol component tests, full-app tests, and
+pDynamo3 scientific regressions are distinct layers and their results must be
+reported separately. A change requiring GTK coverage is still assessed against
+the full native GTK/platform matrix; a local result only covers the runtime
+that was actually executed.
+
 **EH4-202 input-picking history and current acceptance state.** GTK
 pointer events arrive in widget-local logical units, while VisMol pick reads
 use framebuffer pixels. `widget_to_framebuffer_coordinates()` now converts
@@ -405,12 +416,17 @@ focused compatibility/scroll tests **9 passed**. This verifies the GTK callback
 logic but does not exercise a physical trackpad. macOS trackpad review and the
 full GTK/platform matrix remain **NOT TESTED**; EH4-203 stays open.
 
-On 2026-10-21, local Linux X11/Xvfb verification on the existing
-`eh4-203-input-semantics` branch reran the scroll-targeted widget tests (**2
-passed**) and full widget-pattern file (**62 passed, 7 skipped**, one existing
-GLib chooser-test warning) using Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5
-/ GLib 2.80.0. This confirms the GTK 4.14 callback path; it does not replace
-GTK-minor/platform coverage or a physical macOS trackpad review.
+On 2026-10-21, callback-only scroll tests passed (**2 passed, 67 deselected**)
+on local Linux x86_64 under both Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5
+/ GLib 2.80.0 and Python 3.12.15 / PyGObject 3.58.1 / GTK 4.24.1 / GLib
+2.90.0. The display was unset; these tests use a fake controller to verify the
+reported units and fractional accumulation, so they are runtime/API callback
+checks, not native-window or OS-input checks. A separate broad widget-suite
+attempt could not pass its initial display guard because no Gdk display is
+available in this sandbox; its later GTK Builder crash is not a scroll-test
+result. Windows/macOS, the remaining GTK minors, and physical macOS trackpad
+behavior remain **NOT TESTED**. EH4-203 remains unchecked pending the full
+native matrix and trackpad review.
 
 **EH4-105 async lifecycle and playback thread-boundary work (2026-10-18):**
 The xTB fragment-charge worker posted progress and completion callbacks that
