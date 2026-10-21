@@ -28,6 +28,14 @@ only the selection-reset sub-scope: label display,
 measurement workflows, representation switching, camera save/load, and native
 OS/GTK matrix behavior remain **NOT TESTED**. EH4-204 remains unchecked.
 
+**EH4-205 implementation (2026-10-20; validation pending):** GL context
+negotiation errors and exceptions during VisMol initialization now disable
+the unusable view and open the portable GTK error dialog with the OpenGL 3.3
+core requirement and original failure details. The dialog reports only once
+per widget. Regression tests were added but not run. Every supported GTK
+minor/platform combination remains **NOT TESTED** for this change; EH4-205
+remains unchecked.
+
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
 used GTK 4.24.1 / GLib 2.90.0 / PyGObject 3.58.1 / Python 3.12.15 on

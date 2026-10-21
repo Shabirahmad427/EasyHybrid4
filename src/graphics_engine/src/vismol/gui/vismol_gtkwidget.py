@@ -58,6 +58,37 @@ _IS_MACOS = sys.platform == "darwin"
 _HAS_SCROLL_UNIT_API = supports_scroll_unit(Gtk)
 _WidgetBase = Gtk.GLArea
 
+
+def _report_graphics_failure(widget, error):
+    """Keep the application open and explain why molecular rendering failed."""
+    if getattr(widget, "_graphics_failure_reported", False):
+        return
+    widget._graphics_failure_reported = True
+    widget.set_sensitive(False)
+
+    details = (
+        "EasyHybrid requires an OpenGL 3.3 or newer core context to render "
+        "molecules. Check that the graphics driver is installed and supports "
+        "this requirement.\n\nOpenGL initialization error: %s" % error
+    )
+    logger.error("EasyHybrid 3D graphics initialization failed: %s", error)
+    try:
+        from gui.message_dialogs import show_message
+
+        widget._graphics_error_dialog = show_message(
+            widget,
+            "EasyHybrid could not initialize 3D molecular rendering.",
+            "The application will remain open, but the 3D view is disabled.",
+            kind="error",
+            title="3D graphics unavailable",
+            details=details,
+        )
+    except Exception:
+        # Keep the original driver/compiler failure visible in application
+        # logs if a GUI dialog cannot be constructed for some reason.
+        logger.exception("Could not show the 3D graphics failure dialog")
+
+
 def _patch_gl_line_width():
     """ Apple's GL only guarantees glLineWidth(1.0) under a core profile
         (GL_ALIASED_LINE_WIDTH_RANGE is commonly just [1.0, 1.0]). The
@@ -185,20 +216,14 @@ class VismolGTKWidget(_WidgetBase):
         # Make it current before any PyOpenGL calls; otherwise older GTK4
         # runtimes can emit a render callback with no current GL context.
         self.make_current()
-        if self.get_error() != None:
-            # Report GLArea context errors visibly instead of failing
-            # without an explanation.
-            error = self.get_error()
-            print("FATAL: OpenGL context could not be created -- EasyHybrid cannot start.")
-            print("  args:   ", error.args if error is not None else None)
-            print("  code:   ", error.code if error is not None else None)
-            print("  domain: ", error.domain if error is not None else None)
-            print("  message:", error.message if error is not None else None)
-            print("The GTK4 GLArea could not negotiate an OpenGL 3.3+ core context "
-                  "with this system's graphics driver.")
-            self.quit()
+        error = self.get_error()
+        if error is not None:
+            _report_graphics_failure(self, error)
             return
-        self.vm_glcore.initialize()
+        try:
+            self.vm_glcore.initialize()
+        except Exception as error:
+            _report_graphics_failure(self, error)
     
     def reshape(self, widget, width, height):
         """ Resizing function, takes the widht and height of the widget
@@ -216,6 +241,8 @@ class VismolGTKWidget(_WidgetBase):
         """ This is the function that will be called everytime the window
             needs to be re-drawed.
         """
+        if getattr(self, "_graphics_failure_reported", False):
+            return True
         self.vm_glcore.render()
         return True
 
