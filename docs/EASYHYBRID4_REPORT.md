@@ -530,8 +530,9 @@ after rerunning its initially aborted Windows GTK 4.24 full-suite job.
 
 - EH4-001 through EH4-005 are complete for their documented inventory,
   baseline, parity, compatibility, and contributor/report deliverables.
-  EH4-000 remains incomplete because parent remote and graphics upstream
-  revision provenance remain partly unavailable. EH4-100 is complete for its defined
+  EH4-000 remains incomplete because vendored graphics ancestry and
+  contributor/license ownership remain unresolved; the parent remote and
+  current repository state are now verified. EH4-100 is complete for its defined
   architecture/import-boundary acceptance: scientific workflows, session
   state, plotting math, and startup OS policy have tested separations; remaining
   pDynamo/GTK and graphics coupling is documented. EH4-101 is complete:
@@ -569,17 +570,23 @@ after rerunning its initially aborted Windows GTK 4.24 full-suite job.
 
 | Item | Verified information |
 |---|---|
-| EasyHybrid4 baseline | Historical EH4-000 baseline: `main`, HEAD `bea94210ed7c23f71d2241f8abe3c849ade18561`, clean at that verification. Current checked-out state (2026-10-20): `main`, HEAD `e096a024bb2ccc0755b5ba632f1d5aa5a74a3b13`, clean before this documentation update; `origin` is `https://github.com/Shabirahmad427/EasyHybrid4.git`. The upstream graphics branch head is known, but its relationship to the vendored tree is not. |
+| EasyHybrid4 baseline | Historical EH4-000 baseline: `main`, HEAD `bea94210ed7c23f71d2241f8abe3c849ade18561`, clean at that verification. Re-audited 2026-10-20: branch `eh4-000-repository-provenance`, HEAD `0f21022a345e1fda80b2cc18b048e9ed91c1b867` (same as `main` and `origin/main`), clean before this documentation update. Remote `origin`: `https://github.com/Shabirahmad427/EasyHybrid4.git`; 26 local branches, only remote ref `origin/main`, and no tags. The upstream graphics branch head is known, but its relationship to the vendored tree is not. |
 | Graphics engine in EasyHybrid4 | `.gitmodules` declares `src/graphics_engine` at `https://github.com/casebor/graphics_engine`, branch `vismol_easyhybrid`; the current index/tree tracks ordinary files, `git submodule status --recursive` is empty, and there is no nested Git metadata. The URL resolves to public `casebor/Vismol`; its branch head is `2df3cd96f0b4970d62bd2c4e652faded411549a2`, but comparison does not establish this as the vendored base revision. |
 | EasyHybrid3 comparison checkout | `~/software/EasyHybrid3`, branch `dev`, commit `b2113b8c11ba3dff51b93fd2f52fc1a7dc9d1098`; origin is `git@github.com:Shabirahmad427/EasyHybrid3.git`, tracking `origin/dev`, 18 commits ahead at inspection. Its working tree had pre-existing user changes and was not modified. |
 | EasyHybrid3 graphics submodule | Declared at `https://github.com/Shabirahmad427/Vismol`, branch `vismol_easyhybrid`; checked-out SHA `6a25a2eaf27c7627dba171104fc7fc8a4c9295fd`. This is comparison evidence only, not the missing EasyHybrid4 revision. |
-| Licenses | Root application `LICENSE`: GNU GPL v3. Vendored graphics `src/graphics_engine/LICENSE`: CC BY-NC 4.0. Preserve both notices; distribution implications need legal review before packaging. |
+| Licenses | Root application `LICENSE`: GNU GPL v3. Vendored graphics `src/graphics_engine/LICENSE`: CC BY-NC 4.0. Graphics metadata is inconsistent: `pyproject.toml` includes an MIT classifier, `setup.py` includes a CC BY-NC classifier, and some source files carry GPL notices. Preserve all notices; ownership, file-level licensing, and distribution compatibility require authoritative reconciliation and legal review before packaging. |
 
-The EasyHybrid4 parent remote is now recorded as the repository owner supplied
-it. Do not equate that parent URL or the declared graphics branch head with
-proof of the vendored graphics base revision. The unresolved graphics ancestry
-and license/ownership questions still gate graphics publication or submodule
-conversion; independent local validation can continue.
+The EasyHybrid4 parent remote and EasyHybrid3 comparison root were reverified
+on 2026-10-20. The local EasyHybrid3 checkout is on `dev` at
+`b2113b8c11ba3dff51b93fd2f52fc1a7dc9d1098`, tracks `origin/dev` and is 18
+commits ahead; pre-existing changes to seven tracked paths plus untracked
+`bin/` were left untouched. Its graphics submodule resolves to
+`6a25a2eaf27c7627dba171104fc7fc8a4c9295fd`. EasyHybrid4 itself has no graphics
+gitlink, so that SHA is comparison evidence only. Do not equate the parent
+URL, EasyHybrid3 submodule SHA, or declared graphics branch head with proof of
+the vendored EasyHybrid4 graphics base revision. The unresolved graphics
+ancestry and license/ownership questions still gate graphics publication or
+submodule conversion; independent local validation can continue.
 
 ## 2. Architecture and dependencies
 
@@ -1052,7 +1059,7 @@ does not prove native behavior.
 
 | ID | Limitation | Evidence | Follow-up |
 |---|---|---|---|
-| KL-001 | EasyHybrid4 remote/fork root and graphics source SHA unknown. | No remote; graphics directory is not a Git submodule. | EH4-000/EH4-200 only when new evidence appears. |
+| KL-001 | The vendored graphics source SHA and contributor/license ownership are unknown. | EasyHybrid4 `origin` is verified as `https://github.com/Shabirahmad427/EasyHybrid4.git`; graphics directory is ordinary tracked files despite stale `.gitmodules` metadata. The EasyHybrid3 reference and its graphics SHA are recorded but do not prove EasyHybrid4 ancestry. Graphics license/metadata notices conflict. | EH4-000/EH4-200 and EH4-602 after authoritative source/ownership reconciliation. |
 | KL-002 | GTK range target is not fully validated. | GTK 4.8 minimum and stable GTK 4.22.5 **NOT TESTED**; local GTK 4.14.5 only. GTK 4.6 is unsupported. | EH4-501/502/503. |
 | KL-003 | Native cross-platform support unknown. | Windows, macOS, Wayland and other distributions **NOT TESTED**; launcher/build use Bash. | EH4-300–304 and EH4-500 onward. |
 | KL-004 | Native graphics path differs by GTK runtime; GTK 4.8 full-app close still unverified. | Native X11/NVIDIA Gtk.GLArea passes on GTK 4.8.2 and GTK 4.14.5 with `GDK_DEBUG=gl-glx`; GTK 4.14.5's default/EGL path fails to create a context. Full GTK 4.14.5 app opens/closes under explicit GLX selection. GTK 4.8 full app is blocked by the Python/pDynamo extension ABI mismatch. Xvfb/llvmpipe passes separately. | EH4-102 and EH4-201–205/EH4-502/503. |
@@ -1464,7 +1471,7 @@ reason to change scientific behavior without regression evidence.
 
 | ID | Limitation | Evidence / impact | Next work |
 |---|---|---|---|
-| KL-001 | EasyHybrid4 remote and graphics-engine source revision are not established. `.gitmodules` lists the graphics path, but it is tracked as ordinary files. | No configured parent remote and no Git submodule pointer; no upstream SHA is known. This is a provenance/publishing gap, not a current Linux test blocker. Do not guess URLs or revisions. | EH4-000 / EH4-200 when new provenance evidence or an owner-provided remote becomes available. |
+| KL-001 | The vendored graphics-engine source revision and contributor/license ownership are not established. `.gitmodules` lists the path, but Git tracks ordinary files. | Parent remote and EasyHybrid3 comparison root are verified. EasyHybrid4 has no Git submodule pointer; EasyHybrid3's graphics SHA and the public branch head do not prove the vendored base revision. Conflicting license notices remain. This is a provenance/publishing gap, not a current Linux test blocker. Do not guess URLs or revisions. | EH4-000 / EH4-200 / EH4-602 when authoritative ancestry and ownership evidence is available. |
 | KL-002 | GTK minor range is selected but not fully validated. | GTK 4.8 target and upstream stable GTK 4.22.5 have not been run; local evidence is GTK 4.14.5 only. GTK 4.6 is unsupported. | Native GTK_MIN and current-stable CI jobs in EH4-501; UI/GL in EH4-502/503. |
 | KL-003 | Cross-platform support is unverified. | Windows, macOS, Linux Wayland, and alternate Linux distributions were not tested. Bash launch/build scripts and native pDynamo dependencies need platform-specific validation. | EH4-300 through EH4-304 and EH4-500 onward. |
 | KL-004 | Real GUI and OpenGL rendering are unverified. | Automated tests run without GTK/display/GL. The VisMol widget requests OpenGL 3.3+ core. | EH4-102, EH4-201 through EH4-205, EH4-502/503. |
