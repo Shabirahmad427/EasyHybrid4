@@ -32,9 +32,11 @@ OS/GTK matrix behavior remain **NOT TESTED**. EH4-204 remains unchecked.
 negotiation errors and exceptions during VisMol initialization now disable
 the unusable view and open the portable GTK error dialog with the OpenGL 3.3
 core requirement and original failure details. The dialog reports only once
-per widget. Regression tests were added but not run. Every supported GTK
-minor/platform combination remains **NOT TESTED** for this change; EH4-205
-remains unchecked.
+per widget. Three focused regression tests passed locally on Linux x86_64
+with Python 3.12.3, PyGObject 3.48.2, GTK 4.14.5 and GLib 2.80.0. They mock
+the dialog presenter and use no display or GL context. Actual dialog
+presentation and every other supported GTK minor/platform remain **NOT
+TESTED**; EH4-205 remains unchecked.
 
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
