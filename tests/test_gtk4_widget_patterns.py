@@ -558,6 +558,73 @@ def test_scroll_delta_conversion_uses_downward_semantics_for_both_units():
     assert remainder == 0.25
 
 
+def test_vismol_scroll_handler_uses_reported_event_units(monkeypatch):
+    from types import SimpleNamespace
+
+    engine_path = str(PROJECT_ROOT / "src" / "graphics_engine" / "src")
+    if engine_path not in sys.path:
+        sys.path.insert(0, engine_path)
+    from vismol.gui import vismol_gtkwidget as widget_module
+
+    monkeypatch.setattr(widget_module, "_HAS_SCROLL_UNIT_API", True)
+
+    class Core:
+        def __init__(self):
+            self.ctrl = False
+            self.shift = False
+            self.actions = []
+
+        def mouse_scroll(self, direction):
+            self.actions.append((direction, self.ctrl, self.shift))
+
+    class Controller:
+        def __init__(self, unit, state=Gdk.ModifierType(0)):
+            self.unit = unit
+            self.state = state
+
+        def get_unit(self):
+            return self.unit
+
+        def get_current_event_state(self):
+            return self.state
+
+    core = Core()
+    widget = SimpleNamespace(
+        vm_glcore=core,
+        _scroll_remainder=0.0,
+        _scroll_modifiers=None,
+        _scroll_unit_mode=None,
+    )
+    handle = widget_module.VismolGTKWidget._on_mouse_scroll
+
+    wheel_down = Controller(Gdk.ScrollUnit.WHEEL)
+    surface_down = Controller(
+        Gdk.ScrollUnit.SURFACE, Gdk.ModifierType.CONTROL_MASK
+    )
+
+    handle(widget, wheel_down, 0.0, 1.0)
+    assert core.actions == [(-1, False, False)]
+
+    # A half-step surface delta does not zoom yet; the next event completes
+    # one downward action with the modifier state from that gesture.
+    handle(widget, surface_down, 0.0, 15.0)
+    assert core.actions == [(-1, False, False)]
+    handle(widget, surface_down, 0.0, 15.0)
+    assert core.actions[-1] == (-1, True, False)
+    assert core.ctrl is False
+    assert widget._scroll_remainder == pytest.approx(0.0)
+
+    # Unit changes reset partial deltas; wheel and surface use the same sign.
+    handle(widget, wheel_down, 0.0, 1.0)
+    handle(widget, Controller(Gdk.ScrollUnit.SURFACE), 0.0, -30.0)
+    assert core.actions[-2:] == [(-1, False, False), (1, False, False)]
+
+    # Older/incomplete typelibs take the existing wheel-unit fallback.
+    monkeypatch.setattr(widget_module, "_HAS_SCROLL_UNIT_API", False)
+    handle(widget, SimpleNamespace(), 0.0, 1.0)
+    assert core.actions[-1] == (-1, False, False)
+
+
 # --------------------------------------------------------------------------- #
 #  Portable message dialogs (replace deprecated Gtk.MessageDialog).            #
 # --------------------------------------------------------------------------- #
