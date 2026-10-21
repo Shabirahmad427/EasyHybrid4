@@ -6,6 +6,17 @@
 GTK/Python compatibility, parity, platform, testing, and known-limitation
 status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).
 
+**EH4-303 installation instructions (2026-10-20; partial):** the root README
+now documents a conda-forge GTK 4.24.1 baseline environment, native compiler
+prerequisites, the graphics-extension build, separate pDynamo3 setup, and
+Linux/macOS plus PowerShell launch environment variables. The full native
+matrix already contains OS-specific GTK/package provisioning, but the local
+clean-install check could not start: Conda aborted while writing
+`~/.conda/aau_token_host` (`write() argument must be str, not None`) before
+dependency solving. This command does not lock all transitive builds, and
+Windows/macOS interactive installation was not run locally. EH4-303 remains
+unchecked pending a clean install and exact lock/provisioning validation.
+
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
 used GTK 4.24.1 / GLib 2.90.0 / PyGObject 3.58.1 / Python 3.12.15 on

@@ -85,19 +85,64 @@ python3 setup.py build_ext --inplace
 
 ## Installation
 
-Navigate to the main EasyHybrid directory:
+The application uses native GTK 4, GLib and GObject-introspection packages;
+`pip install -r requirements.txt` alone is not enough. A baseline developer
+environment for the currently verified GTK 4.24 line can be created with
+Micromamba and conda-forge:
 
 ```bash
-cd ../EasyHybrid4/
+micromamba create -n easyhybrid4 -c conda-forge \
+  python=3.12 gtk4=4.24.1 glib-tools pygobject pycairo pyopengl \
+  numpy scipy cython pillow freetype-py pyyaml psutil pytest setuptools
+micromamba activate easyhybrid4
 ```
 
-There, you will find the installation script:
+Install a native compiler toolchain before building the graphics extensions:
+GCC/Clang and build tools on Linux, Visual Studio 2022 C++ Build Tools on
+Windows, or Xcode Command Line Tools on macOS. GTK 4.24.1 is pinned here as a
+known matrix runtime; change that pin only to a patch version with a published
+native package for the chosen OS. This pins the main runtime packages, but it
+is not a complete lock of every transitive build. The matrix workflow documents
+its separate providers for GTK minors that conda-forge does not publish.
+
+Build the bundled VisMol Cython extensions from the repository root:
 
 ```bash
-python3 ./install.py
+cd src/graphics_engine
+python setup.py build_ext --inplace
+cd ../..
 ```
 
-> **Note:** Make sure all required dependencies are installed before running the installer.
+Install and compile pDynamo3 separately, then set `PDYNAMO3_HOME`,
+`PDYNAMO3_PARAMETERS` and `PDYNAMO3_SCRATCH` for that checkout. On Linux and
+macOS, add the repository and pDynamo3 checkout to `PYTHONPATH`; in PowerShell
+use semicolons between paths. For example, from the repository root:
+
+```bash
+export PDYNAMO3_HOME="$HOME/software/pDynamo3"
+export PDYNAMO3_PARAMETERS="$PDYNAMO3_HOME/parameters"
+export PDYNAMO3_SCRATCH="${TMPDIR:-/tmp}/easyhybrid-scratch"
+export PYTHONPATH="$PWD:$PWD/src/graphics_engine/src:$PDYNAMO3_HOME${PYTHONPATH:+:$PYTHONPATH}"
+python easyhybrid.py
+```
+
+The equivalent PowerShell setup is:
+
+```powershell
+$env:PDYNAMO3_HOME = 'C:\pDynamo3'
+$env:PDYNAMO3_PARAMETERS = "$env:PDYNAMO3_HOME\parameters"
+$env:PDYNAMO3_SCRATCH = "$env:TEMP\easyhybrid-scratch"
+$env:PYTHONPATH = "$PWD;$PWD\src\graphics_engine\src;$env:PDYNAMO3_HOME"
+python .\easyhybrid.py
+```
+
+`install.py` can check dependencies, build extensions, and create a launcher
+for the configured environment, but it does not install GTK or pDynamo3. The
+shell launcher `activate_easyhybrid4.sh` is Linux/macOS-only. The supported
+GTK/OS provisioning used by native compatibility tests is maintained in
+[`.github/workflows/native-gtk-matrix.yml`](.github/workflows/native-gtk-matrix.yml).
+Windows and macOS interactive installation has not yet been qualified as a
+release path.
 
 ## Running EasyHybrid
 
