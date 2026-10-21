@@ -1,6 +1,6 @@
 # EasyHybrid4 Development and Compatibility Report
 
-**Report date:** 2026-10-20
+**Report date:** 2026-10-21
 
 **Purpose:** One consolidated source for repository, architecture, dependency,
 GTK/Python compatibility, parity, platform, testing, and known-limitation
@@ -739,7 +739,7 @@ migration is claimed but end-to-end behavior is not demonstrated.
 | System import, force-field assignment, merge/prune, trajectory import, `.easy` save/load | **UNTESTED** | Matching dialogs/session/serialization code exists; no representative import or project round-trip fixture was run. |
 | MM/QC/QC-MM setup and calculations | **UNTESTED** | Setup modules and pDynamo dispatch exist; no calculation-level comparison was run. |
 | Single point, optimization, MD, normal modes, transition-state search | **UNTESTED** | GTK4 windows and dispatch are present; no sample scientific output comparison. |
-| PES scans, umbrella sampling, WHAM, NEB/reaction paths, CPR | **PARTIAL** | Opt-in `tests/test_reaction_coordinate_workflow.py` verifies the simple, chained and paired-atom reaction-coordinate distance calculations (1 passed with compiled pDynamo3). Scan parameter export, umbrella/WHAM/NEB execution and numerical outputs remain untested. |
+| PES scans, umbrella sampling, WHAM, NEB/reaction paths, CPR | **PARTIAL** | Opt-in `tests/test_reaction_coordinate_workflow.py` verifies simple/chained/paired distances with fake and compiled pDynamo3 coordinates, and compiles generated script text/checks class dispatch for relaxed/advanced scans, umbrella sampling and NEB (**4 passed**). NEB generated scripts now load exported coordinate pickle files. Actual scan/path/umbrella/WHAM calculations, exported script execution, and native GTK export UI remain untested. |
 | RDF, density, RMSD/RMSF, Ramachandran, surfaces, trajectory analysis | **UNTESTED** | Modules exist; no representative analysis-result fixtures were run. |
 | Infrared spectrum GUI | **UNIMPLEMENTED** | No matching EasyHybrid4 spectrum window/menu workflow was found. |
 | AutoDock Vina / AutoDock-GPU setup-run-import | **UNIMPLEMENTED** | EasyHybrid3 report and dialogs identify both; no EasyHybrid4 front ends/actions were found. |
