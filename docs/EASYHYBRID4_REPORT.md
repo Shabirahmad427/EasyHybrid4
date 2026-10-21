@@ -1,6 +1,6 @@
 # EasyHybrid4 Development and Compatibility Report
 
-**Report date:** 2026-10-20
+**Report date:** 2026-10-21
 
 **Purpose:** One consolidated source for repository, architecture, dependency,
 GTK/Python compatibility, parity, platform, testing, and known-limitation
@@ -16,6 +16,13 @@ checks, native platform chooser interaction, and Windows/macOS runtimes remain
 **NOT TESTED**. A full widget-module attempt inside the restricted sandbox
 failed its display precondition and then segfaulted in a Gtk.Builder color
 button test; it is not counted as a native result. EH4-301 stays unchecked.
+
+The focused subset was rerun with a usable Xvfb display on 2026-10-21 using
+the same Linux GTK runtime: controller dispatch, context-menu placement,
+response-window actions and file-dialog adapter behavior returned **7 passed,
+1 skipped**, with 61 unrelated tests deselected. This confirms the selected
+GTK 4.14.5 interactions; platform-specific chooser and accessibility gaps
+remain open.
 
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
