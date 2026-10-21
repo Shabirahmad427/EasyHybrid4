@@ -146,8 +146,13 @@ optional event wrapper. The handler now catches `TypeError`/`RuntimeError` and
 passes `event=None`; button and modifier state continue to come from the GTK
 gesture APIs. A direct fallback check passed locally. The GTK 4.14.5 Linux
 Xvfb/XTest full-app smoke also passed one fresh-app cycle, but does not validate
-GTK 4.8. The focused GTK 4.8/Linux workflow rerun and subsequent full matrix
-are pending; EH4-202 remains unchecked.
+GTK 4.8. Focused workflow run
+[`39526363320`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39526363320)
+passed the exact GTK 4.8.2/Linux cell (Python 3.12.15, PyGObject 3.46.0,
+GLib 2.78.0, Mesa 25.2.8 llvmpipe/OpenGL 4.5): five XTest-injected clicks
+picked `O:0` through five fresh production full-app launches, each rendered
+and closed; GTK widget tests passed 64 with 4 skipped. The full native matrix
+after this fix remains pending, and EH4-202 remains unchecked.
 
 **Windows full-app CI blocker (2026-10-20):** diagnostic run `39368203653`
 (its Actions record was deleted at the maintainer's request after inspection)
