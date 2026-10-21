@@ -145,10 +145,11 @@ class VismolGTKWidget(_WidgetBase):
         motion_controller.connect("motion", self._on_mouse_motion)
         self.add_controller(motion_controller)
 
-        # Surface-unit processing is used only where the caller handles
-        # smooth deltas explicitly; other platforms get GTK-normalized steps.
+        # Keep GTK deltas continuous wherever event units are available.
+        # Normalize wheel detents and surface pixels by event unit, regardless
+        # of operating system or device name.
         scroll_flags = scroll_controller_flags(
-            Gtk, use_surface_units=_IS_MACOS and _HAS_SCROLL_UNIT_API
+            Gtk, use_surface_units=_HAS_SCROLL_UNIT_API
         )
         scroll_controller = Gtk.EventControllerScroll.new(scroll_flags)
         scroll_controller.connect("scroll", self._on_mouse_scroll)
@@ -288,29 +289,24 @@ class VismolGTKWidget(_WidgetBase):
     def _on_mouse_scroll(self, controller, _dx, dy):
         if not np.isfinite(dy):
             return True
-        if not _IS_MACOS or not _HAS_SCROLL_UNIT_API:
-            if self._scroll_unit_mode != "wheel":
-                self._scroll_remainder = 0.0
-                self._scroll_unit_mode = "wheel"
-            steps, self._scroll_remainder = scroll_delta_to_steps(
-                dy, surface=False, remainder=self._scroll_remainder
-            )
-            direction = 1 if steps < 0 else -1
-            for _ in range(abs(steps)):
-                self.vm_glcore.mouse_scroll(direction)
-            return True
-
         if dy == 0:
             return True
 
-        unit = get_scroll_unit(controller)
-        if unit == Gdk.ScrollUnit.SURFACE:
-            if self._scroll_unit_mode != "surface":
-                self._scroll_remainder = 0.0
-                self._scroll_unit_mode = "surface"
-            # Quartz trackpads report surface pixels, often 1–20 per event.
-            # Accumulate 30 pixels per wheel step to avoid runaway zoom and
-            # the resulting loss of the molecule from the clipping volume.
+        unit = get_scroll_unit(controller) if _HAS_SCROLL_UNIT_API else None
+        scroll_units = getattr(Gdk, "ScrollUnit", None)
+        surface = scroll_units is not None and unit == getattr(
+            scroll_units, "SURFACE", None
+        )
+        mode = "surface" if surface else "wheel"
+        if self._scroll_unit_mode != mode:
+            self._scroll_remainder = 0.0
+            self._scroll_unit_mode = mode
+
+        if surface:
+            # Surface deltas are logical pixels on every platform. Accumulate
+            # them into modest wheel-equivalent actions; wheel deltas remain
+            # detents. Read modifiers from this event for smooth input, which
+            # may not generate a separate key-controller transition.
             state = controller.get_current_event_state()
             ctrl = bool(state & Gdk.ModifierType.CONTROL_MASK)
             shift = bool(state & Gdk.ModifierType.SHIFT_MASK)
@@ -318,32 +314,25 @@ class VismolGTKWidget(_WidgetBase):
             if modifiers != self._scroll_modifiers:
                 self._scroll_modifiers = modifiers
                 self._scroll_remainder = 0.0
-            steps, self._scroll_remainder = scroll_delta_to_steps(
-                dy, surface=True, remainder=self._scroll_remainder
-            )
-            if steps == 0:
-                return True
-
-            saved_ctrl, saved_shift = self.vm_glcore.ctrl, self.vm_glcore.shift
-            self.vm_glcore.ctrl, self.vm_glcore.shift = ctrl, shift
-            try:
-                direction = 1 if steps > 0 else -1
-                for _ in range(abs(steps)):
-                    self.vm_glcore.mouse_scroll(direction)
-            finally:
-                self.vm_glcore.ctrl, self.vm_glcore.shift = saved_ctrl, saved_shift
         else:
-            # Wheel-unit deltas can still be fractional on some backends.
-            # Preserve their remainder just like the older-runtime fallback.
-            if self._scroll_unit_mode != "wheel":
-                self._scroll_remainder = 0.0
-                self._scroll_unit_mode = "wheel"
             self._scroll_modifiers = None
-            steps, self._scroll_remainder = scroll_delta_to_steps(
-                dy, surface=False, remainder=self._scroll_remainder
-            )
-            if steps:
-                direction = 1 if steps < 0 else -1
+
+        steps, self._scroll_remainder = scroll_delta_to_steps(
+            dy, surface=surface, remainder=self._scroll_remainder
+        )
+        if steps:
+            # GDK's positive vertical delta means down. VisMol's legacy
+            # direction convention uses -1 for down and +1 for up.
+            direction = -1 if steps > 0 else 1
+            if surface:
+                saved_ctrl, saved_shift = self.vm_glcore.ctrl, self.vm_glcore.shift
+                self.vm_glcore.ctrl, self.vm_glcore.shift = ctrl, shift
+                try:
+                    for _ in range(abs(steps)):
+                        self.vm_glcore.mouse_scroll(direction)
+                finally:
+                    self.vm_glcore.ctrl, self.vm_glcore.shift = saved_ctrl, saved_shift
+            else:
                 for _ in range(abs(steps)):
                     self.vm_glcore.mouse_scroll(direction)
         return True
