@@ -1,18 +1,23 @@
 # EasyHybrid4 Development and Compatibility Report
 
-**Report date:** 2026-10-20
+**Report date:** 2026-10-21
 
 **Purpose:** One consolidated source for repository, architecture, dependency,
 GTK/Python compatibility, parity, platform, testing, and known-limitation
 status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).
 
-**EH4-204 selection-state implementation (2026-10-20; partial):** clearing a
-VisMol viewing selection now clears atom-level `selected` flags in addition to
-the selection container and per-object atom IDs. The regression passed on
-Linux Mint 22.3 x86_64 with Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 /
-GLib 2.80.0. Labels, measurements, representation switching, camera
-persistence, and other native OS/GTK runtimes remain **NOT TESTED**; EH4-204
-stays unchecked.
+**EH4-204 selection/camera checks (2026-10-21; partial):** clearing a VisMol
+viewing selection clears stale atom-level flags, and the `.easy` camera state
+round-trips model/view/projection matrices, clipping planes, focus values and
+viewport dimensions. The picked-pair distance regression also passed. The production
+`EasyHybridApplication`/`MainWindow` loaded a generated water PDB, received a
+native Linux XTest click on oxygen (`O:0`), rendered and closed cleanly. Runtime:
+Linux x86_64 / Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib 2.80.0 /
+Mesa 25.2.8 llvmpipe OpenGL 4.5; pDynamo3 source/build revision
+`09e583049de5d1cdca6c9b4009c7c75e451a5ae0` was supplied by `PYTHONPATH` rather
+than installed in the GTK environment. Labels, angle/dihedral measurement UI,
+representation switching, Windows/macOS, other GTK minors and physical
+graphics hardware remain **NOT TESTED**. EH4-204 stays unchecked.
 
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)

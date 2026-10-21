@@ -4,7 +4,11 @@ from types import SimpleNamespace
 
 import numpy as np
 
-from vismol.core.vismol_selections import VismolViewingSelection
+import vismol.core.vismol_selections as selections_module
+from vismol.core.vismol_selections import (
+    VismolPickingSelection,
+    VismolViewingSelection,
+)
 
 
 def test_clearing_viewing_selection_clears_atom_flags_and_object_ids():
@@ -38,3 +42,27 @@ def test_clearing_viewing_selection_clears_atom_flags_and_object_ids():
     assert not any(atom.selected for atom in atoms)
     assert molecule.selected_atom_ids == set()
     assert selection.active is False
+
+
+def test_picked_atom_pair_reports_current_frame_distance(monkeypatch):
+    class FakeAtom:
+        def __init__(self, name, xyz):
+            self.name = name
+            self.xyz = np.asarray(xyz, dtype=np.float32)
+
+        def coords(self, frame=None):
+            assert frame is None
+            return self.xyz
+
+    oxygen = FakeAtom("O", (0.0, 0.0, 0.0))
+    hydrogen = FakeAtom("H1", (0.957, 0.0, 0.0))
+    messages = []
+    monkeypatch.setattr(selections_module, "dprint", messages.append)
+
+    selection = object.__new__(VismolPickingSelection)
+    selection.vm_session = SimpleNamespace(get_frame=lambda: 0)
+    selection.picking_selections_list = [oxygen, hydrogen, None, None]
+    selection.print_pk_distances()
+
+    assert len(messages) == 1
+    assert "O-H1: 0.95700" in messages[0]
