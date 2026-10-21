@@ -1,12 +1,12 @@
 # EasyHybrid4 Development and Compatibility Report
 
-**Report date:** 2026-10-20
+**Report date:** 2026-10-21
 
 **Purpose:** One consolidated source for repository, architecture, dependency,
 GTK/Python compatibility, parity, platform, testing, and known-limitation
 status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).
 
-**EH4-203 implementation (2026-10-20; local validation partial):** GTK's
+**EH4-203 implementation (2026-10-21; local validation partial):** GTK's
 `EventControllerScroll.get_unit()`/`Gdk.ScrollUnit` capability is available
 from GTK 4.8. VisMol now requests continuous deltas wherever that capability
 exists on any OS, normalizes wheel detents and surface logical pixels to one
@@ -14,8 +14,10 @@ positive-down convention, and applies the existing scroll action with one
 direction mapping. Feature detection preserves a discrete fallback for older
 or incomplete typelibs. On local Linux Mint 22.3 x86_64 (Python 3.12.3,
 PyGObject 3.48.2, GTK 4.14.5, GLib 2.80.0), the focused delta conversion test
-passed (1 passed, 67 deselected). A real X11 wheel-down event delivered through
-a GTK `EventControllerScroll` reported `dy=+1.0` and `GDK_SCROLL_UNIT_WHEEL`.
+passed; `tests/test_gtk4_compat.py` passed 7 tests. A real X11 wheel-down event
+delivered through a GTK `EventControllerScroll` reported `dy=+1.0` and
+`GDK_SCROLL_UNIT_WHEEL`. The production menu/VisMol native GL smoke also passed
+one cycle with an actual oxygen pick, clean close, and Mesa llvmpipe OpenGL 4.5.
 The full native GTK matrix, Windows/macOS paths, physical trackpad review, and
 full-app zoom/rotate/pan checks have not run; EH4-203 remains unchecked.
 
