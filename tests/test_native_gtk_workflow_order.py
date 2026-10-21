@@ -46,3 +46,16 @@ def test_full_app_timeout_reports_gtk_scene_progress():
     assert 'state["pick_dimensions"] = (' in smoke
     assert 'pick_attempts=%s' in smoke
     assert 'state["pick_attempts"] = state.get("pick_attempts", 0) + 1' in smoke
+
+
+def test_full_app_matrix_injects_native_pointer_on_all_desktop_oses():
+    workflow = (ROOT / ".github" / "workflows" / "native-gtk-matrix.yml").read_text()
+    smoke = (ROOT / "tests" / "test_easyhybrid_full_app_smoke.py").read_text()
+    pointer = (ROOT / "tests" / "native_pointer_input.py").read_text()
+
+    assert workflow.count('EASYHYBRID_FULL_APP_NATIVE_POINTER: "1"') == 4
+    assert workflow.count("pyobjc-framework-Cocoa pyobjc-framework-Quartz") == 2
+    assert '"win32": "windows-win32-user32"' in smoke
+    assert '"darwin": "macos-quartz-hid"' in smoke
+    assert 'return _click_windows(window, x, y)' in pointer
+    assert 'return _click_macos(window, x, y)' in pointer

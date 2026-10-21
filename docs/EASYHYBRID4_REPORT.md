@@ -130,15 +130,19 @@ pair; the separate component matrix must not be represented as full-app
 coverage. A pDynamo import without a system label also exposed and fixed a
 production display-name fallback to the loaded coordinate file's basename.
 
-The full-app harness now has an opt-in Linux X11 path that uses `xdotool`/XTest
-to click the projected oxygen through the actual window-system input queue.
-Five local fresh-app cycles under Xvfb/X11 passed: the real pDynamo3-backed
-MainWindow loaded water, the XTest click picked `O:0`, the GL scene rendered,
-and each window closed cleanly (Python 3.12.3, PyGObject 3.48.2, GTK 4.14.5,
-GLib 2.80.0, Mesa 25.2.8 llvmpipe/OpenGL 4.5). The Linux matrix path now
-installs `xdotool` and enables this input route. Windows/macOS retain the
-synthetic callback path; native injection there is **NOT TESTED**. The full
-matrix for this harness change initially failed GTK 4.8.2/Linux: the real
+The full-app harness has an opt-in native pointer path. On Linux/X11 it uses
+`xdotool`/XTest; five local fresh-app cycles under Xvfb/X11 passed: the real
+pDynamo3-backed MainWindow loaded water, the XTest click picked `O:0`, the GL
+scene rendered, and each window closed cleanly (Python 3.12.3, PyGObject
+3.48.2, GTK 4.14.5, GLib 2.80.0, Mesa 25.2.8 llvmpipe/OpenGL 4.5). The
+Windows implementation uses Win32 client-to-screen conversion and mouse
+events. The macOS implementation maps the GTK widget point through AppKit and
+posts Quartz HID events; its CI environment installs PyObjC Cocoa/Quartz.
+Workflow checks now request the native path on all desktop OSes. The Windows
+and macOS injection paths and all GTK/platform combinations for this change
+are **NOT TESTED**. Focused local helper/workflow tests pass 11/11, including
+pure coordinate conversion cases; these do not prove native OS injection.
+The full matrix for the initial Linux harness change failed GTK 4.8.2/Linux: the real
 XTest click reached the release handler, where `GestureClick.get_current_event()`
 raised `TypeError: No means to translate argument or return value for
 'GdkButtonEvent'`. GTK 4.8's PyGObject typelib does not always translate this

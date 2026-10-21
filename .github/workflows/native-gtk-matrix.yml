@@ -247,11 +247,14 @@ jobs:
         env:
           EASYHYBRID_RUN_FULL_APP_GRAPHICS: "1"
           EASYHYBRID_FULL_APP_CYCLES: "5"
-          EASYHYBRID_FULL_APP_NATIVE_POINTER: ${{ runner.os == 'Linux' && '1' || '0' }}
+          EASYHYBRID_FULL_APP_NATIVE_POINTER: "1"
           PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
         run: |
           set -o pipefail
           export PDYNAMO3_HOME="${{ github.workspace }}/pDynamo3"
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            micromamba run -n easyhybrid-gtk python -m pip install --disable-pip-version-check pyobjc-framework-Cocoa pyobjc-framework-Quartz
+          fi
           if [[ "$RUNNER_OS" == "Linux" ]]; then
             LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_easyhybrid_full_app_smoke.py 2>&1 | tee -a platform-results.txt
           elif [[ "$RUNNER_OS" == "Windows" ]]; then
@@ -460,7 +463,7 @@ jobs:
         env:
           EASYHYBRID_RUN_FULL_APP_GRAPHICS: "1"
           EASYHYBRID_FULL_APP_CYCLES: "5"
-          EASYHYBRID_FULL_APP_NATIVE_POINTER: ${{ runner.os == 'Linux' && '1' || '0' }}
+          EASYHYBRID_FULL_APP_NATIVE_POINTER: "1"
           PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
         run: |
           set -o pipefail
@@ -659,7 +662,7 @@ jobs:
         env:
           EASYHYBRID_RUN_FULL_APP_GRAPHICS: "1"
           EASYHYBRID_FULL_APP_CYCLES: "5"
-          EASYHYBRID_FULL_APP_NATIVE_POINTER: ${{ runner.os == 'Linux' && '1' || '0' }}
+          EASYHYBRID_FULL_APP_NATIVE_POINTER: "1"
           PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
         run: |
           set -o pipefail
@@ -889,11 +892,14 @@ jobs:
         env:
           EASYHYBRID_RUN_FULL_APP_GRAPHICS: "1"
           EASYHYBRID_FULL_APP_CYCLES: "5"
-          EASYHYBRID_FULL_APP_NATIVE_POINTER: ${{ runner.os == 'Linux' && '1' || '0' }}
+          EASYHYBRID_FULL_APP_NATIVE_POINTER: "1"
           PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
         run: |
           set -o pipefail
           export PDYNAMO3_HOME="${{ github.workspace }}/pDynamo3"
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            micromamba run -n easyhybrid-gtk-src python -m pip install --disable-pip-version-check pyobjc-framework-Cocoa pyobjc-framework-Quartz
+          fi
           micromamba run -n easyhybrid-gtk-src python -m pytest -q -s -p no:cacheprovider tests/test_easyhybrid_full_app_smoke.py 2>&1 | tee -a platform-results.txt
 
       - name: Run 5 EasyHybrid molecular scene pick and close cycles
