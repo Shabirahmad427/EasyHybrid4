@@ -97,6 +97,11 @@ micromamba create -n easyhybrid4 -c conda-forge \
 micromamba activate easyhybrid4
 ```
 
+When building from an environment on a machine with user-installed Python
+packages, disable the user site so NumPy headers and Python packages come from
+the selected environment. For Bash, run `export PYTHONNOUSERSITE=1` before the
+build; in PowerShell, run `$env:PYTHONNOUSERSITE = '1'`.
+
 Install a native compiler toolchain before building the graphics extensions:
 GCC/Clang and build tools on Linux, Visual Studio 2022 C++ Build Tools on
 Windows, or Xcode Command Line Tools on macOS. GTK 4.24.1 is pinned here as a

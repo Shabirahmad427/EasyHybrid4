@@ -1,21 +1,26 @@
 # EasyHybrid4 Development and Compatibility Report
 
-**Report date:** 2026-10-20
+**Report date:** 2026-10-21
 
 **Purpose:** One consolidated source for repository, architecture, dependency,
 GTK/Python compatibility, parity, platform, testing, and known-limitation
 status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).
 
-**EH4-303 installation instructions (2026-10-20; partial):** the root README
-now documents a conda-forge GTK 4.24.1 baseline environment, native compiler
+**EH4-303 installation instructions (2026-10-21; partial):** the root README
+documents a conda-forge GTK 4.24.1 baseline environment, native compiler
 prerequisites, the graphics-extension build, separate pDynamo3 setup, and
-Linux/macOS plus PowerShell launch environment variables. The full native
-matrix already contains OS-specific GTK/package provisioning, but the local
-clean-install check could not start: Conda aborted while writing
-`~/.conda/aau_token_host` (`write() argument must be str, not None`) before
-dependency solving. This command does not lock all transitive builds, and
-Windows/macOS interactive installation was not run locally. EH4-303 remains
-unchecked pending a clean install and exact lock/provisioning validation.
+Linux/macOS plus PowerShell launch environment variables. A fresh conda-forge
+environment on Linux x86_64 installed Python 3.12.15, GTK 4.24.1, PyGObject
+3.58.1, GLib 2.90.0, and NumPy 2.5.4. With user-site packages disabled, all
+seven Cython extensions built using that environment's NumPy headers and
+imported successfully; the native GTK startup/icon smoke passed three window
+cycles under Xvfb/X11 and Mesa 25.2.8 llvmpipe (OpenGL 4.5 Core). An initial
+build exposed contamination by the host's user-site NumPy 1.x headers, so the
+README now advises disabling user-site packages during builds. This is Linux
+GTK 4.24.1 developer-install evidence only: other GTK minors, Windows/macOS
+interactive installation, packaged launchers, and pDynamo3 installation are
+not verified. EH4-303 remains unchecked; the package command is not a complete
+transitive lock.
 
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
