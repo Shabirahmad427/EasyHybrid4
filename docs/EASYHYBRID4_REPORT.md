@@ -9,15 +9,16 @@ status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).
 **EH4-204 selection/camera checks (2026-10-21; partial):** clearing a VisMol
 viewing selection clears stale atom-level flags, and the `.easy` camera state
 round-trips model/view/projection matrices, clipping planes, focus values and
-viewport dimensions. The picked-pair distance regression also passed. The production
-`EasyHybridApplication`/`MainWindow` loaded a generated water PDB, received a
-native Linux XTest click on oxygen (`O:0`), exercised atom and residue viewing
-selection, toggled the selected-atom label representation, rendered and closed
+viewport dimensions. Picked-pair distance and picked-atom angle regressions
+also passed. The production `EasyHybridApplication`/`MainWindow` loaded a
+generated water PDB, received a native Linux XTest click on oxygen (`O:0`),
+exercised atom and residue viewing selection, confirmed that the selected-atom
+label representation rendered before hiding it, rendered the scene and closed
 cleanly. Runtime:
 Linux x86_64 / Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib 2.80.0 /
 Mesa 25.2.8 llvmpipe OpenGL 4.5; pDynamo3 source/build revision
 `09e583049de5d1cdca6c9b4009c7c75e451a5ae0` was supplied by `PYTHONPATH` rather
-than installed in the GTK environment. Angle/dihedral measurement UI,
+than installed in the GTK environment. Dihedral measurement UI,
 representation switching beyond the label toggle, Windows/macOS, other GTK
 minors and physical graphics hardware remain **NOT TESTED**. EH4-204 stays
 unchecked.
