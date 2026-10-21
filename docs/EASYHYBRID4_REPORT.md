@@ -16,8 +16,11 @@ or incomplete typelibs. On local Linux Mint 22.3 x86_64 (Python 3.12.3,
 PyGObject 3.48.2, GTK 4.14.5, GLib 2.80.0), the production scroll-handler
 regression now verifies unit selection, wheel/surface direction equivalence,
 partial surface accumulation, modifier forwarding, and legacy fallback. The
-full `tests/test_gtk4_widget_patterns.py` and `tests/test_gtk4_compat.py`
-modules passed **70 tests, 6 skipped**. A real X11 wheel-down event delivered
+earlier `tests/test_gtk4_widget_patterns.py` and `tests/test_gtk4_compat.py`
+run passed **70 tests, 6 skipped**; the latest local recheck passed **69, with
+7 skipped** in 4.05 seconds. It emitted one non-failing existing
+`g_error_free` warning in the GTK 4.8 color-chooser cancellation test. A real
+X11 wheel-down event delivered
 through GTK `EventControllerScroll` reported `dy=+1.0` and
 `GDK_SCROLL_UNIT_WHEEL`. The production menu/VisMol native GL smoke also passed
 one cycle with an actual oxygen pick, clean close, and Mesa llvmpipe OpenGL 4.5.
