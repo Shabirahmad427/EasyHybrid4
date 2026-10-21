@@ -22,6 +22,13 @@ and passed three window lifecycle cycles. All other GTK/platform cells are
 **NOT TESTED** for this change; EH4-205 remains unchecked until the required
 full native matrix runs.
 
+Rechecked on the implementation branch on 2026-10-21: the diagnostics module
+passed **6/6**, the startup/GL smoke passed with three clean window lifecycle
+cycles, and the complete suite passed **168 tests** with 14 skips and one
+pre-existing GTK 4.8 chooser GLib warning. Runtime was Linux 6.8.0-147-generic
+x86_64, Python 3.12.3, PyGObject 3.48.2, GTK 4.14.5, GLib 2.80.0, Mesa
+25.2.8 llvmpipe, OpenGL 4.5 Core. `py_compile` and `git diff --check` passed.
+
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
 used GTK 4.24.1 / GLib 2.90.0 / PyGObject 3.58.1 / Python 3.12.15 on
