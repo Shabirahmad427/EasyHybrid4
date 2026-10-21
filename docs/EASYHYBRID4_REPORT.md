@@ -6,6 +6,14 @@
 GTK/Python compatibility, parity, platform, testing, and known-limitation
 status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).
 
+**EH4-204 selection-state implementation (2026-10-20; partial):** clearing a
+VisMol viewing selection now clears atom-level `selected` flags in addition to
+the selection container and per-object atom IDs. The regression passed on
+Linux Mint 22.3 x86_64 with Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 /
+GLib 2.80.0. Labels, measurements, representation switching, camera
+persistence, and other native OS/GTK runtimes remain **NOT TESTED**; EH4-204
+stays unchecked.
+
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
 used GTK 4.24.1 / GLib 2.90.0 / PyGObject 3.58.1 / Python 3.12.15 on
