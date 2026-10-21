@@ -1,6 +1,6 @@
 # EasyHybrid4 Development and Compatibility Report
 
-**Report date:** 2026-10-20
+**Report date:** 2026-10-21
 
 **Purpose:** One consolidated source for repository, architecture, dependency,
 GTK/Python compatibility, parity, platform, testing, and known-limitation
