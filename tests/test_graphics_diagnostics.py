@@ -12,6 +12,12 @@ for _path in (ROOT / "src", ROOT / "src" / "graphics_engine" / "src"):
     if str(_path) not in sys.path:
         sys.path.insert(0, str(_path))
 
+from src.os_integration.gtk_startup import configure_gl_context_environment  # noqa: E402
+
+# Keep GTK's GL backend selection consistent with the EasyHybrid launcher.
+# This must happen before any of the display-backed tests open a Gdk.Display.
+configure_gl_context_environment()
+
 from vismol.gui.graphics_diagnostics import (  # noqa: E402
     graphics_failure_message,
     parse_gl_version,

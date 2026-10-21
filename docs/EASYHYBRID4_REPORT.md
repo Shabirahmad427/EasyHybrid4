@@ -22,6 +22,20 @@ and passed three window lifecycle cycles. All other GTK/platform cells are
 **NOT TESTED** for this change; EH4-205 remains unchecked until the required
 full native matrix runs.
 
+Native X11 recheck on 2026-10-21 passed `tests/test_graphics_diagnostics.py`
+**6/6** on local Linux x86_64 at GTK 4.14.5 (Python 3.12.3 / PyGObject
+3.48.2 / GLib 2.80.0) and GTK 4.24.1 (Python 3.12.15 / PyGObject 3.58.1 /
+GLib 2.90.0), with `G_DEBUG=fatal-criticals`. It covers visible error windows,
+the realized GLArea unsupported-version path, and one-time render failure
+handling. The mocked 2.1 OpenGL version tests graceful fallback; it does not
+simulate a physical unsupported GPU. The first native attempt failed because
+the test had not applied the application's GL startup policy; the test module
+now applies `configure_gl_context_environment()` before any test opens a
+display. GTK 4.24.1 printed `Unrecognized value "gl-glx"` and a missing IBus
+module warning in this local direct-runtime setup, but all six tests passed.
+Other GTK minors, Windows/macOS, and real unsupported hardware remain
+**NOT TESTED**; EH4-205 is still open pending the native matrix.
+
 Rechecked on the implementation branch on 2026-10-21: the diagnostics module
 passed **6/6**, the startup/GL smoke passed with three clean window lifecycle
 cycles, and the complete suite passed **168 tests** with 14 skips and one
