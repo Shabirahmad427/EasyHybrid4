@@ -393,6 +393,18 @@ provisioned Intel macOS for GTK 4.8–4.24. EH4-104 automated/native-matrix
 acceptance is complete. Physical macOS trackpad behavior remains **NOT
 TESTED** and is recorded separately.
 
+**EH4-203 unit-based scroll handling (in progress, 2026-10-20):** VisMol now
+requests smooth scroll deltas wherever the loaded GTK runtime exposes scroll
+units, and dispatches according to the reported `SURFACE` or `WHEEL` unit on
+all platforms. Surface and wheel fractions are accumulated independently and
+reset when the input unit changes. Added direct callback regression coverage:
+surface deltas of 12 and 19 units produce one zoom step; wheel deltas of 0.25
+and 0.8 produce one step; switching units discards the other unit's remainder.
+Linux x86_64, Python 3.12.3, PyGObject 3.48.2, GTK 4.14.5, GLib 2.80.0:
+focused compatibility/scroll tests **9 passed**. This verifies the GTK callback
+logic but does not exercise a physical trackpad. macOS trackpad review and the
+full GTK/platform matrix remain **NOT TESTED**; EH4-203 stays open.
+
 **EH4-105 async lifecycle and playback thread-boundary work (2026-10-18):**
 The xTB fragment-charge worker posted progress and completion callbacks that
 could still touch a closed window's widgets. Added a per-window generation

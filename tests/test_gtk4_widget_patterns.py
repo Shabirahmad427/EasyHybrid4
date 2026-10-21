@@ -549,6 +549,56 @@ def test_scroll_delta_conversion_preserves_smooth_steps_and_wheel_sign():
     assert remainder == 0.25
 
 
+def test_vismol_scroll_handler_uses_reported_units_without_os_gating(monkeypatch):
+    """Surface and wheel deltas retain their meaning on any GTK backend."""
+    from vismol.gui import vismol_gtkwidget
+
+    class Core:
+        ctrl = False
+        shift = False
+
+        def __init__(self):
+            self.scrolls = []
+
+        def mouse_scroll(self, direction):
+            self.scrolls.append(direction)
+
+    class Controller:
+        def __init__(self, unit):
+            self.unit = unit
+
+        def get_unit(self):
+            return self.unit
+
+        def get_current_event_state(self):
+            return Gdk.ModifierType(0)
+
+    monkeypatch.setattr(vismol_gtkwidget, "_HAS_SCROLL_UNIT_API", True)
+    widget = vismol_gtkwidget.VismolGTKWidget.__new__(
+        vismol_gtkwidget.VismolGTKWidget
+    )
+    widget._scroll_remainder = 0.0
+    widget._scroll_modifiers = None
+    widget._scroll_unit_mode = None
+    widget.vm_glcore = Core()
+
+    surface = Controller(Gdk.ScrollUnit.SURFACE)
+    assert widget._on_mouse_scroll(surface, 0.0, 12.0) is True
+    assert widget.vm_glcore.scrolls == []
+    assert widget._scroll_remainder == pytest.approx(-0.4)
+    assert widget._on_mouse_scroll(surface, 0.0, 19.0) is True
+    assert widget.vm_glcore.scrolls == [-1]
+
+    # Switching from a smooth surface gesture to wheel steps clears the
+    # previous unit's fraction; wheel-unit fractions are retained separately.
+    wheel = Controller(Gdk.ScrollUnit.WHEEL)
+    assert widget._on_mouse_scroll(wheel, 0.0, 0.25) is True
+    assert widget.vm_glcore.scrolls == [-1]
+    assert widget._scroll_remainder == pytest.approx(0.25)
+    assert widget._on_mouse_scroll(wheel, 0.0, 0.8) is True
+    assert widget.vm_glcore.scrolls == [-1, -1]
+
+
 # --------------------------------------------------------------------------- #
 #  Portable message dialogs (replace deprecated Gtk.MessageDialog).            #
 # --------------------------------------------------------------------------- #

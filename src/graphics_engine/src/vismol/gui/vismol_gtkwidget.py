@@ -145,10 +145,11 @@ class VismolGTKWidget(_WidgetBase):
         motion_controller.connect("motion", self._on_mouse_motion)
         self.add_controller(motion_controller)
 
-        # Surface-unit processing is used only where the caller handles
-        # smooth deltas explicitly; other platforms get GTK-normalized steps.
+        # Preserve the input's scroll unit wherever GTK exposes it. The
+        # handler below treats surface deltas and wheel steps separately, so
+        # input semantics do not depend on the operating-system name.
         scroll_flags = scroll_controller_flags(
-            Gtk, use_surface_units=_IS_MACOS and _HAS_SCROLL_UNIT_API
+            Gtk, use_surface_units=_HAS_SCROLL_UNIT_API
         )
         scroll_controller = Gtk.EventControllerScroll.new(scroll_flags)
         scroll_controller.connect("scroll", self._on_mouse_scroll)
@@ -292,7 +293,7 @@ class VismolGTKWidget(_WidgetBase):
     def _on_mouse_scroll(self, controller, _dx, dy):
         if not np.isfinite(dy):
             return True
-        if not _IS_MACOS or not _HAS_SCROLL_UNIT_API:
+        if not _HAS_SCROLL_UNIT_API:
             if self._scroll_unit_mode != "wheel":
                 self._scroll_remainder = 0.0
                 self._scroll_unit_mode = "wheel"
@@ -307,14 +308,16 @@ class VismolGTKWidget(_WidgetBase):
         if dy == 0:
             return True
 
+        # The controller reports the semantic unit (surface pixels vs wheel
+        # steps); keep the same handling on every backend that exposes it.
         unit = get_scroll_unit(controller)
         if unit == Gdk.ScrollUnit.SURFACE:
             if self._scroll_unit_mode != "surface":
                 self._scroll_remainder = 0.0
                 self._scroll_unit_mode = "surface"
-            # Quartz trackpads report surface pixels, often 1–20 per event.
-            # Accumulate 30 pixels per wheel step to avoid runaway zoom and
-            # the resulting loss of the molecule from the clipping volume.
+            # Surface inputs report deltas rather than physical wheel steps.
+            # Accumulate partial deltas to keep their zoom response continuous
+            # and avoid dropping small gestures.
             state = controller.get_current_event_state()
             ctrl = bool(state & Gdk.ModifierType.CONTROL_MASK)
             shift = bool(state & Gdk.ModifierType.SHIFT_MASK)
