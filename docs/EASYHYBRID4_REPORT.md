@@ -6,6 +6,16 @@
 GTK/Python compatibility, parity, platform, testing, and known-limitation
 status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).
 
+**EH4-302 local X11 scale/resize check (2026-10-20; partial):** the real
+Gtk.GLArea renderer validation passed at `GDK_SCALE=1` and `2` on Linux Mint
+22.3 x86_64, Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib 2.80.0,
+Mesa 25.2.8 llvmpipe OpenGL 4.5. At scale 2, the widget scale factor was 2
+and framebuffer dimensions doubled from 420x300 to 840x600; representation
+coverage, projected sizes, picking, viewport resize and export checks passed.
+This is Xvfb/X11 evidence only. Native Wayland, physical HiDPI displays,
+Retina, multi-monitor transitions, Windows/macOS and other GTK runtimes remain
+**NOT TESTED**. EH4-302 stays unchecked.
+
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
 used GTK 4.24.1 / GLib 2.90.0 / PyGObject 3.58.1 / Python 3.12.15 on
