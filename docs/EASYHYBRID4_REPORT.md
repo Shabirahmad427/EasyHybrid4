@@ -6,6 +6,16 @@
 GTK/Python compatibility, parity, platform, testing, and known-limitation
 status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).
 
+**EH4-205 graphics failure fallback (2026-10-20; partial):** VisMol now
+handles Gtk.GLArea context errors and renderer initialization exceptions by
+disabling the 3D widget, logging the cause, and presenting an actionable
+message when dialogs are available. A reported failure is shown once and
+rendering stops. Three focused regression tests pass locally on Linux Mint
+22.3 x86_64 with Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib
+2.80.0. Tests exercise the reporting helper with simulated errors; native
+driver/context-failure behavior and other OS/GTK runtimes remain **NOT
+TESTED**. EH4-205 stays unchecked.
+
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
 used GTK 4.24.1 / GLib 2.90.0 / PyGObject 3.58.1 / Python 3.12.15 on
