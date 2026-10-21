@@ -71,6 +71,31 @@ from vismol.model.atom import Atom
 from logging import getLogger
 logger = getLogger(__name__)
 
+
+def _write_easyhybrid_session_data(filename, session_data, systems):
+    """Write a project payload without serializing GTK tree-row handles.
+
+    pDynamo systems are augmented by the GUI with references to their rows
+    in the systems and system-choice views. Those GTK objects are process
+    local and cannot be pickled. Temporarily remove only those UI references
+    while writing, then restore the live objects even when serialization
+    raises; the project payload keeps the historical pDynamo object schema.
+    """
+    row_references = []
+    for system in systems:
+        if system is None:
+            continue
+        for attribute in ("tree_row", "system_choice_row"):
+            if hasattr(system, attribute):
+                row_references.append((system, attribute, getattr(system, attribute)))
+                setattr(system, attribute, None)
+    try:
+        with open(filename, "wb") as outfile:
+            pickle.dump(session_data, outfile)
+    finally:
+        for system, attribute, row in row_references:
+            setattr(system, attribute, row)
+
 #---------------------------------------
 from pBabel                    import*                                     
 from pCore                     import*  
@@ -323,22 +348,25 @@ class LoadAndSaveData:
             #.Saves a temporary file with the same name as the original session + "~"
             if filename:
                 tmpfile = filename+'~'
-                with open(tmpfile,'wb') as outfile:
-                    pickle.dump(easyhybrid_session_data, outfile)
+                _write_easyhybrid_session_data(
+                    tmpfile, easyhybrid_session_data, self.psystem.values()
+                )
             
             #.Saves a temporary file when there is no previous session name.
             else:
                 tmpfile = os.path.join(self.vm_session.vm_config.easyhybrid_tmp, 
                                        self.random_code+'.easy')
-                with open(tmpfile,'wb') as outfile:
-                    pickle.dump(easyhybrid_session_data, outfile)
+                _write_easyhybrid_session_data(
+                    tmpfile, easyhybrid_session_data, self.psystem.values()
+                )
                 
 
 
         else:
-            with open(filename,'wb') as outfile:
-                pickle.dump(easyhybrid_session_data, outfile)
-                self.changed = False
+            _write_easyhybrid_session_data(
+                filename, easyhybrid_session_data, self.psystem.values()
+            )
+            self.changed = False
             if os.path.exists(filename+'~'):
                 os.remove(filename+'~')
             else:

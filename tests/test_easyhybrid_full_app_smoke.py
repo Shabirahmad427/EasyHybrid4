@@ -358,6 +358,43 @@ _FULL_APP_CYCLE = textwrap.dedent(
         print("EASYHYBRID_FULL_APP_GL_VERSION=%s" % state["gl_version"].decode("ascii", "replace"), flush=True)
         print("EASYHYBRID_FULL_APP_GL_RENDERER=%s" % state["gl_renderer"].decode("utf-8", "replace"), flush=True)
 
+        # Exercise the production .easy serializer and loader with the live
+        # pDynamo-backed molecule. Keep this inside the real MainWindow test:
+        # a pickle-only payload check would not prove that EasyHybrid can
+        # rebuild the system and VisMol object from its project format.
+        project_file = fixture + ".easy"
+        original_system = next(iter(main.p_session.psystem.values()))
+        original_system_row = getattr(original_system, "system_choice_row", None)
+        original_tree_row = getattr(original_system, "tree_row", None)
+        main.p_session.save_easyhybrid_session(filename=project_file)
+        if getattr(original_system, "system_choice_row", None) is not original_system_row:
+            return fail("project save did not restore the live system-choice row")
+        if getattr(original_system, "tree_row", None) is not original_tree_row:
+            return fail("project save did not restore the live system tree row")
+        main.p_session.load_easyhybrid_serialization_file(filename=project_file)
+        restored_systems = main.p_session.psystem
+        restored_objects = main.vm_session.vm_objects_dic
+        if len(restored_systems) != 1:
+            return fail("project reload restored %d pDynamo systems" % len(restored_systems))
+        if len(restored_objects) != 1:
+            return fail("project reload restored %d VisMol objects" % len(restored_objects))
+        restored_system = next(iter(restored_systems.values()))
+        restored_molecule = next(iter(restored_objects.values()))
+        if restored_system.label != "water" or len(restored_molecule.atoms) != 3:
+            return fail(
+                "project reload changed fixture identity (system=%r atoms=%d)"
+                % (restored_system.label, len(restored_molecule.atoms))
+            )
+        restored_oxygen = next(
+            (atom for atom in restored_molecule.atoms.values() if atom.symbol == "O"),
+            None,
+        )
+        if restored_oxygen is None:
+            return fail("project reload lost the oxygen atom")
+        print("EASYHYBRID_FULL_APP_PROJECT_ROUNDTRIP=True", flush=True)
+        print("EASYHYBRID_FULL_APP_RESTORED_SYSTEMS=%d" % len(restored_systems), flush=True)
+        print("EASYHYBRID_FULL_APP_RESTORED_ATOMS=%d" % len(restored_molecule.atoms), flush=True)
+
         # A newly loaded system is dirty by design and would open the real
         # save-confirmation dialog. This renderer regression discards only its
         # temporary fixture, then follows MainWindow's standard close handler.
