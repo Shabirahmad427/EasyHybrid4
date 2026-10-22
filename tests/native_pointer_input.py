@@ -91,6 +91,11 @@ def _click_windows(window, x: float, y: float) -> str:
     user32.GetCursorPos.restype = wintypes.BOOL
     user32.SetCursorPos.argtypes = [ctypes.c_int, ctypes.c_int]
     user32.SetCursorPos.restype = wintypes.BOOL
+    user32.SetWindowPos.argtypes = [
+        wintypes.HWND, wintypes.HWND, ctypes.c_int, ctypes.c_int,
+        ctypes.c_int, ctypes.c_int, wintypes.UINT,
+    ]
+    user32.SetWindowPos.restype = wintypes.BOOL
     user32.mouse_event.argtypes = [wintypes.DWORD, wintypes.DWORD, wintypes.DWORD, wintypes.DWORD, ctypes.c_size_t]
     user32.mouse_event.restype = None
 
@@ -101,6 +106,16 @@ def _click_windows(window, x: float, y: float) -> str:
 
     surface = window.get_surface()
     scale = surface.get_scale_factor()
+    # Restore/raise before converting client coordinates: SW_RESTORE may move
+    # a minimized window, which would make a pre-restore ClientToScreen stale.
+    user32.ShowWindow(hwnd, 9)  # SW_RESTORE
+    user32.BringWindowToTop(hwnd)
+    # Also place it above non-foreground runner windows. The click itself will
+    # activate the target; SetForegroundWindow may be blocked by Windows policy.
+    if not user32.SetWindowPos(hwnd, None, 0, 0, 0, 0, 0x0053):
+        raise ctypes.WinError(ctypes.get_last_error())  # NOMOVE|NOSIZE|NOACTIVATE|SHOWWINDOW
+    user32.SetForegroundWindow(hwnd)
+    foreground = user32.GetForegroundWindow()
     point = Point(*logical_to_device_point(x, y, scale))
     if not user32.ClientToScreen(hwnd, ctypes.byref(point)):
         raise ctypes.WinError(ctypes.get_last_error())
@@ -121,9 +136,6 @@ def _click_windows(window, x: float, y: float) -> str:
                  window_rect.right, window_rect.bottom),
             )
         )
-    user32.ShowWindow(hwnd, 9)  # SW_RESTORE
-    user32.SetForegroundWindow(hwnd)
-    foreground = user32.GetForegroundWindow()
     # Hosted runners may keep the previous test process or runner shell as
     # the foreground window. Windows can refuse SetForegroundWindow in that
     # case, but a real pointer click still activates the verified window under

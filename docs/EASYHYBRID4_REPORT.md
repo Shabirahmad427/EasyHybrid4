@@ -128,6 +128,13 @@ focused native Windows result. Exact runtimes: Windows Server 2022 x86_64,
 Python 3.12.15, PyGObject 3.46.0 / GTK 4.8.2 and PyGObject 3.48.1 / GTK 4.10.1,
 GLib 2.78.0, Mesa 26.2.4 llvmpipe WGL.
 
+Run `39705953113` showed the first launch passed on both GTK versions after
+coordinate calibration, then the second launch failed because the pointer hit
+another HWND. Its screen Y coordinate was 443 for a requested client Y of 344.
+The native helper had calculated `ClientToScreen` before `SW_RESTORE`, which can
+move the restored window. The helper now restores/raises the window before
+mapping the click and rechecks the real hit target. Focused rerun is pending.
+
 **Current native matrix (2026-10-20):** run
 [`39485989866`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39485989866)
 completed successfully at main commit `e096a024bb2ccc0755b5ba632f1d5aa5a74a3b13`.
