@@ -80,6 +80,8 @@ def test_full_app_matrix_injects_native_pointer_on_all_desktop_oses():
     assert '"input_queues_attached": attached' in pointer
     assert '"hit": describe_window(hit_window)' in pointer
     assert '"class": class_buffer.value' in pointer
+    assert 'console_window = kernel32.GetConsoleWindow()' in pointer
+    assert 'minimize_owned_console_blocker(' in pointer
     assert pointer.index('user32.SetForegroundWindow(hwnd)', pointer.index('def prepare_target')) < pointer.index(
         'user32.SetWindowPos(hwnd, topmost', pointer.index('def prepare_target')
     )

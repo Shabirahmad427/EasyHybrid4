@@ -10,6 +10,7 @@ from native_pointer_input import (
     adjust_window_point_from_gesture_feedback,
     appkit_to_quartz_point,
     logical_to_device_point,
+    minimize_owned_console_blocker,
     retry_until_native_hit_target,
 )
 
@@ -159,6 +160,18 @@ def test_win32_activation_temporarily_attaches_foreground_input_queue():
     assert events == [
         ("attach", 11, 22), ("foreground",), ("top",), ("detach", 11, 22),
     ]
+
+
+def test_win32_only_minimizes_its_own_console_when_it_covers_target():
+    minimized = []
+    minimize = lambda hwnd: minimized.append(hwnd) or True
+
+    assert minimize_owned_console_blocker(30, 10, 30, minimize)
+    assert minimized == [30]
+    assert not minimize_owned_console_blocker(30, 10, 0, minimize)
+    assert not minimize_owned_console_blocker(30, 10, 20, minimize)
+    assert not minimize_owned_console_blocker(10, 10, 10, minimize)
+    assert minimized == [30]
 
 
 def test_appkit_point_maps_to_quartz_on_secondary_display():

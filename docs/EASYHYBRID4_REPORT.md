@@ -17,10 +17,14 @@ returned true. The focused run
 [`39711834067`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39711834067)
 failed safely without sending a click through the console. The helper now
 temporarily attaches the GTK thread's input queue to the foreground console's
-queue while activating and raising the target, then detaches and checks the
-actual hit target again. Local helper/workflow/full-app regressions pass
-(**22 passed, 1 skipped**); `py_compile` and `git diff --check` pass. Native
-verification of the input-queue correction is pending; EH4-202 remains open.
+queue while activating and raising the target. Run
+[`39712180632`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39712180632)
+showed Windows refuses that attachment (`false`) too. The helper now detects
+its own console with `GetConsoleWindow`, minimizes it only when it is the
+actual hit-tested blocker, and restores it after the verified click. Local
+helper/workflow/full-app regressions pass (**23 passed, 1 skipped**);
+`py_compile` and `git diff --check` pass. Native confirmation of the
+own-console handling is pending; EH4-202 remains open.
 
 **Latest native Windows pointer result (2026-10-22):** focused run
 [`39706994456`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39706994456)
