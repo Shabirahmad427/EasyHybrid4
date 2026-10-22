@@ -84,6 +84,38 @@ _FULL_APP_CYCLE = textwrap.dedent(
         picked = main.vm_session.vm_glcore.atom_picked
         molecule = state["molecule"]
         print("EASYHYBRID_FULL_APP_PICK=O:%s" % picked.atom_id, flush=True)
+        viewing_selection = main.vm_session.selections[
+            main.vm_session.current_selection
+        ]
+        residue_atom_ids = {atom.atom_id for atom in molecule.atoms.values()}
+        selected_atom_ids = {
+            atom.atom_id for atom in viewing_selection.selected_atoms
+        }
+        if selected_atom_ids != residue_atom_ids:
+            return fail(
+                "production residue pick selected atom IDs %r, expected %r"
+                % (sorted(selected_atom_ids), sorted(residue_atom_ids))
+            )
+        print(
+            "EASYHYBRID_FULL_APP_RESIDUE_SELECTION=%d"
+            % len(viewing_selection.selected_atoms),
+            flush=True,
+        )
+
+        # Exercise atom mode through the same production viewing-selection
+        # object and confirm it replaces the residue selection precisely.
+        viewing_selection.selection_function_viewing_set(None)
+        viewing_selection.selection_mode = "atom"
+        viewing_selection.selection_function_viewing_set({picked}, disable=False)
+        atom_selection_ids = {
+            atom.atom_id for atom in viewing_selection.selected_atoms
+        }
+        if atom_selection_ids != {picked.atom_id}:
+            return fail(
+                "production atom selection returned %r, expected [%r]"
+                % (sorted(atom_selection_ids), picked.atom_id)
+            )
+        print("EASYHYBRID_FULL_APP_ATOM_SELECTION=True", flush=True)
         print("EASYHYBRID_FULL_APP_SYSTEMS=%d" % len(main.p_session.psystem), flush=True)
         system = next(iter(main.p_session.psystem.values()))
         print("EASYHYBRID_FULL_APP_SYSTEM_LABEL=%s" % system.label, flush=True)
@@ -630,6 +662,8 @@ def test_real_easyhybrid_application_mainwindow_load_render_pick_close():
             assert result.returncode == 0, result.stdout + result.stderr
             assert "EASYHYBRID_FULL_APP_MAIN_WINDOW=True" in result.stdout
             assert "EASYHYBRID_FULL_APP_PICK=O:" in result.stdout
+            assert "EASYHYBRID_FULL_APP_RESIDUE_SELECTION=3" in result.stdout
+            assert "EASYHYBRID_FULL_APP_ATOM_SELECTION=True" in result.stdout
             if os.environ.get("EASYHYBRID_FULL_APP_NATIVE_POINTER") == "1":
                 expected_pointer = {
                     "linux": "linux-x11-xtest",
