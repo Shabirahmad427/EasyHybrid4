@@ -58,10 +58,12 @@ foreground activation request returned false; `BringWindowToTop` and
 `SetWindowPos(HWND_TOPMOST)` returned true but did not move the target above
 that console. A five-attempt retry correctly withheld the click each time.
 The helper tried attaching the GTK thread's input queue to the foreground
-console's queue, but the hosted runner refused the attachment. It now detects
-its own console with `GetConsoleWindow`, minimizes it only when it is the
-actual hit-tested blocker, and restores it after the verified click. Focused
-native verification of this correction is pending. Do not weaken the
-pre-click hit check or send a click through an unverified HWND.
+console's queue, but the hosted runner refused the attachment. `GetConsoleWindow`
+also returns null in the child Python process because the console belongs to
+the HostedComputeAgent process. The helper now recognizes that exact
+`ConsoleWindowClass` title and minimizes it only when it is the actual
+hit-tested blocker, then restores it after the verified click. Focused native
+verification of this correction is pending. Do not weaken the pre-click hit
+check or send a click through an unverified HWND.
 
 **Full-interface test boundary (updated 2026-10-22):** `test_easyhybrid_menu_vismol_components_open_and_close_cleanly` builds a standalone GTK host around production EasyHybrid menu and VisMol components; its CI results are component evidence only. The separate opt-in `tests/test_easyhybrid_full_app_smoke.py` launches `EasyHybridApplication`, production `MainWindow`, and real pDynamo3 PDB load/render/pick/close. Native Linux X11/XTest cycles pass locally; focused Windows run `39706994456` passes five Win32 pointer-pick cycles on GTK 4.8.2 and 4.10.1; focused macOS arm64 run `39707517301` passes five Quartz pointer-pick cycles on GTK 4.24.1. Full-app coverage across every GTK minor/platform is not established; do not infer it from the component matrix or these selected full-app cells.

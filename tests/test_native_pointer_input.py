@@ -5,12 +5,11 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent))
 from native_pointer_input import (
-    activate_target_with_foreground_input,
     add_window_point_offset,
     adjust_window_point_from_gesture_feedback,
     appkit_to_quartz_point,
     logical_to_device_point,
-    minimize_owned_console_blocker,
+    minimize_hosted_runner_console_blocker,
     retry_until_native_hit_target,
 )
 
@@ -133,45 +132,24 @@ def test_native_windows_hit_target_retry_has_a_bounded_failure():
         retry_until_native_hit_target(lambda: None, lambda: None, lambda: True, attempts=0)
 
 
-def test_win32_activation_temporarily_attaches_foreground_input_queue():
-    events = []
-
-    def attach(source, target, attached):
-        events.append(("attach" if attached else "detach", source, target))
-        return True
-
-    def set_foreground():
-        events.append(("foreground",))
-        return True
-
-    def bring_to_top():
-        events.append(("top",))
-        return True
-
-    result = activate_target_with_foreground_input(
-        attach, set_foreground, bring_to_top, attach,
-        current_thread_id=11, foreground_thread_id=22,
-    )
-    assert result == {
-        "input_queues_attached": True,
-        "foreground_activation_result": True,
-        "bring_to_top_result": True,
-    }
-    assert events == [
-        ("attach", 11, 22), ("foreground",), ("top",), ("detach", 11, 22),
-    ]
-
-
-def test_win32_only_minimizes_its_own_console_when_it_covers_target():
+def test_win32_only_minimizes_hosted_runner_console_when_it_covers_target():
     minimized = []
     minimize = lambda hwnd: minimized.append(hwnd) or True
 
-    assert minimize_owned_console_blocker(30, 10, 30, minimize)
-    assert minimized == [30]
-    assert not minimize_owned_console_blocker(30, 10, 0, minimize)
-    assert not minimize_owned_console_blocker(30, 10, 20, minimize)
-    assert not minimize_owned_console_blocker(10, 10, 10, minimize)
-    assert minimized == [30]
+    title = r"C:\ProgramData\GitHub\HostedComputeAgent\hosted-compute-agent"
+    assert minimize_hosted_runner_console_blocker(
+        30, 10, title, "ConsoleWindowClass", minimize
+    )
+    assert not minimize_hosted_runner_console_blocker(
+        30, 10, "PowerShell", "ConsoleWindowClass", minimize
+    )
+    assert minimize_hosted_runner_console_blocker(
+        30, 10, title, "ConsoleWindowClass", minimize
+    )
+    assert not minimize_hosted_runner_console_blocker(
+        10, 10, title, "ConsoleWindowClass", minimize
+    )
+    assert minimized == [30, 30]
 
 
 def test_appkit_point_maps_to_quartz_on_secondary_display():

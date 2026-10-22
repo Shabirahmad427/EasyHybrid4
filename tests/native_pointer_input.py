@@ -70,40 +70,22 @@ def retry_until_native_hit_target(
     return None
 
 
-def activate_target_with_foreground_input(
-    attach_input: Callable[[int, int, bool], bool],
-    set_foreground: Callable[[], bool],
-    bring_to_top: Callable[[], bool],
-    detach_input: Callable[[int, int, bool], bool],
-    *,
-    current_thread_id: int,
-    foreground_thread_id: int,
-) -> dict[str, bool]:
-    """Temporarily join the foreground input queue to activate our GTK window."""
-    attached = False
-    if foreground_thread_id and foreground_thread_id != current_thread_id:
-        attached = bool(attach_input(current_thread_id, foreground_thread_id, True))
-    try:
-        return {
-            "input_queues_attached": attached,
-            "foreground_activation_result": bool(set_foreground()),
-            "bring_to_top_result": bool(bring_to_top()),
-        }
-    finally:
-        if attached:
-            detach_input(current_thread_id, foreground_thread_id, False)
-
-
-def minimize_owned_console_blocker(
+def minimize_hosted_runner_console_blocker(
     hit_window: int,
     target_window: int,
-    console_window: int,
+    window_title: str,
+    window_class: str,
     minimize: Callable[[int], bool],
 ) -> bool:
-    """Hide only this test process's console when it obscures the GTK target."""
-    if not console_window or hit_window != console_window or hit_window == target_window:
+    """Hide the GitHub runner console only when it blocks the GTK test window."""
+    hosted_console = (
+        window_class.lower() == "consolewindowclass"
+        and "hostedcomputeagent" in window_title.lower()
+        and "hosted-compute-agent" in window_title.lower()
+    )
+    if not hosted_console or hit_window == target_window:
         return False
-    return bool(minimize(console_window))
+    return bool(minimize(hit_window))
 
 
 def appkit_to_quartz_point(
@@ -168,13 +150,8 @@ def _click_windows(window, x: float, y: float) -> str:
         ctypes.c_int, ctypes.c_int, wintypes.UINT,
     ]
     user32.SetWindowPos.restype = wintypes.BOOL
-    user32.AttachThreadInput.argtypes = [wintypes.DWORD, wintypes.DWORD, wintypes.BOOL]
-    user32.AttachThreadInput.restype = wintypes.BOOL
     user32.SetActiveWindow.argtypes = [wintypes.HWND]
     user32.SetActiveWindow.restype = wintypes.HWND
-    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-    kernel32.GetCurrentThreadId.restype = wintypes.DWORD
-    kernel32.GetConsoleWindow.restype = wintypes.HWND
     user32.mouse_event.argtypes = [wintypes.DWORD, wintypes.DWORD, wintypes.DWORD, wintypes.DWORD, ctypes.c_size_t]
     user32.mouse_event.restype = None
 
@@ -218,15 +195,15 @@ def _click_windows(window, x: float, y: float) -> str:
             )
         )
     hit_attempts = []
-    minimized_console = []
+    minimized_consoles = []
 
     def minimize_console(hwnd_to_minimize):
         return bool(user32.ShowWindow(hwnd_to_minimize, 6))  # SW_MINIMIZE
 
-    def restore_console():
-        if minimized_console:
-            user32.ShowWindow(minimized_console[0], 9)  # SW_RESTORE
-            minimized_console.clear()
+    def restore_consoles():
+        for console in minimized_consoles:
+            user32.ShowWindow(console, 9)  # SW_RESTORE
+        minimized_consoles.clear()
 
     def describe_window(candidate):
         """Return native identity for a window obscuring the click target."""
@@ -250,27 +227,9 @@ def _click_windows(window, x: float, y: float) -> str:
         }
 
     def prepare_target():
-        # Hosted runner's console can own the foreground input queue and sit
-        # over the GTK app. Temporarily attach our GTK thread to that queue so
-        # Win32 permits activation, then detach before continuing.
-        foreground_hwnd = user32.GetForegroundWindow()
-        foreground_thread_id = user32.GetWindowThreadProcessId(foreground_hwnd, None)
-        current_thread_id = kernel32.GetCurrentThreadId()
-        active_window_matches = []
-
-        def raise_and_activate():
-            brought_to_top = bool(user32.BringWindowToTop(hwnd))
-            active_window_matches.append(user32.SetActiveWindow(hwnd) == hwnd)
-            return brought_to_top
-
-        activation = activate_target_with_foreground_input(
-            user32.AttachThreadInput,
-            lambda: user32.SetForegroundWindow(hwnd),
-            raise_and_activate,
-            user32.AttachThreadInput,
-            current_thread_id=current_thread_id,
-            foreground_thread_id=foreground_thread_id,
-        )
+        foreground_activated = bool(user32.SetForegroundWindow(hwnd))
+        brought_to_top = bool(user32.BringWindowToTop(hwnd))
+        active_window_matches = user32.SetActiveWindow(hwnd) == hwnd
         positioned_topmost = bool(
             user32.SetWindowPos(hwnd, topmost, 0, 0, 0, 0, z_order_flags)
         )
@@ -278,8 +237,9 @@ def _click_windows(window, x: float, y: float) -> str:
             raise ctypes.WinError(ctypes.get_last_error())
         hit_attempts.append({
             "target": describe_window(hwnd),
-            **activation,
-            "active_window_matches_target": bool(active_window_matches[-1]),
+            "foreground_activation_result": foreground_activated,
+            "bring_to_top_result": brought_to_top,
+            "active_window_matches_target": active_window_matches,
             "set_topmost_result": positioned_topmost,
         })
 
@@ -294,18 +254,21 @@ def _click_windows(window, x: float, y: float) -> str:
             raise ctypes.WinError(ctypes.get_last_error())
         hit_window = user32.WindowFromPoint(cursor)
         foreground = user32.GetForegroundWindow()
-        console_window = kernel32.GetConsoleWindow()
-        console_minimized = minimize_owned_console_blocker(
-            hit_window, hwnd, console_window, minimize_console
+        hit_description = describe_window(hit_window)
+        console_minimized = minimize_hosted_runner_console_blocker(
+            hit_window,
+            hwnd,
+            hit_description["title"],
+            hit_description["class"],
+            minimize_console,
         )
         if console_minimized:
-            minimized_console.append(console_window)
+            minimized_consoles.append(hit_window)
         hit_attempts.append({
             "cursor": (cursor.x, cursor.y),
-            "hit": describe_window(hit_window),
+            "hit": hit_description,
             "foreground": describe_window(foreground),
-            "owned_console": console_window,
-            "owned_console_minimized": console_minimized,
+            "hosted_runner_console_minimized": console_minimized,
         })
         if console_minimized:
             return False
@@ -320,7 +283,7 @@ def _click_windows(window, x: float, y: float) -> str:
     hit_window = user32.WindowFromPoint(cursor)
     foreground = user32.GetForegroundWindow()
     if confirmed_attempt is None:
-        restore_console()
+        restore_consoles()
         hit_rect = Rect()
         user32.GetWindowRect(hit_window, ctypes.byref(hit_rect))
         raise RuntimeError(
@@ -355,7 +318,7 @@ def _click_windows(window, x: float, y: float) -> str:
     finally:
         user32.mouse_event(0x0004, 0, 0, 0, 0)  # MOUSEEVENTF_LEFTUP
         user32.SetWindowPos(hwnd, not_topmost, 0, 0, 0, 0, z_order_flags)
-        restore_console()
+        restore_consoles()
     return "windows-win32-user32"
 
 

@@ -19,12 +19,15 @@ failed safely without sending a click through the console. The helper now
 temporarily attaches the GTK thread's input queue to the foreground console's
 queue while activating and raising the target. Run
 [`39712180632`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39712180632)
-showed Windows refuses that attachment (`false`) too. The helper now detects
-its own console with `GetConsoleWindow`, minimizes it only when it is the
-actual hit-tested blocker, and restores it after the verified click. Local
-helper/workflow/full-app regressions pass (**23 passed, 1 skipped**);
+showed Windows refuses that attachment (`false`) too. The next focused run
+[`39712548364`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39712548364)
+showed `GetConsoleWindow` returned null because the console belongs to the
+HostedComputeAgent process, not the child Python process. The helper now recognizes that exact
+`ConsoleWindowClass` title, minimizes it only when it is the actual
+hit-tested blocker, and restores it after the verified click. Local
+helper/workflow/full-app regressions pass (**22 passed, 1 skipped**);
 `py_compile` and `git diff --check` pass. Native confirmation of the
-own-console handling is pending; EH4-202 remains open.
+console handling is pending; EH4-202 remains open.
 
 **Latest native Windows pointer result (2026-10-22):** focused run
 [`39706994456`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39706994456)
