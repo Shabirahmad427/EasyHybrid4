@@ -144,11 +144,14 @@ and matrix restoration, old payloads without viewport dimensions, absent
 camera state, and best-effort GTK size-request failure. The combined camera and
 selection tests pass on local Linux GTK 4.8.2 and 4.24.1. A subsequent one-cycle
 full-app check at GTK 4.24.1 also passes after the serializer refactor, confirming
-the production module import and water load/native pick/render/close path.
+the production module import and water load/native pick/render/close path. That
+same real-app fixture now exercises the production pk1/pk2/pk3 measurement
+workflow and checks both water O–H distances and the H–O–H angle against the
+known fixture coordinates; it passes locally at GTK 4.24.1.
 The user's Python 3.10 pDynamo3 environment/source was not modified. This is
-local Linux evidence only; full `.easy` save/reopen integration, measurements,
-multi-cycle full-app coverage on this branch, and the all-platform/all-version
-matrix remain pending.
+local Linux evidence only; full `.easy` save/reopen integration, multi-cycle
+full-app coverage on this branch, and the all-platform/all-version matrix
+remain pending.
 EH4-204 remains unchecked. Index-selection and invert changes pass focused
 unit coverage but are not yet exercised by the full-app scenario.
 

@@ -145,6 +145,32 @@ _FULL_APP_CYCLE = textwrap.dedent(
             return fail("production atom label hide did not deactivate the label")
         print("EASYHYBRID_FULL_APP_LABEL_REPRESENTATION=True", flush=True)
         print("EASYHYBRID_FULL_APP_SCENE_REPRESENTATION=True", flush=True)
+
+        # Run the production pk1/pk2/pk3 measurement workflow on the loaded
+        # water geometry: H1-O and O-H2 distances, plus the H1-O-H2 angle.
+        atoms_by_name = {atom.name: atom for atom in molecule.atoms.values()}
+        picking = main.vm_session.picking_selections
+        picking.selection_function_picking(atoms_by_name["H1"])
+        picking.selection_function_picking(atoms_by_name["O"])
+        picking.selection_function_picking(atoms_by_name["H2"])
+        if not np.isclose(picking.dist_pk1_pk2, 0.957, atol=0.002):
+            return fail(
+                "production H1-O measurement was %r, expected 0.957 angstrom"
+                % picking.dist_pk1_pk2
+            )
+        if not np.isclose(picking.dist_pk2_pk3, 0.957, atol=0.002):
+            return fail(
+                "production O-H2 measurement was %r, expected 0.957 angstrom"
+                % picking.dist_pk2_pk3
+            )
+        if not np.isclose(picking.theta_deg, 104.5, atol=0.3):
+            return fail(
+                "production H1-O-H2 measurement was %r, expected 104.5 degrees"
+                % picking.theta_deg
+            )
+        picking.selection_function_picking(None)
+        print("EASYHYBRID_FULL_APP_GEOMETRY_MEASUREMENTS=True", flush=True)
+
         print("EASYHYBRID_FULL_APP_SYSTEMS=%d" % len(main.p_session.psystem), flush=True)
         system = next(iter(main.p_session.psystem.values()))
         print("EASYHYBRID_FULL_APP_SYSTEM_LABEL=%s" % system.label, flush=True)
