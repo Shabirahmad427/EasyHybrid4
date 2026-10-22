@@ -103,7 +103,7 @@ configured macOS arm64 GTK minors and Intel macOS GTK 4.8/4.10.
 GTK/Python compatibility, parity, platform, testing, and known-limitation
 status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).
 
-**EH4-203 scroll semantics (2026-10-22; focused local checks pass):** GTK's
+**EH4-203 scroll semantics (2026-10-22; full native matrix passed, trackpad review pending):** GTK's
 `EventControllerScroll.get_unit()`/`Gdk.ScrollUnit` capability is detected on
 GTK 4.8.2, 4.14.5 and 4.24.1. VisMol requests continuous deltas wherever that
 capability exists, normalizes wheel detents and surface logical pixels to a
@@ -116,21 +116,21 @@ and modifier tests passed **3/3** on each of three local Linux GTK runtimes
 Python 3.12.15/PyGObject 3.58.1/GLib 2.90.0 for GTK 4.8.2 and 4.24.1, and
 Python 3.12.3/PyGObject 3.48.2/GLib 2.80.0 for GTK 4.14.5. The tests exercised
 the production scroll callback with deterministic event-unit inputs; they did
-not create a GL context or use a physical input device. Windows/macOS and the
-remaining GTK minors, plus physical macOS trackpad review, are **NOT TESTED**.
-EH4-203 remains unchecked pending the full native matrix and hardware review.
-
-The first full matrix attempt for this change is run
-[`39799035762`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39799035762).
-Its completed failures were in the generic widget-pattern step, which imports
-the production VisMol GTK widget before the workflow had built the required
-Cython extension `vismol.utils.matrix_operations`. The affected artifact logs
-show `ModuleNotFoundError` at that import; no scroll assertion was reached in
-those cells. The workflow now builds graphics extensions before that test in
-each job configuration, guarded by a static ordering regression test. The
-guard passes locally, but the original matrix is still running and cannot
-validate the correction; a corrected full matrix is still required. No
-Windows/macOS scroll behavior or physical macOS trackpad evidence is claimed.
+not create a GL context or use a physical input device. Corrected full native
+matrix run
+[`39801594903`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39801594903)
+completed successfully across 30 cells: Linux x86_64, Windows x86_64 and
+macOS arm64 for GTK 4.8–4.24, plus Intel macOS GTK 4.8/4.10. All 30 runtime
+artifacts confirm exact OS/architecture, Python, PyGObject, GTK patch, GLib
+and GL backend. Each reports passing widget-pattern tests, five full-app
+native pointer pick/render/close cycles and five production menu/VisMol
+cycles. The first attempt `39799035762` exposed workflow test ordering:
+widget-pattern tests imported `vismol.utils.matrix_operations` before Cython
+extensions were built, so no scroll assertion was reached in those jobs.
+Commit `f57cf86` builds graphics extensions before widget-pattern tests in all
+four workflow configurations; its static ordering guard passes locally.
+EH4-203 remains unchecked pending physical macOS trackpad review, which is
+**NOT TESTED** by the hosted synthetic-event tests.
 
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
