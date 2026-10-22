@@ -116,6 +116,35 @@ _FULL_APP_CYCLE = textwrap.dedent(
                 % (sorted(atom_selection_ids), picked.atom_id)
             )
         print("EASYHYBRID_FULL_APP_ATOM_SELECTION=True", flush=True)
+
+        # Exercise the real session representation controls for the selected
+        # atom and its label. Assertions inspect the production index list and
+        # atom flags consumed by the renderer.
+        main.vm_session.show_or_hide(rep_type="nonbonded", show=False)
+        nonbonded = molecule.representations["nonbonded"]
+        if picked.nonbonded or picked.atom_id in nonbonded.indexes:
+            return fail("production nonbonded hide left oxygen visible")
+        main.vm_session.show_or_hide(rep_type="nonbonded", show=True)
+        if not picked.nonbonded or picked.atom_id not in nonbonded.indexes:
+            return fail("production nonbonded show did not restore oxygen")
+
+        picked.label_text = picked.name
+        main.vm_session.show_or_hide(rep_type="labels", show=True)
+        label_representation = molecule.representations["labels"]
+        if not picked.labels or picked.atom_id not in label_representation.indexes:
+            return fail("production atom label was not added to the label representation")
+        label_entries = []
+        label_representation.vm_glcore._draw_text_labels = (
+            lambda _font, entries, **_kwargs: label_entries.extend(entries)
+        )
+        label_representation.draw_representation()
+        if not any(entry[0] == "O" for entry in label_entries):
+            return fail("production atom label draw did not emit oxygen text")
+        main.vm_session.show_or_hide(rep_type="labels", show=False)
+        if picked.labels or label_representation.active:
+            return fail("production atom label hide did not deactivate the label")
+        print("EASYHYBRID_FULL_APP_LABEL_REPRESENTATION=True", flush=True)
+        print("EASYHYBRID_FULL_APP_SCENE_REPRESENTATION=True", flush=True)
         print("EASYHYBRID_FULL_APP_SYSTEMS=%d" % len(main.p_session.psystem), flush=True)
         system = next(iter(main.p_session.psystem.values()))
         print("EASYHYBRID_FULL_APP_SYSTEM_LABEL=%s" % system.label, flush=True)
@@ -664,6 +693,8 @@ def test_real_easyhybrid_application_mainwindow_load_render_pick_close():
             assert "EASYHYBRID_FULL_APP_PICK=O:" in result.stdout
             assert "EASYHYBRID_FULL_APP_RESIDUE_SELECTION=3" in result.stdout
             assert "EASYHYBRID_FULL_APP_ATOM_SELECTION=True" in result.stdout
+            assert "EASYHYBRID_FULL_APP_LABEL_REPRESENTATION=True" in result.stdout
+            assert "EASYHYBRID_FULL_APP_SCENE_REPRESENTATION=True" in result.stdout
             if os.environ.get("EASYHYBRID_FULL_APP_NATIVE_POINTER") == "1":
                 expected_pointer = {
                     "linux": "linux-x11-xtest",

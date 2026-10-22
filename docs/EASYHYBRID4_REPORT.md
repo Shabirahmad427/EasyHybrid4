@@ -127,21 +127,22 @@ selection clear now resets `Atom.selected`, `selected_objects`, and the
 per-object ID buffer. Programmatic index selection and invert-selection now
 rebuild the atom set, object set, flags and ID buffers consistently. Focused
 production selection regressions cover atom-only selection, whole-residue
-select/toggle, clear, index selection and invert. The opt-in real-app water
-fixture test verifies a native Linux XTest oxygen click selects all three
-water atoms in default residue mode, then clears and checks oxygen-only atom
-mode. Five focused tests pass on Linux GTK 4.8.2 and GTK 4.24.1. The full-app
-cycle passed at GTK 4.24.1, Python 3.12.15, PyGObject
+select/toggle, clear, index selection, invert, and atom label text. Six
+focused tests pass on Linux GTK 4.8.2 and GTK 4.24.1. The opt-in real-app
+water fixture test verifies a native Linux XTest oxygen click selects all
+three water atoms in default residue mode, then clears and checks oxygen-only
+atom mode. It also uses production session controls to hide/show the oxygen
+nonbonded representation and show/draw/hide its `O` text through the atom label
+representation. The full-app cycle passed at GTK 4.24.1, Python 3.12.15, PyGObject
 3.58.1 and GLib 2.90.0, using pDynamo3
 `6b28dd8958e1a705fcdca130f4ab862a8af8de82` compiled in a disposable Python
 3.12 tree. X11/Xvfb used EGL/PyOpenGL and Mesa 25.2.8 llvmpipe (LLVM 20.1.2),
 OpenGL 4.5 Core; fixture load, pick, selection assertions, render and close
 passed. The user's Python 3.10 pDynamo3 environment/source was not modified.
-This is local Linux evidence only; all GTK/platform matrix coverage and the
-remaining labels, measurements, representation and camera-persistence checks
-are pending. EH4-204 remains unchecked. Programmatic index selection and
-invert changes have not yet been rerun in the full-app test or the native
-platform/version matrix.
+This is local Linux evidence only; measurements, camera persistence, multi-cycle
+full-app coverage, and the all-platform/all-version matrix remain pending.
+EH4-204 remains unchecked. Index-selection and invert changes pass focused
+unit coverage but are not yet exercised by the full-app scenario.
 
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)

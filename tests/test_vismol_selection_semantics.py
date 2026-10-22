@@ -3,6 +3,7 @@
 from types import SimpleNamespace
 
 from vismol.core.vismol_selections import VismolViewingSelection
+from vismol.libgl.representations import compute_atom_label_text
 
 
 def _water_selection(make_vismol_object, vm_session):
@@ -89,3 +90,18 @@ def test_invert_selection_updates_flags_ids_and_objects(make_vismol_object, vm_s
     assert selection.selected_atoms == expected
     assert selection.selected_objects == {molecule}
     assert molecule.selected_atom_ids == {1, 2}
+
+
+def test_atom_label_content_supports_name_symbol_index_and_residue(make_vismol_object, vm_session):
+    molecule, _selection = _water_selection(make_vismol_object, vm_session)
+    oxygen = molecule.atoms[0]
+    oxygen.chain = SimpleNamespace(name="A")
+    oxygen.residue.name = "HOH"
+    oxygen.residue.index = 1
+
+    assert compute_atom_label_text(oxygen, "name") == "O"
+    assert compute_atom_label_text(oxygen, "symbol") == "O"
+    assert compute_atom_label_text(oxygen, "index") == str(oxygen.index)
+    assert compute_atom_label_text(oxygen, "residue_name") == "HOH"
+    assert compute_atom_label_text(oxygen, "residue_index") == "1"
+    assert compute_atom_label_text(oxygen, "chain") == "A"
