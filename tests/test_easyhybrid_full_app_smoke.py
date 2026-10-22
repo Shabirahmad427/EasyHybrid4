@@ -18,7 +18,6 @@ _FULL_APP_CYCLE = textwrap.dedent(
     r"""
     import os
     import sys
-    import subprocess
     import time
     import numpy as np
 
@@ -30,9 +29,6 @@ _FULL_APP_CYCLE = textwrap.dedent(
     gi.require_version("Gtk", "4.0")
     gi.require_version("Gdk", "4.0")
     gi.require_version("Graphene", "1.0")
-    if sys.platform.startswith("linux"):
-        gi.require_version("GdkX11", "4.0")
-        from gi.repository import GdkX11
     from gi.repository import Gdk, GLib, Graphene, Gtk
 
     import easyhybrid
@@ -293,54 +289,57 @@ _FULL_APP_CYCLE = textwrap.dedent(
                 )
                 if not mapped:
                     return fail("could not map projected atom point into main window")
+                mapped_window_point = (window_point.x, window_point.y)
+                native_correction = (0.0, 0.0)
+                # Correct any measured discrepancy between the OS window
+                # coordinate and the framebuffer point received by GTK. A
+                # zero offset on Linux/macOS leaves their native mapping as-is.
+                events = state.get("gesture_events", [])
+                feedback_start = state.get("native_feedback_event_count", 0)
+                new_events = events[feedback_start:]
+                released = next(
+                    (event[1] for event in reversed(new_events)
+                     if event[0] == "released"),
+                    None,
+                )
+                if released is not None:
+                    sys.path.insert(0, os.path.join(os.path.abspath("."), "tests"))
+                    from native_pointer_input import (
+                        adjust_window_point_from_gesture_feedback,
+                    )
+
+                    corrected = adjust_window_point_from_gesture_feedback(
+                        window_point.x,
+                        window_point.y,
+                        target_framebuffer_point=(px, py),
+                        observed_framebuffer_point=(released[1], released[2]),
+                        widget_size=(widget_width, widget_height),
+                        framebuffer_size=(core.width, core.height),
+                    )
+                    native_correction = (
+                        corrected[0] - window_point.x,
+                        corrected[1] - window_point.y,
+                    )
+                    window_point = Graphene.Point().init(*corrected)
+                state["native_feedback_event_count"] = len(events)
                 state["native_points"] = {
                     "widget": (round(x, 4), round(y, 4)),
-                    "window": (round(window_point.x, 4), round(window_point.y, 4)),
+                    "mapped_window": tuple(round(v, 4) for v in mapped_window_point),
+                    "click_window": (round(window_point.x, 4), round(window_point.y, 4)),
                     "projection": (round(px, 4), round(py, 4)),
                     "dimensions": (widget_width, widget_height, core.width, core.height),
                     "surface_scale": main.window.get_surface().get_scale_factor(),
+                    "feedback_correction": tuple(round(v, 4) for v in native_correction),
                 }
-                if sys.platform.startswith("linux"):
-                    import shutil
+                sys.path.insert(0, os.path.join(os.path.abspath("."), "tests"))
+                try:
+                    from native_pointer_input import inject_native_pointer
 
-                    xdotool = shutil.which("xdotool")
-                    if xdotool is None:
-                        return fail("native Linux pointer smoke requires xdotool")
-                    native = vm_widget.get_native()
-                    surface = native.get_surface()
-                    if surface is None or not isinstance(surface, GdkX11.X11Surface):
-                        return fail("native pointer smoke requires a GDK X11 surface")
-                    scale = surface.get_scale_factor()
-                    window_xid = GdkX11.X11Surface.get_xid(surface)
-                    click_x = round(window_point.x * scale)
-                    click_y = round(window_point.y * scale)
-                    try:
-                        result = subprocess.run(
-                            [
-                                xdotool, "mousemove", "--window",
-                                str(window_xid), str(click_x), str(click_y),
-                                "click", "1",
-                            ],
-                            capture_output=True,
-                            text=True,
-                            timeout=5,
-                            check=False,
-                        )
-                    except (OSError, subprocess.TimeoutExpired) as error:
-                        return fail("native xdotool click failed: %s" % error)
-                    if result.returncode != 0:
-                        return fail("native xdotool click failed: %s" % result.stderr.strip())
-                    state["pointer_input"] = "linux-x11-xtest"
-                else:
-                    sys.path.insert(0, os.path.join(os.path.abspath("."), "tests"))
-                    try:
-                        from native_pointer_input import inject_native_pointer
-
-                        state["pointer_input"] = inject_native_pointer(
-                            main.window, window_point.x, window_point.y
-                        )
-                    except Exception as error:
-                        return fail("native desktop pointer click failed: %s" % error)
+                    state["pointer_input"] = inject_native_pointer(
+                        main.window, window_point.x, window_point.y
+                    )
+                except Exception as error:
+                    return fail("native desktop pointer click failed: %s" % error)
             else:
                 class TestGesture:
                     def __init__(self, x, y):
@@ -503,10 +502,12 @@ def _write_water_pdb(path):
     path.write_text("\n".join(lines) + "\n", encoding="ascii")
 
 
-def test_full_app_pointer_script_imports_graphene_on_every_platform():
-    """Native Windows/macOS mapping uses Graphene.Point too."""
+def test_full_app_native_pointer_test_uses_one_shared_os_dispatcher():
+    """Every native full-app cell shares the same click path and assertions."""
     assert "from gi.repository import Gdk, GLib, Graphene, Gtk" in _FULL_APP_CYCLE
-    assert "from gi.repository import GdkX11, Graphene" not in _FULL_APP_CYCLE
+    assert "inject_native_pointer(\n                    main.window, window_point.x, window_point.y" in _FULL_APP_CYCLE
+    assert "GdkX11" not in _FULL_APP_CYCLE
+    assert "xdotool" not in _FULL_APP_CYCLE
 
 
 @pytest.mark.skipif(

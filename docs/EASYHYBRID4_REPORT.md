@@ -98,8 +98,23 @@ pass (12 passed). The instrumented real full-app test also passed one Linux
 X11/XTest cycle on Linux Mint 22.3 x86_64 (Python 3.12.3, PyGObject 3.48.2,
 GTK 4.14.5, GLib 2.80.0, Mesa 25.2.8 llvmpipe/OpenGL 4.5 Core), picking
 `O:0`, rendering and closing cleanly. This Linux result does not exercise
-Win32. The native Win32 diagnosis and actual correction remain pending.
-EH4-202 stays open.
+Win32. The next focused run subsequently exposed the coordinate-origin offset
+and is documented below; the native correction is now implemented but still
+needs a passing Windows runner result. EH4-202 stays open.
+
+Follow-up run [`39704981928`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39704981928)
+captured both Win32 GTK gesture callbacks and the actual pick coordinates on
+Windows Server 2022 x86_64 (GTK 4.8.2 and 4.10.1, Mesa 26.2.4 llvmpipe WGL).
+The foreground window and hit-test were correct; the coordinate received by
+GTK was displaced about 14.3 x 11.8 logical pixels from the projected oxygen
+coordinate. The harness now feeds the measured discrepancy back into the next
+native click, and the full-app test uses one shared `inject_native_pointer()`
+call on Linux/X11, Windows/Win32, and macOS/Quartz. The lifecycle and pass
+assertions remain common across platforms; only event injection is adapted.
+Focused local checks pass (**17 passed, 1 skipped**), as do Python compilation
+and `git diff --check`. This correction has not yet been verified on a native
+display or runner; corrected Windows and full-matrix runs remain pending.
+EH4-202 remains unchecked.
 
 **Current native matrix (2026-10-20):** run
 [`39485989866`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39485989866)

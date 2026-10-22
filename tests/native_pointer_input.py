@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import ctypes
+import shutil
+import subprocess
 import sys
 import time
 
@@ -12,6 +14,34 @@ def logical_to_device_point(x: float, y: float, scale: int) -> tuple[int, int]:
     if scale < 1:
         raise ValueError("surface scale factor must be positive")
     return round(x * scale), round(y * scale)
+
+
+def adjust_window_point_from_gesture_feedback(
+    window_x: float,
+    window_y: float,
+    *,
+    target_framebuffer_point: tuple[float, float],
+    observed_framebuffer_point: tuple[float, float],
+    widget_size: tuple[float, float],
+    framebuffer_size: tuple[float, float],
+) -> tuple[float, float]:
+    """Correct a native click point using the coordinates GTK actually saw.
+
+    Native window systems can include client-area offsets that differ from
+    GTK's widget-to-toplevel transform. Convert the measured pick error back
+    to logical widget units and apply that correction to the next OS click.
+    """
+    widget_width, widget_height = map(float, widget_size)
+    framebuffer_width, framebuffer_height = map(float, framebuffer_size)
+    if min(widget_width, widget_height, framebuffer_width, framebuffer_height) <= 0:
+        raise ValueError("widget and framebuffer dimensions must be positive")
+    dx = (target_framebuffer_point[0] - observed_framebuffer_point[0]) * (
+        widget_width / framebuffer_width
+    )
+    dy = (target_framebuffer_point[1] - observed_framebuffer_point[1]) * (
+        widget_height / framebuffer_height
+    )
+    return window_x + dx, window_y + dy
 
 
 def appkit_to_quartz_point(
@@ -187,8 +217,41 @@ def _click_macos(window, x: float, y: float) -> str:
     return "macos-quartz-hid"
 
 
+def _click_linux_x11(window, x: float, y: float) -> str:
+    """Inject an XTest click at a GtkWindow content coordinate on X11."""
+    import gi
+
+    gi.require_version("GdkX11", "4.0")
+    from gi.repository import GdkX11
+
+    xdotool = shutil.which("xdotool")
+    if xdotool is None:
+        raise RuntimeError("native Linux pointer smoke requires xdotool")
+    surface = window.get_surface()
+    if surface is None or not isinstance(surface, GdkX11.X11Surface):
+        raise RuntimeError("native Linux pointer smoke requires a GDK X11 surface")
+    scale = surface.get_scale_factor()
+    xid = GdkX11.X11Surface.get_xid(surface)
+    click_x, click_y = logical_to_device_point(x, y, scale)
+    try:
+        result = subprocess.run(
+            [xdotool, "mousemove", "--window", str(xid), str(click_x), str(click_y), "click", "1"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise RuntimeError("native xdotool click failed: %s" % error) from error
+    if result.returncode != 0:
+        raise RuntimeError("native xdotool click failed: %s" % result.stderr.strip())
+    return "linux-x11-xtest"
+
+
 def inject_native_pointer(window, x: float, y: float) -> str:
     """Deliver a real desktop left-click to ``window`` at local point ``x,y``."""
+    if sys.platform.startswith("linux"):
+        return _click_linux_x11(window, x, y)
     if sys.platform == "win32":
         return _click_windows(window, x, y)
     if sys.platform == "darwin":
