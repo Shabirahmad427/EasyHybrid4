@@ -171,6 +171,10 @@ jobs:
             micromamba run -n easyhybrid-gtk python tests/test_gtk_icon_theme_smoke.py 2>&1 | tee -a platform-results.txt
           fi
 
+      - name: Build graphics engine extensions
+        run: micromamba run -n easyhybrid-gtk python setup.py build_ext --inplace
+        working-directory: src/graphics_engine
+
       - name: Run GTK4 widget-pattern tests
         env:
           EASYHYBRID_REQUIRE_GTK_DISPLAY: "1"
@@ -196,10 +200,6 @@ jobs:
       - name: Show macOS native crash report
         if: failure() && runner.os == 'macOS'
         run: python3 .github/scripts/show_macos_crash_report.py
-
-      - name: Build graphics engine extensions
-        run: micromamba run -n easyhybrid-gtk python setup.py build_ext --inplace
-        working-directory: src/graphics_engine
 
       - name: Restore pDynamo3 build
         id: pdynamo3-cache
@@ -604,6 +604,10 @@ jobs:
           set -o pipefail
           GALLIUM_DRIVER=llvmpipe python tests/test_gtk_icon_theme_smoke.py 2>&1 | tee -a platform-results.txt
 
+      - name: Build graphics engine extensions
+        run: python setup.py build_ext --inplace
+        working-directory: src/graphics_engine
+
       - name: Run GTK4 widget-pattern tests
         env:
           EASYHYBRID_REQUIRE_GTK_DISPLAY: "1"
@@ -611,10 +615,6 @@ jobs:
         run: |
           set -o pipefail
           GALLIUM_DRIVER=llvmpipe python -m pytest -q -p no:cacheprovider --noconftest -rs tests/test_gtk4_widget_patterns.py 2>&1 | tee -a platform-results.txt
-
-      - name: Build graphics engine extensions
-        run: python setup.py build_ext --inplace
-        working-directory: src/graphics_engine
 
       - name: Restore pDynamo3 build
         id: pdynamo3-cache
@@ -834,6 +834,10 @@ jobs:
           set -o pipefail
           micromamba run -n easyhybrid-gtk-src python tests/test_gtk_icon_theme_smoke.py 2>&1 | tee -a platform-results.txt
 
+      - name: Build graphics engine extensions
+        run: micromamba run -n easyhybrid-gtk-src python setup.py build_ext --inplace
+        working-directory: src/graphics_engine
+
       - name: Run GTK4 widget-pattern tests
         env:
           EASYHYBRID_REQUIRE_GTK_DISPLAY: "1"
@@ -841,10 +845,6 @@ jobs:
         run: |
           set -o pipefail
           micromamba run -n easyhybrid-gtk-src python -m pytest -q -p no:cacheprovider --noconftest -rs tests/test_gtk4_widget_patterns.py 2>&1 | tee -a platform-results.txt
-
-      - name: Build graphics engine extensions
-        run: micromamba run -n easyhybrid-gtk-src python setup.py build_ext --inplace
-        working-directory: src/graphics_engine
 
       - name: Restore pDynamo3 build
         id: pdynamo3-cache

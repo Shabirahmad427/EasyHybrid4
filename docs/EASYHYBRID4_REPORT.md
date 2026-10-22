@@ -120,6 +120,18 @@ not create a GL context or use a physical input device. Windows/macOS and the
 remaining GTK minors, plus physical macOS trackpad review, are **NOT TESTED**.
 EH4-203 remains unchecked pending the full native matrix and hardware review.
 
+The first full matrix attempt for this change is run
+[`39799035762`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39799035762).
+Its completed failures were in the generic widget-pattern step, which imports
+the production VisMol GTK widget before the workflow had built the required
+Cython extension `vismol.utils.matrix_operations`. The affected artifact logs
+show `ModuleNotFoundError` at that import; no scroll assertion was reached in
+those cells. The workflow now builds graphics extensions before that test in
+each job configuration, guarded by a static ordering regression test. The
+guard passes locally, but the original matrix is still running and cannot
+validate the correction; a corrected full matrix is still required. No
+Windows/macOS scroll behavior or physical macOS trackpad evidence is claimed.
+
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
 used GTK 4.24.1 / GLib 2.90.0 / PyGObject 3.58.1 / Python 3.12.15 on

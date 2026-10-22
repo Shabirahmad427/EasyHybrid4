@@ -18,6 +18,18 @@ def test_full_application_smoke_runs_before_component_shader_cycles():
     assert all(full < scene for full, scene in zip(full_app_positions, component_positions))
 
 
+def test_graphics_extensions_build_before_widget_patterns_import_vismol():
+    workflow = (ROOT / ".github" / "workflows" / "native-gtk-matrix.yml").read_text()
+    build = "- name: Build graphics engine extensions"
+    widget_tests = "- name: Run GTK4 widget-pattern tests"
+
+    build_positions = [index for index in range(len(workflow)) if workflow.startswith(build, index)]
+    widget_positions = [index for index in range(len(workflow)) if workflow.startswith(widget_tests, index)]
+
+    assert len(build_positions) == len(widget_positions) == 4
+    assert all(compiled < tests for compiled, tests in zip(build_positions, widget_positions))
+
+
 def test_failed_macos_gtk424_cell_can_be_dispatched_alone():
     workflow = (ROOT / ".github" / "workflows" / "native-gtk-matrix.yml").read_text()
 
