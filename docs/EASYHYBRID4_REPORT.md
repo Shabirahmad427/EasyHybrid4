@@ -10,16 +10,17 @@ full-app process completed its native Win32 click/pick/close. A later process
 found the previous HWND foreground and under the correct screen point, so the
 helper withheld the click. Initial correction `553adf3` activated first,
 raised the window, and retried pointer placement and `WindowFromPoint`
-verification up to five times. Focused native retry
-[`39709863741`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39709863741)
-still failed: all attempts hit covering HWND `131548` while target HWND was
-`786592`; no click was sent. Local helper/workflow/full-app regressions pass
-(**20 passed, 1 skipped**); `py_compile` and `git diff --check` pass. The
-retry alone did not resolve the issue. Next inspect the hit window title/class
-and process, and log activation/z-order API results before another behavior
-change. The diagnostic code now captures target/hit HWND title, class, PID,
-thread, bounds and native activation/restack return values. Local tests pass;
-that added diagnostic has not yet run on Windows. EH4-202 remains open.
+verification up to five times. Follow-up native diagnostics identified the
+cover as GitHub HostedComputeAgent's console (`ConsoleWindowClass`, PID 4920);
+`SetForegroundWindow` returned false while the target's raise/topmost calls
+returned true. The focused run
+[`39711834067`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39711834067)
+failed safely without sending a click through the console. The helper now
+temporarily attaches the GTK thread's input queue to the foreground console's
+queue while activating and raising the target, then detaches and checks the
+actual hit target again. Local helper/workflow/full-app regressions pass
+(**22 passed, 1 skipped**); `py_compile` and `git diff --check` pass. Native
+verification of the input-queue correction is pending; EH4-202 remains open.
 
 **Latest native Windows pointer result (2026-10-22):** focused run
 [`39706994456`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39706994456)

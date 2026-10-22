@@ -5,6 +5,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent))
 from native_pointer_input import (
+    activate_target_with_foreground_input,
     add_window_point_offset,
     adjust_window_point_from_gesture_feedback,
     appkit_to_quartz_point,
@@ -129,6 +130,35 @@ def test_native_windows_hit_target_retry_has_a_bounded_failure():
     ) is None
     with pytest.raises(ValueError, match="positive"):
         retry_until_native_hit_target(lambda: None, lambda: None, lambda: True, attempts=0)
+
+
+def test_win32_activation_temporarily_attaches_foreground_input_queue():
+    events = []
+
+    def attach(source, target, attached):
+        events.append(("attach" if attached else "detach", source, target))
+        return True
+
+    def set_foreground():
+        events.append(("foreground",))
+        return True
+
+    def bring_to_top():
+        events.append(("top",))
+        return True
+
+    result = activate_target_with_foreground_input(
+        attach, set_foreground, bring_to_top, attach,
+        current_thread_id=11, foreground_thread_id=22,
+    )
+    assert result == {
+        "input_queues_attached": True,
+        "foreground_activation_result": True,
+        "bring_to_top_result": True,
+    }
+    assert events == [
+        ("attach", 11, 22), ("foreground",), ("top",), ("detach", 11, 22),
+    ]
 
 
 def test_appkit_point_maps_to_quartz_on_secondary_display():

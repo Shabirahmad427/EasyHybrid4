@@ -70,6 +70,30 @@ def retry_until_native_hit_target(
     return None
 
 
+def activate_target_with_foreground_input(
+    attach_input: Callable[[int, int, bool], bool],
+    set_foreground: Callable[[], bool],
+    bring_to_top: Callable[[], bool],
+    detach_input: Callable[[int, int, bool], bool],
+    *,
+    current_thread_id: int,
+    foreground_thread_id: int,
+) -> dict[str, bool]:
+    """Temporarily join the foreground input queue to activate our GTK window."""
+    attached = False
+    if foreground_thread_id and foreground_thread_id != current_thread_id:
+        attached = bool(attach_input(current_thread_id, foreground_thread_id, True))
+    try:
+        return {
+            "input_queues_attached": attached,
+            "foreground_activation_result": bool(set_foreground()),
+            "bring_to_top_result": bool(bring_to_top()),
+        }
+    finally:
+        if attached:
+            detach_input(current_thread_id, foreground_thread_id, False)
+
+
 def appkit_to_quartz_point(
     x: float,
     y: float,
@@ -132,6 +156,12 @@ def _click_windows(window, x: float, y: float) -> str:
         ctypes.c_int, ctypes.c_int, wintypes.UINT,
     ]
     user32.SetWindowPos.restype = wintypes.BOOL
+    user32.AttachThreadInput.argtypes = [wintypes.DWORD, wintypes.DWORD, wintypes.BOOL]
+    user32.AttachThreadInput.restype = wintypes.BOOL
+    user32.SetActiveWindow.argtypes = [wintypes.HWND]
+    user32.SetActiveWindow.restype = wintypes.HWND
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.GetCurrentThreadId.restype = wintypes.DWORD
     user32.mouse_event.argtypes = [wintypes.DWORD, wintypes.DWORD, wintypes.DWORD, wintypes.DWORD, ctypes.c_size_t]
     user32.mouse_event.restype = None
 
@@ -198,11 +228,27 @@ def _click_windows(window, x: float, y: float) -> str:
         }
 
     def prepare_target():
-        # Activation is best-effort on hosted runners. Restack after the
-        # attempt because activation of another foreground window can change
-        # z-order between app cycles.
-        foreground_activated = bool(user32.SetForegroundWindow(hwnd))
-        brought_to_top = bool(user32.BringWindowToTop(hwnd))
+        # Hosted runner's console can own the foreground input queue and sit
+        # over the GTK app. Temporarily attach our GTK thread to that queue so
+        # Win32 permits activation, then detach before continuing.
+        foreground_hwnd = user32.GetForegroundWindow()
+        foreground_thread_id = user32.GetWindowThreadProcessId(foreground_hwnd, None)
+        current_thread_id = kernel32.GetCurrentThreadId()
+        active_window_matches = []
+
+        def raise_and_activate():
+            brought_to_top = bool(user32.BringWindowToTop(hwnd))
+            active_window_matches.append(user32.SetActiveWindow(hwnd) == hwnd)
+            return brought_to_top
+
+        activation = activate_target_with_foreground_input(
+            user32.AttachThreadInput,
+            lambda: user32.SetForegroundWindow(hwnd),
+            raise_and_activate,
+            user32.AttachThreadInput,
+            current_thread_id=current_thread_id,
+            foreground_thread_id=foreground_thread_id,
+        )
         positioned_topmost = bool(
             user32.SetWindowPos(hwnd, topmost, 0, 0, 0, 0, z_order_flags)
         )
@@ -210,8 +256,8 @@ def _click_windows(window, x: float, y: float) -> str:
             raise ctypes.WinError(ctypes.get_last_error())
         hit_attempts.append({
             "target": describe_window(hwnd),
-            "foreground_activation_result": foreground_activated,
-            "bring_to_top_result": brought_to_top,
+            **activation,
+            "active_window_matches_target": bool(active_window_matches[-1]),
             "set_topmost_result": positioned_topmost,
         })
 

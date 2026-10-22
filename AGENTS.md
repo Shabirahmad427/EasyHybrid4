@@ -47,22 +47,19 @@ coordinates plus the final picked atom if this failure returns.
 
 **Windows GTK 4.20 repeated-launch overlay (diagnosed 2026-10-22):** the
 all-scope matrix run [`39708415015`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39708415015)
+all-scope run [`39708415015`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39708415015)
+and focused Windows run [`39711834067`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39711834067)
 passed the first real-app native Win32 pick on GTK 4.20.3 but a later fresh
-process found an older HWND foreground and under the correct screen point.
-The click was correctly withheld. The helper now tries foreground activation,
-then re-stacks the disposable window topmost, moves the pointer, and requires a
-fresh `WindowFromPoint` target check before clicking. It retries that
-hit-test/restack sequence at most five times and logs each observed HWND if
-they all fail. Local helper/workflow/full-app regression checks pass (**20
-passed, 1 skipped**); native confirmation on GTK 4.20.3 is pending. Do not
-consider the Win32 path broadly verified until that native retry passes.
-
-The focused rerun [`39709863741`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39709863741)
-showed that five topmost/restack attempts still hit the same covering HWND
-(`131548`) at the correct cursor point, while the new target was `786592`.
-The 4.20.3 cell therefore remains **FAIL**, and retrying `SetWindowPos` alone
-is insufficient. Inspect the hit window's title/class, owning process and
-z-order/foreground API return values in the next native diagnosis; do not
-weaken the pre-click target check or send a click through an unverified HWND.
+process could not activate its window. Native window diagnostics identify the
+blocker as the GitHub HostedComputeAgent console (`ConsoleWindowClass`, PID
+4920), foreground and hit-tested over the correctly mapped target. The
+foreground activation request returned false; `BringWindowToTop` and
+`SetWindowPos(HWND_TOPMOST)` returned true but did not move the target above
+that console. A five-attempt retry correctly withheld the click each time.
+The helper now temporarily attaches the GTK thread's input queue to the
+foreground console's queue while activating and raising the target, then
+detaches and re-verifies `WindowFromPoint` before any click. Focused native
+verification of that correction is pending. Do not weaken the pre-click hit
+check or send a click through an unverified HWND.
 
 **Full-interface test boundary (updated 2026-10-22):** `test_easyhybrid_menu_vismol_components_open_and_close_cleanly` builds a standalone GTK host around production EasyHybrid menu and VisMol components; its CI results are component evidence only. The separate opt-in `tests/test_easyhybrid_full_app_smoke.py` launches `EasyHybridApplication`, production `MainWindow`, and real pDynamo3 PDB load/render/pick/close. Native Linux X11/XTest cycles pass locally; focused Windows run `39706994456` passes five Win32 pointer-pick cycles on GTK 4.8.2 and 4.10.1; focused macOS arm64 run `39707517301` passes five Quartz pointer-pick cycles on GTK 4.24.1. Full-app coverage across every GTK minor/platform is not established; do not infer it from the component matrix or these selected full-app cells.
