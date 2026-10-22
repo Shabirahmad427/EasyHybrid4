@@ -1,6 +1,6 @@
 # EasyHybrid4 Development and Compatibility Report
 
-**Report date:** 2026-10-21
+**Report date:** 2026-10-22
 
 **Latest native Windows pointer result (2026-10-22):** focused run
 [`39706994456`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39706994456)
@@ -15,8 +15,22 @@ each retry then reset its learned offset to the latest, nearly-zero residual.
 The test now accumulates the measured offset for the app cycle. The same
 commit's local helper/workflow/full-app checks passed (**18 passed, 1 skipped**)
 and `py_compile`/`git diff --check` passed. This is focused Windows evidence;
-EH4-202 still needs the full all-platform/all-GTK matrix and native macOS
-pointer validation before completion.
+EH4-202 still needs the full all-platform/all-GTK matrix and macOS GTK/minor
+coverage beyond the verified 4.24.1 cell.
+
+**Native macOS pointer result (2026-10-22):** focused run
+[`39707517301`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39707517301)
+passed on macOS 14.8.9 arm64 with Python 3.12.15, PyGObject 3.58.1, GTK
+4.24.1, GLib 2.90.0, and Apple Software Renderer/OpenGL 4.1. The production
+`EasyHybridApplication`/`MainWindow` loaded the generated water fixture and
+completed five fresh-app cycles using `macos-quartz-hid`; all five native
+pointer picks selected `O:0`, rendered, and closed cleanly. Production
+menu/VisMol passed another five pick/render/close cycles; the complete suite
+reported 114 passed and 6 skipped; render validation passed at both requested
+scales. The scale test reported `scale_applied=false` and widget scale factor
+1, so this does not establish Retina/HiDPI support. Native macOS pointer
+coverage at other GTK minors and on Intel remains untested; EH4-202 still
+requires the full platform/minor matrix.
 
 **Purpose:** One consolidated source for repository, architecture, dependency,
 GTK/Python compatibility, parity, platform, testing, and known-limitation

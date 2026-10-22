@@ -311,9 +311,9 @@ diagnosis step, and `EASYHYBRID_TEST_OPENGL_DLL`. Clean full-matrix run `3906886
 Unit coverage is in `tests/test_win32_wgl.py`, using a fake Win32 API; it
 does not prove native behavior.
 
-- **Current task:** EH4-202. Its real-context render/export/picking/resize checks and component smoke passed across the full matrix. The full-app test injects native XTest clicks on Linux/X11 (local GTK 4.8.2/4.14.5/4.24.1) and native Win32 clicks on Windows GTK 4.8.2/4.10.1 (run `39706994456`, five full-app cycles per cell). Native macOS pointer injection and full-app coverage across every GTK/platform cell remain pending. Real trajectory-data playback remains **NOT TESTED**.
+- **Current task:** EH4-202. Its real-context render/export/picking/resize checks and component smoke passed across the full matrix. The full-app test injects native XTest clicks on Linux/X11 (local GTK 4.8.2/4.14.5/4.24.1), native Win32 clicks on Windows GTK 4.8.2/4.10.1 (run `39706994456`, five full-app cycles per cell), and native Quartz HID clicks on macOS arm64 GTK 4.24.1 (run `39707517301`, five full-app cycles). Full-app coverage across every GTK/platform cell remains pending. Real trajectory-data playback remains **NOT TESTED**.
 - **EH4-000 provenance limitations:** `origin` points to the user-supplied private EasyHybrid4 repository. Graphics-engine files remain ordinary tracked files rather than an active submodule. Their exact upstream ancestry and ownership/license for local changes remain unresolved. Do not publish graphics changes or convert the directory to a submodule until these facts are reconciled. EH4-200's audit and native build evidence are recorded above; local use and test-only validation of the bundled engine can proceed without publishing it.
-- **Current implementation/testing blockers:** The full component/render matrix at `39485989866` passed at the current main SHA, including five production menu/VisMol cycles per cell. The focused full-app Windows pDynamo3 C2466 and XC link failures are resolved in GTK 4.8.2/4.10.1; full app passed those cells. macOS GTK 4.24.1 full-app passed five synthetic-callback cycles. Linux X11 native XTest full-app passes locally at GTK 4.14.5 (five cycles) and 4.24.1 (one cycle). Full-app coverage on every GTK/platform cell, native Windows/macOS OS pointer injection, Linux Wayland, physical GPUs, and HiDPI on real Retina displays remain **NOT TESTED**. The exact GTK 4.8/Python 3.10 full-app pDynamo ABI limitation and upstream Gtk.AboutDialog finalization critical remain documented.
+- **Current implementation/testing blockers:** The full component/render matrix at `39485989866` passed at the current main SHA, including five production menu/VisMol cycles per cell. Focused native full-app pointer coverage now passes on Windows GTK 4.8.2/4.10.1 (run `39706994456`) and macOS arm64 GTK 4.24.1 (run `39707517301`), in addition to local Linux X11/XTest full-app runs at GTK 4.8.2/4.14.5/4.24.1. Full-app coverage on every GTK/platform cell, Linux Wayland, physical GPUs, and HiDPI on real Retina displays remain **NOT TESTED**. The exact GTK 4.8/Python 3.10 full-app pDynamo ABI limitation and upstream Gtk.AboutDialog finalization critical remain documented.
 - **Compatibility policy:** GTK runtime minimum = 4.8; GTK 4.6 is too old and rejected by the installer. The `Gtk 4.0` namespace remains the typelib API version. Linux X11 has full-app evidence for GTK 4.8.2, 4.14.5, and 4.24.1. Native GTK/widget and real scene smoke passed for every GTK minor 4.8–4.24 on Linux x86_64, Windows x86_64 and macOS arm64, plus GTK 4.8/4.10 on macOS x86_64 (30/30, exact-version main run `39292753361`); providers and exact patch versions are in `docs/GTK4_COMPATIBILITY.md`. Linux Wayland remains **NOT TESTED**. Python 3.10.22/3.12.3/3.12.15 have Linux test evidence; no maximum is approved. See `docs/EASYHYBRID4_REPORT.md` and `docs/GTK4_COMPATIBILITY.md`.
 - **Rule:** Update the active task pointer after a completed or blocked task. Do not change task ordering without recording why.
 
@@ -382,6 +382,19 @@ passed, 1 skipped**; Python compilation and `git diff --check`: **PASS**. This
 resolves the focused Windows 4.8/4.10 pointer regression; the full native
 matrix and native macOS pointer injection remain pending, so EH4-202 remains
 unchecked.
+
+**EH4-202 native macOS pointer verified (2026-10-22):** focused run
+[`39707517301`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39707517301)
+passed the native macOS arm64 GTK 4.24.1 cell. Runtime artifact: macOS
+14.8.9 arm64, Python 3.12.15, PyGObject 3.58.1, GLib 2.90.0, Apple Software
+Renderer/OpenGL 4.1. The real `EasyHybridApplication`/`MainWindow` loaded the
+generated water PDB and passed **5/5** fresh-app cycles with Quartz HID input,
+oxygen `O:0` picked, render completed, and clean close; the production
+menu/VisMol smoke also passed **5/5** cycles. The full suite passed **114
+tests, 6 skipped**; render validation passed at both requested scales, but
+reported `scale_applied=false` and widget scale factor 1, so Retina/HiDPI is
+not validated. This verifies Quartz only at GTK 4.24.1 arm64. The complete
+all-platform/all-minor matrix remains the acceptance gate; EH4-202 stays open.
 
 ## 6. End-of-session report template
 
