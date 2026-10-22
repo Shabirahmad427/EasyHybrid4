@@ -21,13 +21,17 @@ queue while activating and raising the target. Run
 [`39712180632`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39712180632)
 showed Windows refuses that attachment (`false`) too. The next focused run
 [`39712548364`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39712548364)
-showed `GetConsoleWindow` returned null because the console belongs to the
-HostedComputeAgent process, not the child Python process. The helper now recognizes that exact
-`ConsoleWindowClass` title, minimizes it only when it is the actual
-hit-tested blocker, and restores it after the verified click. Local
-helper/workflow/full-app regressions pass (**22 passed, 1 skipped**);
-`py_compile` and `git diff --check` pass. Native confirmation of the
-console handling is pending; EH4-202 remains open.
+showed `GetConsoleWindow` is null because the console belongs to HostedComputeAgent,
+not the child Python process. The helper now recognizes the exact hosted
+console title and minimizes it only when it is the actual hit-tested blocker,
+then restores it after the click. Focused Windows GTK 4.20.3 run
+[`39712852467`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39712852467)
+passed five fresh app cycles; each native click picked `O:0`, rendered and
+closed. The widget suite passed 65 tests and skipped 3; five production scene
+cycles and render validation also passed. Local helper/workflow/full-app
+regressions pass (**22 passed, 1 skipped**); `py_compile` and `git diff --check`
+pass. The fix is verified for this cell; EH4-202 still requires the full
+native matrix.
 
 **Latest native Windows pointer result (2026-10-22):** focused run
 [`39706994456`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39706994456)

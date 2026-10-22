@@ -47,23 +47,21 @@ coordinates plus the final picked atom if this failure returns.
 
 **Windows GTK 4.20 repeated-launch overlay (diagnosed 2026-10-22):** the
 all-scope matrix run [`39708415015`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39708415015)
-all-scope run [`39708415015`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39708415015)
-and focused Windows run [`39711834067`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39711834067)
-and follow-up [`39712180632`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39712180632)
-passed the first real-app native Win32 pick on GTK 4.20.3 but a later fresh
-process could not activate its window. Native window diagnostics identify the
-blocker as the GitHub HostedComputeAgent console (`ConsoleWindowClass`, PID
-4920), foreground and hit-tested over the correctly mapped target. The
-foreground activation request returned false; `BringWindowToTop` and
-`SetWindowPos(HWND_TOPMOST)` returned true but did not move the target above
-that console. A five-attempt retry correctly withheld the click each time.
-The helper tried attaching the GTK thread's input queue to the foreground
-console's queue, but the hosted runner refused the attachment. `GetConsoleWindow`
-also returns null in the child Python process because the console belongs to
-the HostedComputeAgent process. The helper now recognizes that exact
-`ConsoleWindowClass` title and minimizes it only when it is the actual
-hit-tested blocker, then restores it after the verified click. Focused native
-verification of this correction is pending. Do not weaken the pre-click hit
-check or send a click through an unverified HWND.
+and focused runs [`39711834067`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39711834067),
+[`39712180632`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39712180632),
+and [`39712548364`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39712548364)
+diagnosed a foreground GitHub HostedComputeAgent console (`ConsoleWindowClass`)
+covering the mapped click point. Foreground activation and `AttachThreadInput`
+were refused. `GetConsoleWindow` was null because the console belongs to the
+HostedComputeAgent process, not the child Python process. The helper now
+recognizes that exact console title, minimizes it only when hit-testing
+confirms that it blocks the GTK window, and restores it after the click.
+Focused run [`39712852467`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39712852467)
+passed five fresh Windows Server 2022 x86_64 app cycles at Python 3.12.15,
+PyGObject 3.58.1, GTK 4.20.3, GLib 2.90.1, and Mesa 26.2.4 llvmpipe WGL.
+Every cycle picked `O:0`, rendered and closed cleanly; the component scene
+passed five cycles and render validation passed. Keep the blocker identity
+check specific to the hosted agent console. The full platform/minor matrix is
+still required.
 
 **Full-interface test boundary (updated 2026-10-22):** `test_easyhybrid_menu_vismol_components_open_and_close_cleanly` builds a standalone GTK host around production EasyHybrid menu and VisMol components; its CI results are component evidence only. The separate opt-in `tests/test_easyhybrid_full_app_smoke.py` launches `EasyHybridApplication`, production `MainWindow`, and real pDynamo3 PDB load/render/pick/close. Native Linux X11/XTest cycles pass locally; focused Windows run `39706994456` passes five Win32 pointer-pick cycles on GTK 4.8.2 and 4.10.1; focused macOS arm64 run `39707517301` passes five Quartz pointer-pick cycles on GTK 4.24.1. Full-app coverage across every GTK minor/platform is not established; do not infer it from the component matrix or these selected full-app cells.
