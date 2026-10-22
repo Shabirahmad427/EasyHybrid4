@@ -69,6 +69,11 @@ _FULL_APP_CYCLE = textwrap.dedent(
 
     def complete_pick(main):
         # Finish after the production GL pick pass selected the fixture O.
+        if state.get("completion_started"):
+            return GLib.SOURCE_REMOVE
+        state["completion_started"] = True
+        if state.get("pick_completion_scheduled"):
+            print("EASYHYBRID_FULL_APP_PICK_COMPLETED_AFTER_RENDER=True", flush=True)
         vm_widget = main.vm_session.vm_widget
         vm_widget.make_current()
         gl_error = GL.glGetError()
@@ -174,6 +179,18 @@ _FULL_APP_CYCLE = textwrap.dedent(
                         "xy": (float(core.picking_x), float(core.picking_y)),
                         "size": (core.width, core.height),
                     }
+                    if (
+                        not core.picking
+                        and getattr(core.atom_picked, "symbol", None) == "O"
+                        and not state.get("pick_completion_scheduled")
+                    ):
+                        # Complete from the main loop as soon as the real GL
+                        # readback confirms oxygen; do not depend on another
+                        # periodic poll being serviced by the native backend.
+                        state["pick_completion_scheduled"] = True
+                        state["pick_completion_source"] = GLib.idle_add(
+                            complete_pick, main
+                        )
                 return result
 
             core.render = count_core_render
@@ -544,6 +561,8 @@ def test_full_app_native_pointer_test_uses_one_shared_os_dispatcher():
     assert "from gi.repository import Gdk, GLib, Graphene, Gtk" in _FULL_APP_CYCLE
     assert "inject_native_pointer(\n                    main.window, window_point.x, window_point.y" in _FULL_APP_CYCLE
     assert 'last_pick.get("picked_after") == "O"' in _FULL_APP_CYCLE
+    assert "GLib.idle_add(\n                        complete_pick, main" in _FULL_APP_CYCLE
+    assert 'state["completion_started"] = True' in _FULL_APP_CYCLE
     assert "EASYHYBRID_FULL_APP_PICK_COMPLETED_AFTER_POLL_TIMEOUT=True" in _FULL_APP_CYCLE
     assert "GdkX11" not in _FULL_APP_CYCLE
     assert "xdotool" not in _FULL_APP_CYCLE
