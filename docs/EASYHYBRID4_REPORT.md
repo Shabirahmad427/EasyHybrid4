@@ -1,6 +1,6 @@
 # EasyHybrid4 Development and Compatibility Report
 
-**Report date:** 2026-10-20
+**Report date:** 2026-10-21
 
 **Purpose:** One consolidated source for repository, architecture, dependency,
 GTK/Python compatibility, parity, platform, testing, and known-limitation
@@ -41,6 +41,18 @@ user's installed pDynamo environment. Win32 and Quartz injection code has not
 been run natively here; all other GTK/platform cells, Wayland, and physical
 hardware remain **NOT TESTED**. EH4-202 remains unchecked pending its required
 matrix and native Windows/macOS pointer validation.
+
+The same Linux XTest full-app check now also passes locally at GTK 4.24.1:
+Linux x86_64 under Xvfb/X11, Python 3.12.15, PyGObject 3.58.1, GLib 2.90.0,
+and pDynamo3 from `/home/shabir/software/pDynamo3-py312`. One production
+`EasyHybridApplication`/`MainWindow` cycle loaded the generated water PDB,
+received a real XTest click, picked `O:0`, rendered with Mesa 25.2.8 llvmpipe
+(OpenGL 4.5 Core), and closed cleanly. The GTK runtime required
+`GDK_DEBUG=gl-prefer-gl` with `PYOPENGL_PLATFORM=egl`: its older `gl-glx` hint
+is unrecognized by GTK 4.24, and leaving PyOpenGL on GLX caused a context
+lookup failure before the pointer test. This is local Linux evidence only;
+other Linux GTK minors and all native Windows/macOS injection combinations
+remain **NOT TESTED**.
 
 **Current native matrix (2026-10-20):** run
 [`39485989866`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39485989866)
