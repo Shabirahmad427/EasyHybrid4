@@ -97,17 +97,22 @@ configured macOS arm64 GTK minors and Intel macOS GTK 4.8/4.10.
 GTK/Python compatibility, parity, platform, testing, and known-limitation
 status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).
 
-**EH4-203 implementation (2026-10-20; validation pending):** GTK's
-`EventControllerScroll.get_unit()`/`Gdk.ScrollUnit` capability is available
-from GTK 4.8. VisMol now requests continuous deltas wherever that capability
-exists on any OS, normalizes wheel detents and surface logical pixels to one
-positive-down convention, and applies the existing scroll action with one
-direction mapping. Feature detection preserves a discrete fallback for older
-or incomplete typelibs. Regression cases for delta accumulation and
-equivalent wheel/surface directions are written but were not run, per the
-maintainer's request to reserve test execution for the final batch. No native
-GTK matrix or macOS trackpad review has been run for this implementation;
-EH4-203 remains unchecked and unverified.
+**EH4-203 scroll semantics (2026-10-22; focused local checks pass):** GTK's
+`EventControllerScroll.get_unit()`/`Gdk.ScrollUnit` capability is detected on
+GTK 4.8.2, 4.14.5 and 4.24.1. VisMol requests continuous deltas wherever that
+capability exists, normalizes wheel detents and surface logical pixels to a
+positive-down convention, and accumulates fractional deltas. Both units read
+Ctrl/Shift from the current event and apply them only while dispatching the
+normalized action, preserving the previous GL-core modifier state. Incomplete
+typelibs keep the discrete fallback. The focused delta, event-unit, direction
+and modifier tests passed **3/3** on each of three local Linux GTK runtimes
+(GTK 4.8.2, 4.14.5 and 4.24.1). This was native Linux Mint 22.3 x86_64 with
+Python 3.12.15/PyGObject 3.58.1/GLib 2.90.0 for GTK 4.8.2 and 4.24.1, and
+Python 3.12.3/PyGObject 3.48.2/GLib 2.80.0 for GTK 4.14.5. The tests exercised
+the production scroll callback with deterministic event-unit inputs; they did
+not create a GL context or use a physical input device. Windows/macOS and the
+remaining GTK minors, plus physical macOS trackpad review, are **NOT TESTED**.
+EH4-203 remains unchecked pending the full native matrix and hardware review.
 
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
