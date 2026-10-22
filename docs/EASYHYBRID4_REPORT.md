@@ -131,9 +131,11 @@ GLib 2.78.0, Mesa 26.2.4 llvmpipe WGL.
 Run `39705953113` showed the first launch passed on both GTK versions after
 coordinate calibration, then the second launch failed because the pointer hit
 another HWND. Its screen Y coordinate was 443 for a requested client Y of 344.
-The native helper had calculated `ClientToScreen` before `SW_RESTORE`, which can
-move the restored window. The helper now restores/raises the window before
-mapping the click and rechecks the real hit target. Focused rerun is pending.
+The helper now restores the window before `ClientToScreen`; that alone did not
+clear the overlay. It temporarily raises the disposable test window to
+`HWND_TOPMOST` for the verified real click, then returns it to normal z-order.
+It still requires `WindowFromPoint` to identify the EasyHybrid window. Focused
+rerun is pending.
 
 **Current native matrix (2026-10-20):** run
 [`39485989866`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39485989866)

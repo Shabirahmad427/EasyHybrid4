@@ -347,13 +347,13 @@ acceptance assertion. This is a runner focus-lock issue rather than another
 GTK coordinate discrepancy. Corrected Windows rerun is pending; EH4-202 stays
 unchecked.
 
-The same run's second-launch trace further showed the cursor at screen
-`(613,443)` while the target client point was `(613,344)` and
-`WindowFromPoint` returned another HWND. This revealed that the helper called
-`ClientToScreen` before `SW_RESTORE`; restoration can move a window, leaving
-the calculated screen coordinate stale. The helper now restores and raises the
-window before converting the point, then checks the actual window under the
-cursor. Local Windows-native verification is unavailable; rerun the same
+The same run's second-launch trace showed the cursor at screen `(613,443)`
+while the target client point was `(613,344)`, and `WindowFromPoint` returned
+another HWND. Restoring before `ClientToScreen` did not clear the overlay; the
+new correction temporarily raises the disposable test window to
+`HWND_TOPMOST` for the click and restores its regular z-order afterwards. The
+helper still rejects a click unless `WindowFromPoint` confirms the target
+window. Local Windows-native verification is unavailable; rerun the same
 focused GTK 4.8/4.10 cells before expanding coverage.
 
 ## 6. End-of-session report template

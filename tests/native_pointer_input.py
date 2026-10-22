@@ -110,10 +110,14 @@ def _click_windows(window, x: float, y: float) -> str:
     # a minimized window, which would make a pre-restore ClientToScreen stale.
     user32.ShowWindow(hwnd, 9)  # SW_RESTORE
     user32.BringWindowToTop(hwnd)
-    # Also place it above non-foreground runner windows. The click itself will
-    # activate the target; SetForegroundWindow may be blocked by Windows policy.
-    if not user32.SetWindowPos(hwnd, None, 0, 0, 0, 0, 0x0053):
-        raise ctypes.WinError(ctypes.get_last_error())  # NOMOVE|NOSIZE|NOACTIVATE|SHOWWINDOW
+    # A prior test process can remain above a new non-foreground window. Put
+    # this disposable test window in the topmost band for the real click;
+    # restore its ordinary z-order immediately afterwards.
+    topmost = ctypes.c_void_p(-1)  # HWND_TOPMOST
+    not_topmost = ctypes.c_void_p(-2)  # HWND_NOTOPMOST
+    z_order_flags = 0x0053  # SWP_NOMOVE|SWP_NOSIZE|SWP_NOACTIVATE|SWP_SHOWWINDOW
+    if not user32.SetWindowPos(hwnd, topmost, 0, 0, 0, 0, z_order_flags):
+        raise ctypes.WinError(ctypes.get_last_error())
     user32.SetForegroundWindow(hwnd)
     foreground = user32.GetForegroundWindow()
     point = Point(*logical_to_device_point(x, y, scale))
@@ -151,8 +155,16 @@ def _click_windows(window, x: float, y: float) -> str:
     if hit_window != hwnd and not user32.IsChild(hwnd, hit_window):
         raise RuntimeError(
             "Win32 pointer is not over EasyHybrid: hwnd=%s hit=%s "
-            "cursor=(%s,%s) client=%r scale=%s"
-            % (hwnd, hit_window, cursor.x, cursor.y, client_point, scale)
+            "cursor=(%s,%s) screen=(%s,%s) window_rect=%r client_rect=%r "
+            "foreground=%s client=%r scale=%s"
+            % (
+                hwnd, hit_window, cursor.x, cursor.y, point.x, point.y,
+                (window_rect.left, window_rect.top,
+                 window_rect.right, window_rect.bottom),
+                (client_rect.left, client_rect.top,
+                 client_rect.right, client_rect.bottom),
+                foreground, client_point, scale,
+            )
         )
     print(
         "EASYHYBRID_WIN32_POINTER_DIAGNOSTIC="
@@ -168,6 +180,7 @@ def _click_windows(window, x: float, y: float) -> str:
     user32.mouse_event(0x0002, 0, 0, 0, 0)  # MOUSEEVENTF_LEFTDOWN
     time.sleep(0.04)
     user32.mouse_event(0x0004, 0, 0, 0, 0)  # MOUSEEVENTF_LEFTUP
+    user32.SetWindowPos(hwnd, not_topmost, 0, 0, 0, 0, z_order_flags)
     return "windows-win32-user32"
 
 
