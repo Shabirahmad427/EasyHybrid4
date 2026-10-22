@@ -138,9 +138,17 @@ representation. The full-app cycle passed at GTK 4.24.1, Python 3.12.15, PyGObje
 `6b28dd8958e1a705fcdca130f4ab862a8af8de82` compiled in a disposable Python
 3.12 tree. X11/Xvfb used EGL/PyOpenGL and Mesa 25.2.8 llvmpipe (LLVM 20.1.2),
 OpenGL 4.5 Core; fixture load, pick, selection assertions, render and close
-passed. The user's Python 3.10 pDynamo3 environment/source was not modified.
-This is local Linux evidence only; measurements, camera persistence, multi-cycle
-full-app coverage, and the all-platform/all-version matrix remain pending.
+passed. The session serializer now delegates camera capture/restore to a
+separately tested helper. Camera helper tests cover pickle round-trip, viewport
+and matrix restoration, old payloads without viewport dimensions, absent
+camera state, and best-effort GTK size-request failure. The combined camera and
+selection tests pass on local Linux GTK 4.8.2 and 4.24.1. A subsequent one-cycle
+full-app check at GTK 4.24.1 also passes after the serializer refactor, confirming
+the production module import and water load/native pick/render/close path.
+The user's Python 3.10 pDynamo3 environment/source was not modified. This is
+local Linux evidence only; full `.easy` save/reopen integration, measurements,
+multi-cycle full-app coverage on this branch, and the all-platform/all-version
+matrix remain pending.
 EH4-204 remains unchecked. Index-selection and invert changes pass focused
 unit coverage but are not yet exercised by the full-app scenario.
 

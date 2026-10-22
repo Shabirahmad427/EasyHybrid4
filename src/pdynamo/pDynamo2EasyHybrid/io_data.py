@@ -29,6 +29,10 @@
 #      to facilitate QM/MM partitioning and molecular simulations.
 #
 from util.debug import dprint
+from pdynamo.pDynamo2EasyHybrid.camera_state import (
+    capture_camera_state,
+    restore_camera_state,
+)
 import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, GLib
@@ -186,28 +190,9 @@ class LoadAndSaveData:
         # and line width calculations). Restoring just these on load is
         # enough: objects loaded afterwards pick up vm_glcore.model_mat
         # automatically, they don't need their own per-object copy saved.
-        glcamera = self.vm_session.vm_glcore.glcamera
-        easyhybrid_session_data['camera'] = {
-            'model_mat'           : np.copy(self.vm_session.vm_glcore.model_mat),
-            'zero_reference_point': np.copy(self.vm_session.vm_glcore.zero_reference_point),
-            'dist_cam_zrp'        : float(self.vm_session.vm_glcore.dist_cam_zrp),
-            'view_matrix'         : np.copy(glcamera.view_matrix),
-            'projection_matrix'   : np.copy(glcamera.projection_matrix),
-            'z_near'              : float(glcamera.z_near),
-            'z_far'               : float(glcamera.z_far),
-            # [NEW - OPTIONAL property] Size of the GLArea (viewport) at
-            # save time. Used on load to restore the same aspect
-            # ratio and avoid camera distortion (the projection_matrix saved
-            # above was computed for THIS aspect ratio; if the .easy is
-            # reopened in a window of different size/proportion, without this
-            # the image would be stretched/compressed). NEW key: files
-            # .easy saved before this change simply will not have it --
-            # load_easyhybrid_serialization_file uses .get() and only tries
-            # to restore the size if the key exists, so old sessions
-            # keep loading normally, just without this extra adjustment.
-            'glarea_width'        : float(self.vm_session.vm_glcore.width),
-            'glarea_height'       : float(self.vm_session.vm_glcore.height),
-        }
+        easyhybrid_session_data['camera'] = capture_camera_state(
+            self.vm_session.vm_glcore
+        )
         
         for e_id, system in self.psystem.items():
             
@@ -394,44 +379,11 @@ class LoadAndSaveData:
         # Older .easy files won't have this key - skip restoring and keep
         # whatever default view vm_glcore already has in that case.
         camera_data = easyhybrid_session_data.get('camera')
-        if camera_data is not None:
-            vm_glcore = self.vm_session.vm_glcore
-            glcamera = vm_glcore.glcamera
-            vm_glcore.model_mat            = np.copy(camera_data['model_mat'])
-            vm_glcore.zero_reference_point = np.copy(camera_data['zero_reference_point'])
-            vm_glcore.dist_cam_zrp         = camera_data['dist_cam_zrp']
-            glcamera.set_view_matrix(np.copy(camera_data['view_matrix']))
-            glcamera.set_projection_matrix(np.copy(camera_data['projection_matrix']))
-            glcamera.z_near = camera_data['z_near']
-            glcamera.z_far  = camera_data['z_far']
-            glcamera.update_fog()
-            
-            # [NEW - OPTIONAL property] .easy files saved before this
-            # change do not have 'glarea_width'/'glarea_height' -- .get() returns
-            # None and the block below is skipped, without breaking anything (same
-            # compatibility pattern as the 'camera' block above).
-            #
-            # When present: tries to resize the GLArea to the same size
-            # as when it was saved (set_size_request -- 'best effort', the
-            # GTK container may not respect it 100% depending on the layout) and,
-            # more importantly to actually eliminate distortion, recomputes the
-            # aspect ratio/projection_matrix via resize_window() using that
-            # SAME saved size (with z_near/z_far already restored above) --
-            # the raw projection_matrix restored just above was computed
-            # for the aspect ratio AT SAVE TIME, which may not match
-            # the current window's; resize_window ensures consistency.
-            glarea_w = camera_data.get('glarea_width')
-            glarea_h = camera_data.get('glarea_height')
-            if glarea_w and glarea_h:
-                vm_widget = getattr(self.vm_session, 'vm_widget', None)
-                if vm_widget is not None:
-                    try:
-                        vm_widget.set_size_request(int(glarea_w), int(glarea_h))
-                    except Exception as e:
-                        dprint('Could not resize GLArea on session load:', e)
-                vm_glcore.resize_window(glarea_w, glarea_h)
-            
-            vm_glcore.queue_draw()
+        restore_camera_state(
+            camera_data,
+            self.vm_session.vm_glcore,
+            vm_widget=getattr(self.vm_session, 'vm_widget', None),
+        )
         
         for data  in easyhybrid_session_data['systems']:
             system = data['system']
