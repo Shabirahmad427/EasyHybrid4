@@ -72,7 +72,8 @@ def test_full_app_matrix_injects_native_pointer_on_all_desktop_oses():
     assert 'return _click_windows(window, x, y)' in pointer
     assert 'return _click_macos(window, x, y)' in pointer
     assert 'if foreground != hwnd' not in pointer
-    assert 'return hit_window == hwnd or user32.IsChild(hwnd, hit_window)' in pointer
+    assert 'win32_hit_belongs_to_target(' in pointer
+    assert 'root_owner=lambda candidate: user32.GetAncestor(candidate, 3)' in pointer
     assert 'topmost = ctypes.c_void_p(-1)  # HWND_TOPMOST' in pointer
     assert 'user32.SetWindowPos(hwnd, not_topmost' in pointer
     assert 'confirmed_attempt = retry_until_native_hit_target(' in pointer

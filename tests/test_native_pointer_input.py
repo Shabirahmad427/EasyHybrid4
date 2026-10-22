@@ -11,6 +11,7 @@ from native_pointer_input import (
     logical_to_device_point,
     minimize_hosted_runner_console_blocker,
     retry_until_native_hit_target,
+    win32_hit_belongs_to_target,
 )
 
 
@@ -128,6 +129,38 @@ def test_native_windows_hit_target_retry_has_a_bounded_failure():
         lambda: False,
         attempts=3,
     ) is None
+
+
+def test_native_windows_hit_target_accepts_target_child_and_owned_helper():
+    target = 100
+    child = 101
+    owned_helper = 102
+    parents = {owned_helper: target}
+
+    def is_child(parent, candidate):
+        return parent == target and candidate == child
+
+    def root_owner(candidate):
+        return parents.get(candidate, candidate)
+
+    assert win32_hit_belongs_to_target(
+        target, target, is_child=is_child, root_owner=root_owner
+    )
+    assert win32_hit_belongs_to_target(
+        target, child, is_child=is_child, root_owner=root_owner
+    )
+    assert win32_hit_belongs_to_target(
+        target, owned_helper, is_child=is_child, root_owner=root_owner
+    )
+
+
+def test_native_windows_hit_target_rejects_unrelated_foreground_window():
+    assert not win32_hit_belongs_to_target(
+        100,
+        200,
+        is_child=lambda _parent, _candidate: False,
+        root_owner=lambda candidate: candidate,
+    )
     with pytest.raises(ValueError, match="positive"):
         retry_until_native_hit_target(lambda: None, lambda: None, lambda: True, attempts=0)
 

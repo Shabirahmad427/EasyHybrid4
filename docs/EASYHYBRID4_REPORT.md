@@ -2,8 +2,9 @@
 
 **Report date:** 2026-10-22
 
-**Current roadmap pointer:** EH4-203. EH4-202 is complete for all configured
-native software-renderer cells after matrix `39717469974` passed 30/30.
+**Current roadmap pointer:** EH4-203. EH4-202 passed all configured native
+software-renderer cells in matrix `39717469974` (30/30), but a later Windows
+pointer-hit regression reopened acceptance pending a focused native recheck.
 
 **Latest native full-matrix status (2026-10-22): PASS, 30/30 cells.** Run
 [`39717469974`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39717469974)
@@ -17,11 +18,16 @@ Each cell also passed five production menu/VisMol scene cycles and its
 regression/render checks. The earlier macOS GTK 4.24 poll-delay failures are
 resolved by scheduling close after the pick render and retaining the
 readback-verified watchdog fallback. The Windows pointer error showing cursor
-`(613,444)` and target client point `(613,345)` did not recur: the coordinate
-is consistent with the window's 99-pixel screen origin, and the prior failure
-was a separate hit-tested HWND. Keep the current strict target hit test and
-minimize only the positively identified HostedComputeAgent console blocker;
-do not hide arbitrary windows. See the matrix evidence entry in
+`(613,444)` and target client point `(613,345)` later recurred in a
+user-provided failure excerpt. Its point is consistent with the window's
+99-pixel screen origin, but hit HWND `328186` differs from EasyHybrid HWND
+`393616`; the excerpt does not identify the hit HWND's title, class, or owner.
+The helper now accepts only the target HWND, a child, or a window whose Win32
+`GA_ROOTOWNER` is the target. This rejects unrelated foreground windows while
+allowing an owned GTK helper window. Local regression tests pass; native
+Windows confirmation is pending, so EH4-202 is unchecked again. The helper
+minimizes only the positively identified HostedComputeAgent console blocker.
+See the matrix evidence entry in
 [`ROADMAP.md`](ROADMAP.md) and detailed versions in
 [`GTK4_COMPATIBILITY.md`](GTK4_COMPATIBILITY.md).
 

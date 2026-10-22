@@ -88,6 +88,27 @@ def minimize_hosted_runner_console_blocker(
     return bool(minimize(hit_window))
 
 
+def win32_hit_belongs_to_target(
+    target_window: int,
+    hit_window: int,
+    *,
+    is_child: Callable[[int, int], bool],
+    root_owner: Callable[[int], int],
+) -> bool:
+    """Check whether hit-testing landed in the GTK window's HWND tree.
+
+    GTK may use an owned helper HWND for native input, so WindowFromPoint can
+    return a different top-level HWND even when it belongs to this GtkWindow.
+    The full-app smoke separately verifies that the injected click reached
+    GTK's production picking callback.
+    """
+    if hit_window == target_window:
+        return True
+    return bool(is_child(target_window, hit_window)) or (
+        root_owner(hit_window) == target_window
+    )
+
+
 def appkit_to_quartz_point(
     x: float,
     y: float,
@@ -141,6 +162,8 @@ def _click_windows(window, x: float, y: float) -> str:
     user32.WindowFromPoint.restype = wintypes.HWND
     user32.IsChild.argtypes = [wintypes.HWND, wintypes.HWND]
     user32.IsChild.restype = wintypes.BOOL
+    user32.GetAncestor.argtypes = [wintypes.HWND, wintypes.UINT]
+    user32.GetAncestor.restype = wintypes.HWND
     user32.GetCursorPos.argtypes = [ctypes.POINTER(Point)]
     user32.GetCursorPos.restype = wintypes.BOOL
     user32.SetCursorPos.argtypes = [ctypes.c_int, ctypes.c_int]
@@ -272,7 +295,13 @@ def _click_windows(window, x: float, y: float) -> str:
         })
         if console_minimized:
             return False
-        return hit_window == hwnd or user32.IsChild(hwnd, hit_window)
+        return win32_hit_belongs_to_target(
+            hwnd,
+            hit_window,
+            is_child=user32.IsChild,
+            # GA_ROOTOWNER (3) handles owned top-level GTK helper windows.
+            root_owner=lambda candidate: user32.GetAncestor(candidate, 3),
+        )
 
     confirmed_attempt = retry_until_native_hit_target(
         prepare_target, move_pointer, target_is_under_pointer
@@ -289,7 +318,7 @@ def _click_windows(window, x: float, y: float) -> str:
         raise RuntimeError(
             "Win32 pointer is not over EasyHybrid: hwnd=%s hit=%s "
             "cursor=(%s,%s) screen=(%s,%s) window_rect=%r client_rect=%r "
-            "hit_rect=%r foreground=%s client=%r scale=%s target=%r "
+            "hit_rect=%r foreground=%r client=%r scale=%s target=%r "
             "attempts=%r"
             % (
                 hwnd, hit_window, cursor.x, cursor.y, point.x, point.y,
@@ -298,7 +327,8 @@ def _click_windows(window, x: float, y: float) -> str:
                 (client_rect.left, client_rect.top,
                  client_rect.right, client_rect.bottom),
                 (hit_rect.left, hit_rect.top, hit_rect.right, hit_rect.bottom),
-                foreground, client_point, scale, describe_window(hwnd), hit_attempts,
+                describe_window(foreground), client_point, scale,
+                describe_window(hwnd), hit_attempts,
             )
         )
     print(
