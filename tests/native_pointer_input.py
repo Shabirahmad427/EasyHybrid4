@@ -109,6 +109,16 @@ def _click_windows(window, x: float, y: float) -> str:
     user32.GetWindowRect.argtypes = [wintypes.HWND, ctypes.POINTER(Rect)]
     user32.GetWindowRect.restype = wintypes.BOOL
     user32.GetForegroundWindow.restype = wintypes.HWND
+    user32.GetWindowTextLengthW.argtypes = [wintypes.HWND]
+    user32.GetWindowTextLengthW.restype = ctypes.c_int
+    user32.GetWindowTextW.argtypes = [wintypes.HWND, wintypes.LPWSTR, ctypes.c_int]
+    user32.GetWindowTextW.restype = ctypes.c_int
+    user32.GetClassNameW.argtypes = [wintypes.HWND, wintypes.LPWSTR, ctypes.c_int]
+    user32.GetClassNameW.restype = ctypes.c_int
+    user32.GetWindowThreadProcessId.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
+    user32.GetWindowThreadProcessId.restype = wintypes.DWORD
+    user32.IsWindow.argtypes = [wintypes.HWND]
+    user32.IsWindow.restype = wintypes.BOOL
     user32.WindowFromPoint.argtypes = [Point]
     user32.WindowFromPoint.restype = wintypes.HWND
     user32.IsChild.argtypes = [wintypes.HWND, wintypes.HWND]
@@ -166,14 +176,44 @@ def _click_windows(window, x: float, y: float) -> str:
         )
     hit_attempts = []
 
+    def describe_window(candidate):
+        """Return native identity for a window obscuring the click target."""
+        title_length = user32.GetWindowTextLengthW(candidate)
+        title_buffer = ctypes.create_unicode_buffer(max(title_length + 1, 2))
+        user32.GetWindowTextW(candidate, title_buffer, len(title_buffer))
+        class_buffer = ctypes.create_unicode_buffer(256)
+        user32.GetClassNameW(candidate, class_buffer, len(class_buffer))
+        process_id = wintypes.DWORD()
+        thread_id = user32.GetWindowThreadProcessId(candidate, ctypes.byref(process_id))
+        rect = Rect()
+        user32.GetWindowRect(candidate, ctypes.byref(rect))
+        return {
+            "hwnd": candidate,
+            "is_window": bool(user32.IsWindow(candidate)),
+            "title": title_buffer.value,
+            "class": class_buffer.value,
+            "pid": process_id.value,
+            "tid": thread_id,
+            "rect": (rect.left, rect.top, rect.right, rect.bottom),
+        }
+
     def prepare_target():
         # Activation is best-effort on hosted runners. Restack after the
         # attempt because activation of another foreground window can change
         # z-order between app cycles.
-        user32.SetForegroundWindow(hwnd)
-        user32.BringWindowToTop(hwnd)
-        if not user32.SetWindowPos(hwnd, topmost, 0, 0, 0, 0, z_order_flags):
+        foreground_activated = bool(user32.SetForegroundWindow(hwnd))
+        brought_to_top = bool(user32.BringWindowToTop(hwnd))
+        positioned_topmost = bool(
+            user32.SetWindowPos(hwnd, topmost, 0, 0, 0, 0, z_order_flags)
+        )
+        if not positioned_topmost:
             raise ctypes.WinError(ctypes.get_last_error())
+        hit_attempts.append({
+            "target": describe_window(hwnd),
+            "foreground_activation_result": foreground_activated,
+            "bring_to_top_result": brought_to_top,
+            "set_topmost_result": positioned_topmost,
+        })
 
     def move_pointer():
         if not user32.SetCursorPos(point.x, point.y):
@@ -186,7 +226,11 @@ def _click_windows(window, x: float, y: float) -> str:
             raise ctypes.WinError(ctypes.get_last_error())
         hit_window = user32.WindowFromPoint(cursor)
         foreground = user32.GetForegroundWindow()
-        hit_attempts.append((cursor.x, cursor.y, hit_window, foreground))
+        hit_attempts.append({
+            "cursor": (cursor.x, cursor.y),
+            "hit": describe_window(hit_window),
+            "foreground": describe_window(foreground),
+        })
         return hit_window == hwnd or user32.IsChild(hwnd, hit_window)
 
     confirmed_attempt = retry_until_native_hit_target(
@@ -203,7 +247,8 @@ def _click_windows(window, x: float, y: float) -> str:
         raise RuntimeError(
             "Win32 pointer is not over EasyHybrid: hwnd=%s hit=%s "
             "cursor=(%s,%s) screen=(%s,%s) window_rect=%r client_rect=%r "
-            "hit_rect=%r foreground=%s client=%r scale=%s attempts=%r"
+            "hit_rect=%r foreground=%s client=%r scale=%s target=%r "
+            "attempts=%r"
             % (
                 hwnd, hit_window, cursor.x, cursor.y, point.x, point.y,
                 (window_rect.left, window_rect.top,
@@ -211,7 +256,7 @@ def _click_windows(window, x: float, y: float) -> str:
                 (client_rect.left, client_rect.top,
                  client_rect.right, client_rect.bottom),
                 (hit_rect.left, hit_rect.top, hit_rect.right, hit_rect.bottom),
-                foreground, client_point, scale, hit_attempts,
+                foreground, client_point, scale, describe_window(hwnd), hit_attempts,
             )
         )
     print(

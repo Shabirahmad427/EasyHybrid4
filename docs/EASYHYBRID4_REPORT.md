@@ -8,11 +8,18 @@ revealed a failure on Windows Server 2022 x86_64, Python 3.12.15, PyGObject
 3.58.1, GTK 4.20.3, GLib 2.90.1 and Mesa 26.2.4 llvmpipe WGL. The first
 full-app process completed its native Win32 click/pick/close. A later process
 found the previous HWND foreground and under the correct screen point, so the
-helper withheld the click. The helper now activates first, raises its window,
-then retries pointer placement and `WindowFromPoint` verification up to five
-times before allowing injection. Local helper/workflow/full-app regressions
-pass (**20 passed, 1 skipped**); `py_compile` and `git diff --check` pass.
-Native confirmation of this correction is pending; EH4-202 remains open.
+helper withheld the click. Initial correction `553adf3` activated first,
+raised the window, and retried pointer placement and `WindowFromPoint`
+verification up to five times. Focused native retry
+[`39709863741`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39709863741)
+still failed: all attempts hit covering HWND `131548` while target HWND was
+`786592`; no click was sent. Local helper/workflow/full-app regressions pass
+(**20 passed, 1 skipped**); `py_compile` and `git diff --check` pass. The
+retry alone did not resolve the issue. Next inspect the hit window title/class
+and process, and log activation/z-order API results before another behavior
+change. The diagnostic code now captures target/hit HWND title, class, PID,
+thread, bounds and native activation/restack return values. Local tests pass;
+that added diagnostic has not yet run on Windows. EH4-202 remains open.
 
 **Latest native Windows pointer result (2026-10-22):** focused run
 [`39706994456`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39706994456)

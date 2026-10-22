@@ -66,6 +66,9 @@ def test_full_app_matrix_injects_native_pointer_on_all_desktop_oses():
     assert 'topmost = ctypes.c_void_p(-1)  # HWND_TOPMOST' in pointer
     assert 'user32.SetWindowPos(hwnd, not_topmost' in pointer
     assert 'confirmed_attempt = retry_until_native_hit_target(' in pointer
+    assert '"foreground_activation_result": foreground_activated' in pointer
+    assert '"hit": describe_window(hit_window)' in pointer
+    assert '"class": class_buffer.value' in pointer
     assert pointer.index('user32.SetForegroundWindow(hwnd)', pointer.index('def prepare_target')) < pointer.index(
         'user32.SetWindowPos(hwnd, topmost', pointer.index('def prepare_target')
     )
