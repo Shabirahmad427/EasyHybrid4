@@ -65,6 +65,26 @@ tree; only GTK 4.14.5 is the user's shared EasyHybrid launcher environment.
 This evidence is Linux-only, and every other GTK/OS combination remains
 unverified for native pointer injection.
 
+**EH4-202 cross-platform native-pointer matrix diagnosis (2026-10-21):** the
+first all-scope run [`39703837396`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39703837396)
+passed GTK window/GLArea smoke, widget tests and pDynamo3 build/import before
+the full-app pointer step failed in Windows GTK 4.8.2/4.10.1 and macOS arm64
+GTK 4.10.5 with `NameError: Graphene is not defined`. The test harness imported
+`Graphene` only in its Linux-specific `GdkX11` import branch, while Windows and
+macOS use it to map the projected GLArea coordinate into the top-level window
+before Win32/Quartz event injection. Earlier Windows/macOS full-app passes
+used synthetic GTK callback coordinates and therefore did not cover this
+native-input branch. Moved the Graphene import into the shared import path and
+added a regression assertion. The first matrix was canceled after confirming
+the same shared failure and before spending runner time on the remaining
+cells. The regression assertion passes locally; corrected native Windows and
+macOS runs and the full all-platform/all-minor matrix are pending. EH4-202
+remains unchecked. The artifact runtimes were Windows GTK 4.8.2 (Python
+3.12.15, PyGObject 3.46.0, GLib 2.78.0), Windows GTK 4.10.1 (Python 3.12.15,
+PyGObject 3.48.1, GLib 2.78.0), and macOS GTK 4.10.5 (Python 3.12.15,
+PyGObject 3.58.1, GLib 2.90.0); renderers were Mesa 26.2.4 llvmpipe WGL and
+Apple Software Renderer OpenGL 4.1.
+
 **Current native matrix (2026-10-20):** run
 [`39485989866`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39485989866)
 completed successfully at main commit `e096a024bb2ccc0755b5ba632f1d5aa5a74a3b13`.

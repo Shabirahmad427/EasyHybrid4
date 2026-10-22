@@ -32,8 +32,8 @@ _FULL_APP_CYCLE = textwrap.dedent(
     gi.require_version("Graphene", "1.0")
     if sys.platform.startswith("linux"):
         gi.require_version("GdkX11", "4.0")
-        from gi.repository import GdkX11, Graphene
-    from gi.repository import Gdk, GLib, Gtk
+        from gi.repository import GdkX11
+    from gi.repository import Gdk, GLib, Graphene, Gtk
 
     import easyhybrid
     from pCore import logFile
@@ -468,6 +468,12 @@ def _write_water_pdb(path):
         )
     lines.extend(("CONECT    1    2    3", "MASTER        0    0    0    0    0    0    0    3    0    1    0", "END"))
     path.write_text("\n".join(lines) + "\n", encoding="ascii")
+
+
+def test_full_app_pointer_script_imports_graphene_on_every_platform():
+    """Native Windows/macOS mapping uses Graphene.Point too."""
+    assert "from gi.repository import Gdk, GLib, Graphene, Gtk" in _FULL_APP_CYCLE
+    assert "from gi.repository import GdkX11, Graphene" not in _FULL_APP_CYCLE
 
 
 @pytest.mark.skipif(
