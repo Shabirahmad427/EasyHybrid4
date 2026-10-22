@@ -42,24 +42,28 @@ been run natively here; all other GTK/platform cells, Wayland, and physical
 hardware remain **NOT TESTED**. EH4-202 remains unchecked pending its required
 matrix and native Windows/macOS pointer validation.
 
-The same Linux XTest full-app check now also passes locally at GTK 4.24.1:
-Linux x86_64 under Xvfb/X11, Python 3.12.15, PyGObject 3.58.1, GLib 2.90.0,
-and pDynamo3 from `/home/shabir/software/pDynamo3-py312`. One production
-`EasyHybridApplication`/`MainWindow` cycle loaded the generated water PDB,
-received a real XTest click, picked `O:0`, rendered with Mesa 25.2.8 llvmpipe
-(OpenGL 4.5 Core), and closed cleanly. The GTK runtime required
+The same Linux XTest full-app check also passes locally at GTK 4.8.2 and
+4.24.1. These are isolated conda-forge GTK runtimes, not the shared launcher
+environment; both ran Python 3.12.15, PyGObject 3.58.1 and GLib 2.90.0, with
+pDynamo3 loaded from `/home/shabir/software/pDynamo3-py312`. GTK 4.8.2 passed
+five fresh production `EasyHybridApplication`/`MainWindow` cycles. GTK 4.24.1
+passed one cycle. Each loaded the generated water PDB, received a real XTest
+click, picked `O:0`, rendered with Mesa 25.2.8 llvmpipe (OpenGL 4.5 Core), and
+closed cleanly. GTK 4.24.1 required
 `GDK_DEBUG=gl-prefer-gl` with `PYOPENGL_PLATFORM=egl`: its older `gl-glx` hint
 is unrecognized by GTK 4.24, and leaving PyOpenGL on GLX caused a context
 lookup failure before the pointer test. This is local Linux evidence only;
 other Linux GTK minors and all native Windows/macOS injection combinations
 remain **NOT TESTED**.
 
-For a consistent pDynamo3 setup, GTK 4.14.5 was also rerun against that same
-Python 3.12 pDynamo3 source tree: **5/5** fresh app launches loaded the water
-fixture, picked `O:0` using XTest, rendered, and closed cleanly (Python 3.12.3,
-PyGObject 3.48.2, GLib 2.80.0). The GTK 4.24.1 run remains one cycle. These
-results cover two local Linux GTK runtimes only; all other GTK/OS combinations
-remain unverified for native pointer injection.
+The shared launcher (`activate_easyhybrid4.sh` → `pdynamo3.sh`) uses Python
+3.12.3, pDynamo3 from `/home/shabir/software/pDynamo3-py312`, and system GTK
+4.14.5 / PyGObject 3.48.2 / GLib 2.80.0. On that actual shared runtime, **5/5**
+fresh app launches loaded the water fixture, picked `O:0` using XTest, rendered,
+and closed cleanly. All three tested GTK runtimes used the same pDynamo3 source
+tree; only GTK 4.14.5 is the user's shared EasyHybrid launcher environment.
+This evidence is Linux-only, and every other GTK/OS combination remains
+unverified for native pointer injection.
 
 **Current native matrix (2026-10-20):** run
 [`39485989866`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39485989866)
