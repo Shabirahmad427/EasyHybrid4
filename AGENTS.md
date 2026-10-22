@@ -16,4 +16,22 @@ Before **every** coding session, read `docs/ROADMAP.md` in full. Treat it as the
 
 **Windows pDynamo3 build trap (2026-10-20):** pinned pDynamo3 `6b28dd8958e1a705fcdca130f4ab862a8af8de82` uses an empty zero-length `SNEGATIVE[0]` C array. MSVC rejects it with C2466 during the full-app CI build, after GTK/GL scene checks pass. The Windows-only `.github/scripts/patch_pdynamo3_windows.py` represents the table with a single zero sentinel in both declaration and definition. `NNEGATIVE[iam][0]` is always zero and the only access is in a loop bounded by that count, so the sentinel is never read and scientific term counts remain unchanged. Validate the patched build on the Windows runner; do not mark full-app acceptance from GTK smoke alone.
 
-**Full-interface test boundary (updated 2026-10-20):** `test_easyhybrid_menu_vismol_components_open_and_close_cleanly` builds a standalone GTK host around production EasyHybrid menu and VisMol components; its CI results are component evidence only. The separate opt-in `tests/test_easyhybrid_full_app_smoke.py` launches `EasyHybridApplication`, production `MainWindow`, and real pDynamo3 PDB load/render/pick/close. It passed five cycles on native Linux X11 (GTK 4.14.5/NVIDIA), Windows (GTK 4.8.2 and 4.10.1/Mesa WGL; run `39450153293`), and macOS arm64 (GTK 4.24.1/Apple Software Renderer; run `39476612300`). All use synthetic GTK callback coordinates, not native OS pointer injection. Full-app coverage across every GTK minor/platform is not established; do not infer it from the component matrix or these selected full-app cells.
+**Windows native full-app pointer calibration (verified 2026-10-22):** in the
+Win32 input test, `ClientToScreen` coordinates can be displaced from the
+logical coordinates received by the production GTK gesture because of window
+insets. Do not replace the learned offset with the residual from the most
+recent click: once a click is aligned, that residual is near zero and resetting
+the offset makes retries alternate between the missed base point and corrected
+point. Keep a cumulative per-app-cycle offset, and derive each attempt from the
+mapped GTK point plus that offset. Restore the test window before coordinate
+conversion, temporarily raise it topmost during injection when an overlay
+intercepts clicks, and require `WindowFromPoint` to identify the target HWND or
+one of its child windows. Foreground activation is best-effort because hosted
+Windows runners can refuse `SetForegroundWindow`; actual GTK pick success is
+the acceptance check. Focused native run
+[`39706994456`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39706994456)
+passed five real-app pointer-pick/render/close cycles at Windows GTK 4.8.2 and
+4.10.1. Keep a regression test for cumulative offset and inspect press/release
+coordinates plus the final picked atom if this failure returns.
+
+**Full-interface test boundary (updated 2026-10-22):** `test_easyhybrid_menu_vismol_components_open_and_close_cleanly` builds a standalone GTK host around production EasyHybrid menu and VisMol components; its CI results are component evidence only. The separate opt-in `tests/test_easyhybrid_full_app_smoke.py` launches `EasyHybridApplication`, production `MainWindow`, and real pDynamo3 PDB load/render/pick/close. Native Linux X11/XTest full-app cycles pass locally, and focused run `39706994456` passes five real Win32 pointer-pick cycles on each Windows GTK 4.8.2 and 4.10.1. The macOS arm64 GTK 4.24.1 run `39476612300` used synthetic GTK callback coordinates, not Quartz pointer injection. Full-app coverage across every GTK minor/platform is not established; do not infer it from the component matrix or these selected full-app cells.

@@ -2,6 +2,22 @@
 
 **Report date:** 2026-10-21
 
+**Latest native Windows pointer result (2026-10-22):** focused run
+[`39706994456`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39706994456)
+passed Windows x86_64 GTK 4.8.2 and 4.10.1. In each cell the real
+`EasyHybridApplication`/`MainWindow` loaded the generated water fixture,
+received OS-injected Win32 clicks through the production GTK pick path, picked
+oxygen, rendered, and closed through five fresh-app cycles. The production
+menu/VisMol scene also passed five open/pick/render/close cycles and render
+validation succeeded. The failure was test coordinate calibration: the first
+Win32 point differed from GTK's received logical point by about `(14.3, 11.8)`;
+each retry then reset its learned offset to the latest, nearly-zero residual.
+The test now accumulates the measured offset for the app cycle. The same
+commit's local helper/workflow/full-app checks passed (**18 passed, 1 skipped**)
+and `py_compile`/`git diff --check` passed. This is focused Windows evidence;
+EH4-202 still needs the full all-platform/all-GTK matrix and native macOS
+pointer validation before completion.
+
 **Purpose:** One consolidated source for repository, architecture, dependency,
 GTK/Python compatibility, parity, platform, testing, and known-limitation
 status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).
@@ -143,9 +159,15 @@ events, but its GTK 4.8.2 pick trace alternated between the uncorrected
 attempt from the original GTK point and replacing the learned offset with the
 latest residual; a nearly zero residual therefore erased the Windows inset
 correction. It now accumulates corrections across attempts in the same app
-cycle, with a local regression for retaining the learned offset. GTK 4.8 still
-failed in that run; the cumulative correction is awaiting focused Windows
-verification.
+cycle, with a local regression for retaining the learned offset. The initial
+GTK 4.8 pick failed in that run. Focused run
+[`39706994456`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39706994456)
+then passed both Windows cells: GTK 4.8.2 and 4.10.1 each completed five
+full-app cycles with successful native pointer pick, render and clean close,
+five production scene cycles, and render validation. The native issue is
+resolved for these two Windows GTK runtimes; all other native platform/minor
+combinations still require the full matrix. See the permanent Win32 notes in
+[`AGENTS.md`](../AGENTS.md).
 
 **Current native matrix (2026-10-20):** run
 [`39485989866`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39485989866)
