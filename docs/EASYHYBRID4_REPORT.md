@@ -54,6 +54,13 @@ lookup failure before the pointer test. This is local Linux evidence only;
 other Linux GTK minors and all native Windows/macOS injection combinations
 remain **NOT TESTED**.
 
+For a consistent pDynamo3 setup, GTK 4.14.5 was also rerun against that same
+Python 3.12 pDynamo3 source tree: **5/5** fresh app launches loaded the water
+fixture, picked `O:0` using XTest, rendered, and closed cleanly (Python 3.12.3,
+PyGObject 3.48.2, GLib 2.80.0). The GTK 4.24.1 run remains one cycle. These
+results cover two local Linux GTK runtimes only; all other GTK/OS combinations
+remain unverified for native pointer injection.
+
 **Current native matrix (2026-10-20):** run
 [`39485989866`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39485989866)
 completed successfully at main commit `e096a024bb2ccc0755b5ba632f1d5aa5a74a3b13`.
