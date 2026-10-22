@@ -95,14 +95,17 @@ passed all **30/30** configured native platform/GTK cells on branch
 clean-close cycles, plus five production menu/VisMol cycles. All nine Windows
 GTK 4.8–4.24 cells passed Win32 input; all nine macOS arm64 cells passed
 Quartz HID; Linux cells passed XTest. The earlier Windows error with cursor
-`(613,444)` and client coordinate `(613,345)` is consistent with the target's
-99-pixel client-to-screen origin, but `WindowFromPoint` returned a different
-HWND. It did not recur in the full matrix. Keep rejecting clicks unless the
-hit-tested HWND is the target or its child, and only minimize the exact
-HostedComputeAgent console after confirming it is the blocker. If this happens
-again, inspect the complete appended hit window title/class/PID/rectangle and
-attempt trace before changing z-order or blocker handling; an abbreviated
-message ending at `scale=1` is insufficient to identify the HWND. Exact GTK
+`(613,444)` and client coordinate `(613,345)` had window rect `(0,99,1052,728)`
+and client rect `(0,0,1052,629)`: the point was inside the EasyHybrid client
+area after its 99-pixel screen offset. `WindowFromPoint` and the foreground
+window both identified a different HWND, so this was an overlay/z-order
+failure, not a coordinate conversion error. It did not recur in the full
+matrix. Keep rejecting clicks unless the hit-tested HWND is the target or its
+child, and only minimize the exact HostedComputeAgent console after confirming
+it is the blocker. If this happens again, inspect the complete appended hit
+window title/class/PID/rectangle and attempt trace before changing z-order or
+blocker handling; an abbreviated message ending at `scale=1` is insufficient
+to identify the HWND. Exact GTK
 patch versions and OS runtime details are tabulated in
 `docs/GTK4_COMPATIBILITY.md`; full per-cell runtime evidence is in the run
 artifacts. EH4-202's configured native-context acceptance is complete. Linux
