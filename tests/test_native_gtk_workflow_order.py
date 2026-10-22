@@ -36,6 +36,16 @@ def test_failed_linux_gtk48_cell_can_be_dispatched_alone():
     assert workflow.count("inputs.scope != 'linux-gtk48'") == 3
 
 
+def test_failed_windows_gtk420_cell_can_be_dispatched_alone():
+    workflow = (ROOT / ".github" / "workflows" / "native-gtk-matrix.yml").read_text()
+
+    assert "- windows-gtk420" in workflow
+    assert "inputs.scope == 'windows-gtk420') && '[\"windows-x86_64\"]'" in workflow
+    assert "inputs.scope == 'windows-gtk420' && '[\"4.20\"]'" in workflow
+    assert workflow.count("inputs.scope == 'windows-gtk420'") == 3
+    assert workflow.count("inputs.scope != 'windows-gtk420'") == 3
+
+
 def test_full_app_timeout_reports_gtk_scene_progress():
     smoke = (ROOT / "tests" / "test_easyhybrid_full_app_smoke.py").read_text()
 
@@ -46,3 +56,31 @@ def test_full_app_timeout_reports_gtk_scene_progress():
     assert 'state["pick_dimensions"] = (' in smoke
     assert 'pick_attempts=%s' in smoke
     assert 'state["pick_attempts"] = state.get("pick_attempts", 0) + 1' in smoke
+
+
+def test_full_app_matrix_injects_native_pointer_on_all_desktop_oses():
+    workflow = (ROOT / ".github" / "workflows" / "native-gtk-matrix.yml").read_text()
+    smoke = (ROOT / "tests" / "test_easyhybrid_full_app_smoke.py").read_text()
+    pointer = (ROOT / "tests" / "native_pointer_input.py").read_text()
+
+    assert workflow.count('EASYHYBRID_FULL_APP_NATIVE_POINTER: "1"') == 4
+    assert workflow.count("pyobjc-framework-Cocoa pyobjc-framework-Quartz") == 2
+    assert '"linux": "linux-x11-xtest"' in smoke
+    assert '"win32": "windows-win32-user32"' in smoke
+    assert '"darwin": "macos-quartz-hid"' in smoke
+    assert 'return _click_linux_x11(window, x, y)' in pointer
+    assert 'return _click_windows(window, x, y)' in pointer
+    assert 'return _click_macos(window, x, y)' in pointer
+    assert 'if foreground != hwnd' not in pointer
+    assert 'win32_hit_belongs_to_target(' in pointer
+    assert 'root_owner=lambda candidate: user32.GetAncestor(candidate, 3)' in pointer
+    assert 'topmost = ctypes.c_void_p(-1)  # HWND_TOPMOST' in pointer
+    assert 'user32.SetWindowPos(hwnd, not_topmost' in pointer
+    assert 'confirmed_attempt = retry_until_native_hit_target(' in pointer
+    assert '"hit": hit_description' in pointer
+    assert '"class": class_buffer.value' in pointer
+    assert 'minimize_hosted_runner_console_blocker(' in pointer
+    assert '"hosted_runner_console_minimized": console_minimized' in pointer
+    assert pointer.index('user32.SetForegroundWindow(hwnd)', pointer.index('def prepare_target')) < pointer.index(
+        'user32.SetWindowPos(hwnd, topmost', pointer.index('def prepare_target')
+    )

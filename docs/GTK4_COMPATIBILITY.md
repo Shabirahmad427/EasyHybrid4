@@ -16,6 +16,34 @@
   successful unit test on Linux does not establish a native OS or runtime
   result. See the matrix below and `ROADMAP.md` EH4-501/502.
 
+## Latest full native matrix (2026-10-22)
+
+Run [`39717469974`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39717469974)
+passed **30/30** configured native cells on branch
+`eh4-202-cross-platform-pointer-injection`. Every cell passed five native
+full-app OS-pointer pick/render/close cycles and five production menu/VisMol
+cycles. The artifacts were reviewed for actual OS/architecture, Python,
+PyGObject, GTK patch, GLib and GL backend; each artifact is downloadable from
+the linked run under the platform-specific `gtk-*-results` name.
+
+| GTK minor | Linux x86_64 runtime(s) | Windows x86_64 | macOS arm64 | macOS x86_64 |
+|---|---|---|---|---|
+| 4.8 | 4.8.2 | 4.8.2 | 4.8.3 | 4.8.2 |
+| 4.10 | 4.10.1 | 4.10.1 | 4.10.5 | 4.10.1 |
+| 4.12 | 4.12.1 | 4.12.1 | 4.12.1 | Not provisioned |
+| 4.14 | 4.14.1 | 4.14.1 | 4.14.1 | Not provisioned |
+| 4.16 | 4.16.3 (Ubuntu 24.10), 4.16.13 (Fedora 41) | 4.16.13 | 4.16.13 | Not provisioned |
+| 4.18 | 4.18.6 (Debian 13) | 4.18.6 | 4.18.6 | Not provisioned |
+| 4.20 | 4.20.3 | 4.20.3 | 4.20.3 | Not provisioned |
+| 4.22 | 4.22.5 | 4.22.5 | 4.22.5 | Not provisioned |
+| 4.24 | 4.24.1 | 4.24.1 | 4.24.1 | Not provisioned |
+
+The tested Linux backend was Mesa llvmpipe under X11/Xvfb, Windows used Mesa
+llvmpipe/WGL, and macOS used Apple Software Renderer/OpenGL. The full-app
+test injected XTest, Win32 or Quartz HID pointer events by OS. Physical GPUs,
+Linux Wayland, physical Retina scaling and real trackpad behavior remain
+**NOT TESTED**.
+
 ## Capability handling
 
 `src/gtk4_compat.py` is the shared location for runtime API checks and

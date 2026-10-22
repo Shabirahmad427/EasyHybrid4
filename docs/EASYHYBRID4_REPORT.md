@@ -1,6 +1,103 @@
 # EasyHybrid4 Development and Compatibility Report
 
-**Report date:** 2026-10-20
+**Report date:** 2026-10-22
+
+**Current roadmap pointer:** EH4-203. EH4-202 passed all configured native
+software-renderer cells in matrix `39717469974` (30/30), but a later Windows
+pointer-hit regression reopened acceptance pending a focused native recheck.
+
+**Latest native full-matrix status (2026-10-22): PASS, 30/30 cells.** Run
+[`39717469974`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39717469974)
+passed the complete Linux x86_64, Windows x86_64 and macOS arm64 GTK 4.8–4.24
+matrix, plus Intel macOS GTK 4.8/4.10. Runtime artifacts confirm exact GTK,
+GLib, Python, PyGObject, OS/architecture and renderer versions. Each cell
+passed five full `EasyHybridApplication`/`MainWindow` cycles with real
+pDynamo3 fixture loading, native OS pointer input (Linux XTest, Windows
+Win32, macOS Quartz), oxygen `O:0` picked, a completed render and clean close.
+Each cell also passed five production menu/VisMol scene cycles and its
+regression/render checks. The earlier macOS GTK 4.24 poll-delay failures are
+resolved by scheduling close after the pick render and retaining the
+readback-verified watchdog fallback. The Windows pointer error showing cursor
+`(613,444)` and target client point `(613,345)` later recurred in a
+user-provided failure excerpt. Its point is consistent with the window's
+99-pixel screen origin, but hit HWND `328186` differs from EasyHybrid HWND
+`393616`; the excerpt does not identify the hit HWND's title, class, or owner.
+The helper now accepts only the target HWND, a child, or a window whose Win32
+`GA_ROOTOWNER` is the target. This rejects unrelated foreground windows while
+allowing an owned GTK helper window. Local regression tests pass; native
+Windows confirmation is pending, so EH4-202 is unchecked again. The helper
+minimizes only the positively identified HostedComputeAgent console blocker.
+See the matrix evidence entry in
+[`ROADMAP.md`](ROADMAP.md) and detailed versions in
+[`GTK4_COMPATIBILITY.md`](GTK4_COMPATIBILITY.md).
+
+The matrix is hosted software-renderer evidence. Physical GPU behavior, Linux
+Wayland, Retina/HiDPI on physical displays and real trackpad behavior remain
+**NOT TESTED**. EH4-202 configured-context acceptance is complete; these
+hardware/backend limitations remain assigned to EH4-203 and EH4-302.
+
+**Windows GTK 4.20 repeated-launch pointer failure (2026-10-22):** full
+matrix run [`39708415015`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39708415015)
+revealed a failure on Windows Server 2022 x86_64, Python 3.12.15, PyGObject
+3.58.1, GTK 4.20.3, GLib 2.90.1 and Mesa 26.2.4 llvmpipe WGL. The first
+full-app process completed its native Win32 click/pick/close. A later process
+found the previous HWND foreground and under the correct screen point, so the
+helper withheld the click. Initial correction `553adf3` activated first,
+raised the window, and retried pointer placement and `WindowFromPoint`
+verification up to five times. Follow-up native diagnostics identified the
+cover as GitHub HostedComputeAgent's console (`ConsoleWindowClass`, PID 4920);
+`SetForegroundWindow` returned false while the target's raise/topmost calls
+returned true. The focused run
+[`39711834067`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39711834067)
+failed safely without sending a click through the console. The helper now
+temporarily attaches the GTK thread's input queue to the foreground console's
+queue while activating and raising the target. Run
+[`39712180632`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39712180632)
+showed Windows refuses that attachment (`false`) too. The next focused run
+[`39712548364`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39712548364)
+showed `GetConsoleWindow` is null because the console belongs to HostedComputeAgent,
+not the child Python process. The helper now recognizes the exact hosted
+console title and minimizes it only when it is the actual hit-tested blocker,
+then restores it after the click. Focused Windows GTK 4.20.3 run
+[`39712852467`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39712852467)
+passed five fresh app cycles; each native click picked `O:0`, rendered and
+closed. The widget suite passed 65 tests and skipped 3; five production scene
+cycles and render validation also passed. Local helper/workflow/full-app
+regressions pass (**22 passed, 1 skipped**); `py_compile` and `git diff --check`
+pass. The follow-up matrix `39717469974` subsequently passed all configured
+Windows GTK cells, five native app cycles each; this historical issue is
+resolved in the current matrix.
+
+**Latest native Windows pointer result (2026-10-22):** focused run
+[`39706994456`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39706994456)
+passed Windows x86_64 GTK 4.8.2 and 4.10.1. In each cell the real
+`EasyHybridApplication`/`MainWindow` loaded the generated water fixture,
+received OS-injected Win32 clicks through the production GTK pick path, picked
+oxygen, rendered, and closed through five fresh-app cycles. The production
+menu/VisMol scene also passed five open/pick/render/close cycles and render
+validation succeeded. The failure was test coordinate calibration: the first
+Win32 point differed from GTK's received logical point by about `(14.3, 11.8)`;
+each retry then reset its learned offset to the latest, nearly-zero residual.
+The test now accumulates the measured offset for the app cycle. The same
+commit's local helper/workflow/full-app checks passed (**18 passed, 1 skipped**)
+and `py_compile`/`git diff --check` passed. This is focused Windows evidence;
+That focused run was followed by matrix run `39717469974`, which passed all
+configured Windows, macOS arm64 and Linux GTK cells with native pointer
+injection; see the current result at the top of this report.
+
+**Native macOS pointer result (2026-10-22):** focused run
+[`39707517301`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39707517301)
+passed on macOS 14.8.9 arm64 with Python 3.12.15, PyGObject 3.58.1, GTK
+4.24.1, GLib 2.90.0, and Apple Software Renderer/OpenGL 4.1. The production
+`EasyHybridApplication`/`MainWindow` loaded the generated water fixture and
+completed five fresh-app cycles using `macos-quartz-hid`; all five native
+pointer picks selected `O:0`, rendered, and closed cleanly. Production
+menu/VisMol passed another five pick/render/close cycles; the complete suite
+reported 114 passed and 6 skipped; render validation passed at both requested
+scales. The scale test reported `scale_applied=false` and widget scale factor
+1, so this does not establish Retina/HiDPI support. This focused result was
+superseded by matrix `39717469974`, which passed native pointer cycles in all
+configured macOS arm64 GTK minors and Intel macOS GTK 4.8/4.10.
 
 **Purpose:** One consolidated source for repository, architecture, dependency,
 GTK/Python compatibility, parity, platform, testing, and known-limitation
@@ -28,6 +125,130 @@ runtime or application renderer defect. Local Linux GTK 4.14.5/NVIDIA also
 passed five full-app cycles with the updated harness. Other platform/version
 cells were not rerun for this test-only correction; previous component-matrix
 evidence remains separate.
+
+**EH4-202 native pointer branch recheck (2026-10-21):** branch
+`eh4-202-cross-platform-pointer-injection` at `68a7dd3` passed the local
+pointer-helper, workflow-order, and real full-app smoke tests (**12 passed**)
+on Linux Mint 22.3 x86_64 with Python 3.12.3, PyGObject 3.48.2, GTK 4.14.5,
+GLib 2.80.0, X11/Xvfb, and Mesa 25.2.8 llvmpipe/OpenGL 4.5 Core. The real
+EasyHybridApplication loaded its generated water fixture, received an XTest
+pointer click, picked oxygen (`O:0`), rendered, and closed cleanly. The pDynamo3
+runtime was a disposable Python 3.12 build at `/tmp/eh4-401-pdynamo3`, not the
+user's installed pDynamo environment. Win32 and Quartz injection code has not
+been run natively here; all other GTK/platform cells, Wayland, and physical
+hardware remain **NOT TESTED**. EH4-202 remains unchecked pending its required
+matrix and native Windows/macOS pointer validation.
+
+The same Linux XTest full-app check also passes locally at GTK 4.8.2 and
+4.24.1. These are isolated conda-forge GTK runtimes, not the shared launcher
+environment; both ran Python 3.12.15, PyGObject 3.58.1 and GLib 2.90.0, with
+pDynamo3 loaded from `/home/shabir/software/pDynamo3-py312`. GTK 4.8.2 passed
+five fresh production `EasyHybridApplication`/`MainWindow` cycles. GTK 4.24.1
+passed one cycle. Each loaded the generated water PDB, received a real XTest
+click, picked `O:0`, rendered with Mesa 25.2.8 llvmpipe (OpenGL 4.5 Core), and
+closed cleanly. GTK 4.24.1 required
+`GDK_DEBUG=gl-prefer-gl` with `PYOPENGL_PLATFORM=egl`: its older `gl-glx` hint
+is unrecognized by GTK 4.24, and leaving PyOpenGL on GLX caused a context
+lookup failure before the pointer test. This is local Linux evidence only;
+other Linux GTK minors and all native Windows/macOS injection combinations
+remain **NOT TESTED**.
+
+The shared launcher (`activate_easyhybrid4.sh` → `pdynamo3.sh`) uses Python
+3.12.3, pDynamo3 from `/home/shabir/software/pDynamo3-py312`, and system GTK
+4.14.5 / PyGObject 3.48.2 / GLib 2.80.0. On that actual shared runtime, **5/5**
+fresh app launches loaded the water fixture, picked `O:0` using XTest, rendered,
+and closed cleanly. All three tested GTK runtimes used the same pDynamo3 source
+tree; only GTK 4.14.5 is the user's shared EasyHybrid launcher environment.
+This evidence is Linux-only, and every other GTK/OS combination remains
+unverified for native pointer injection.
+
+**EH4-202 cross-platform native-pointer matrix diagnosis (2026-10-21):** the
+first all-scope run [`39703837396`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39703837396)
+passed GTK window/GLArea smoke, widget tests and pDynamo3 build/import before
+the full-app pointer step failed in Windows GTK 4.8.2/4.10.1 and macOS arm64
+GTK 4.10.5 with `NameError: Graphene is not defined`. The test harness imported
+`Graphene` only in its Linux-specific `GdkX11` import branch, while Windows and
+macOS use it to map the projected GLArea coordinate into the top-level window
+before Win32/Quartz event injection. Earlier Windows/macOS full-app passes
+used synthetic GTK callback coordinates and therefore did not cover this
+native-input branch. Moved the Graphene import into the shared import path and
+added a regression assertion. The first matrix was canceled after confirming
+the same shared failure and before spending runner time on the remaining
+cells. The regression assertion passes locally; corrected native Windows and
+macOS runs and the full all-platform/all-minor matrix are pending. EH4-202
+remains unchecked. The artifact runtimes were Windows GTK 4.8.2 (Python
+3.12.15, PyGObject 3.46.0, GLib 2.78.0), Windows GTK 4.10.1 (Python 3.12.15,
+PyGObject 3.48.1, GLib 2.78.0), and macOS GTK 4.10.5 (Python 3.12.15,
+PyGObject 3.58.1, GLib 2.90.0); renderers were Mesa 26.2.4 llvmpipe WGL and
+Apple Software Renderer OpenGL 4.1.
+
+**EH4-202 Win32 native click failure (2026-10-21):** focused run
+[`39704362525`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39704362525)
+confirmed GTK 4.8.2 and 4.10.1 on Windows Server 2022 x86_64 reach the
+`windows-win32-user32` path, but production MainWindow does not pick the water
+oxygen. The artifact lacks event and sampled-coordinate traces, so this is not
+yet attributable to GTK, coordinate conversion, Win32 activation, or the
+renderer. The harness now checks foreground activation, client bounds and
+pointer hit target, and records coordinates delivered to the production GTK
+gesture and the last render-thread pick. Local focused helper/workflow tests
+pass (12 passed). The instrumented real full-app test also passed one Linux
+X11/XTest cycle on Linux Mint 22.3 x86_64 (Python 3.12.3, PyGObject 3.48.2,
+GTK 4.14.5, GLib 2.80.0, Mesa 25.2.8 llvmpipe/OpenGL 4.5 Core), picking
+`O:0`, rendering and closing cleanly. This Linux result does not exercise
+Win32. The next focused run subsequently exposed the coordinate-origin offset
+and is documented below; the native correction is now implemented but still
+needs a passing Windows runner result. EH4-202 stays open.
+
+Follow-up run [`39704981928`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39704981928)
+captured both Win32 GTK gesture callbacks and the actual pick coordinates on
+Windows Server 2022 x86_64 (GTK 4.8.2 and 4.10.1, Mesa 26.2.4 llvmpipe WGL).
+The foreground window and hit-test were correct; the coordinate received by
+GTK was displaced about 14.3 x 11.8 logical pixels from the projected oxygen
+coordinate. The harness now feeds the measured discrepancy back into the next
+native click, and the full-app test uses one shared `inject_native_pointer()`
+call on Linux/X11, Windows/Win32, and macOS/Quartz. The lifecycle and pass
+assertions remain common across platforms; only event injection is adapted.
+Focused local checks pass (**17 passed, 1 skipped**), as do Python compilation
+and `git diff --check`. This correction has not yet been verified on a native
+display or runner; corrected Windows and full-matrix runs remain pending.
+EH4-202 remains unchecked.
+
+Focused rerun [`39705506718`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39705506718)
+verified the coordinate correction in the first launch on both Windows GTK
+4.8.2 and 4.10.1: GTK picked `O:0` after the feedback-adjusted second click.
+Both jobs then failed at the next fresh launch because Windows refused
+`SetForegroundWindow` for the new process. The pointer already targets the
+verified EasyHybrid HWND; the actual click activates it. Foreground activation
+is now best-effort, while window-under-pointer verification and successful
+production GTK pick remain required. This second correction needs a new
+focused native Windows result. Exact runtimes: Windows Server 2022 x86_64,
+Python 3.12.15, PyGObject 3.46.0 / GTK 4.8.2 and PyGObject 3.48.1 / GTK 4.10.1,
+GLib 2.78.0, Mesa 26.2.4 llvmpipe WGL.
+
+Run `39705953113` showed the first launch passed on both GTK versions after
+coordinate calibration, then the second launch failed because the pointer hit
+another HWND. Its screen Y coordinate was 443 for a requested client Y of 344.
+The helper now restores the window before `ClientToScreen`; that alone did not
+clear the overlay. It temporarily raises the disposable test window to
+`HWND_TOPMOST` for the verified real click, then returns it to normal z-order.
+It still requires `WindowFromPoint` to identify the EasyHybrid window. Focused
+rerun is pending.
+
+Run `39706561091` confirmed the raised window receives the actual pointer
+events, but its GTK 4.8.2 pick trace alternated between the uncorrected
+`(347,199)` and corrected `(361,211)` positions. The harness was deriving each
+attempt from the original GTK point and replacing the learned offset with the
+latest residual; a nearly zero residual therefore erased the Windows inset
+correction. It now accumulates corrections across attempts in the same app
+cycle, with a local regression for retaining the learned offset. The initial
+GTK 4.8 pick failed in that run. Focused run
+[`39706994456`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39706994456)
+then passed both Windows cells: GTK 4.8.2 and 4.10.1 each completed five
+full-app cycles with successful native pointer pick, render and clean close,
+five production scene cycles, and render validation. The native issue is
+resolved for these two Windows GTK runtimes; all other native platform/minor
+combinations still require the full matrix. See the permanent Win32 notes in
+[`AGENTS.md`](../AGENTS.md).
 
 **Current native matrix (2026-10-20):** run
 [`39485989866`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39485989866)
@@ -109,10 +330,9 @@ selection VAO now binds its radius/instance attributes to the selection
 program (fix from the Codex session); run `39321285586` passed **30/30**
 with it. Only a static test covers it; a real-context spheres pick is pending.
 The image-difference, resize and capability checks are now present and pass in
-the native matrix (see run `39485989866`). EH4-202 remains unchecked for the
-separate full-interface/native-pointer acceptance: hosted full-app picks still
-invoke GTK callbacks with synthetic coordinates, and full-app coverage does not
-cover every GTK/platform cell.
+the native matrix (see run `39485989866`). That run's separate full-app picks
+used synthetic coordinates; newer native OS pointer evidence and the latest
+full-matrix status are recorded at the beginning of this report.
 
 **Full-interface coverage:** the opt-in `tests/test_easyhybrid_full_app_smoke.py`
 launches `EasyHybridApplication`, constructs the production `MainWindow`, loads
@@ -122,31 +342,36 @@ and closes. Linux X11/GTK 4.14.5/Python 3.12.3/PyGObject 3.48.2/GLib 2.80.0/
 NVIDIA passed 20/20 cycles in the earlier local run and five cycles with the
 current centering gate. Windows GTK 4.8.2 and 4.10.1 passed five cycles each in
 focused run `39450153293`. macOS arm64 GTK 4.24.1/Python 3.12.15/PyGObject
-3.58.1/GLib 2.90.0/Apple Software Renderer passed five cycles in focused run
-`39476612300`, with the complete regression suite passing 101 tests and
-skipping 6. These runs use synthetic GTK callback coordinates, not
-OS-injected pointer events. Full-app runs do not cover every GTK minor/platform
-pair; the separate component matrix must not be represented as full-app
-coverage. A pDynamo import without a system label also exposed and fixed a
+3.58.1/GLib 2.90.0/Apple Software Renderer passed five synthetic-coordinate
+cycles in focused run `39476612300`. Those earlier cycles did not inject OS
+events. Newer native XTest/Win32/Quartz evidence is summarized at the beginning
+of this report; matrix `39717469974` subsequently passed full-app coverage in
+every configured GTK/platform cell. A pDynamo import without a system label also exposed and fixed a
 production display-name fallback to the loaded coordinate file's basename.
 
-The full-app harness now has an opt-in Linux X11 path that uses `xdotool`/XTest
-to click the projected oxygen through the actual window-system input queue.
-Five local fresh-app cycles under Xvfb/X11 passed: the real pDynamo3-backed
-MainWindow loaded water, the XTest click picked `O:0`, the GL scene rendered,
-and each window closed cleanly (Python 3.12.3, PyGObject 3.48.2, GTK 4.14.5,
-GLib 2.80.0, Mesa 25.2.8 llvmpipe/OpenGL 4.5). The Linux matrix path now
-installs `xdotool` and enables this input route. Windows/macOS retain the
-synthetic callback path; native injection there is **NOT TESTED**. The full
-matrix for this harness change initially failed GTK 4.8.2/Linux: the real
+The full-app harness has an opt-in native pointer path. On Linux/X11 it uses
+`xdotool`/XTest; five local fresh-app cycles under Xvfb/X11 passed: the real
+pDynamo3-backed MainWindow loaded water, the XTest click picked `O:0`, the GL
+scene rendered, and each window closed cleanly (Python 3.12.3, PyGObject
+3.48.2, GTK 4.14.5, GLib 2.80.0, Mesa 25.2.8 llvmpipe/OpenGL 4.5). The
+Windows implementation uses Win32 client-to-screen conversion and mouse
+events. The macOS implementation maps the GTK widget point through AppKit and
+posts Quartz HID events; its CI environment installs PyObjC Cocoa/Quartz.
+Workflow checks now request the native path on all desktop OSes. Windows and
+macOS native injection passed in all configured GTK/platform cells in matrix
+`39717469974`; physical GPU, Retina/HiDPI, Wayland and trackpad claims remain
+separately **NOT TESTED**.
+Focused helper/workflow tests validate coordinate conversion but do not
+substitute for native OS injection.
+The full matrix for the initial Linux harness change failed GTK 4.8.2/Linux: the real
 XTest click reached the release handler, where `GestureClick.get_current_event()`
 raised `TypeError: No means to translate argument or return value for
-'GdkButtonEvent'`. GTK 4.8's PyGObject typelib does not always translate this
-optional event wrapper. The handler now catches `TypeError`/`RuntimeError` and
-passes `event=None`; button and modifier state continue to come from the GTK
-gesture APIs. A direct fallback check passed locally. The GTK 4.14.5 Linux
-Xvfb/XTest full-app smoke also passed one fresh-app cycle, but does not validate
-GTK 4.8. Focused workflow run
+'GdkButtonEvent'`. Since this event is optional context-menu metadata and the
+release coordinates are already saved for menu placement, the handler now
+omits that API call completely; regression fakes fail if it is invoked. The
+GTK 4.14.5 Linux Xvfb/XTest full-app smoke passed five fresh launches, each with
+an actual XTest click and `O:0` pick, rendering and clean close. This does not
+validate GTK 4.8. Focused workflow run
 [`39526363320`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39526363320)
 passed the exact GTK 4.8.2/Linux cell (Python 3.12.15, PyGObject 3.46.0,
 GLib 2.78.0, Mesa 25.2.8 llvmpipe/OpenGL 4.5): five XTest-injected clicks

@@ -18,8 +18,8 @@ _FULL_APP_CYCLE = textwrap.dedent(
     r"""
     import os
     import sys
-    import subprocess
     import time
+    import faulthandler
     import numpy as np
 
     from src.os_integration.gtk_startup import configure_startup_environment
@@ -30,10 +30,7 @@ _FULL_APP_CYCLE = textwrap.dedent(
     gi.require_version("Gtk", "4.0")
     gi.require_version("Gdk", "4.0")
     gi.require_version("Graphene", "1.0")
-    if sys.platform.startswith("linux"):
-        gi.require_version("GdkX11", "4.0")
-        from gi.repository import GdkX11, Graphene
-    from gi.repository import Gdk, GLib, Gtk
+    from gi.repository import Gdk, GLib, Graphene, Gtk
 
     import easyhybrid
     from pCore import logFile
@@ -62,11 +59,46 @@ _FULL_APP_CYCLE = textwrap.dedent(
         "started": time.monotonic(), "scene_draws": 0,
         "core_renders": 0, "phase": "application_start", "picked": False,
         "poll_calls": 0, "last_poll": None, "pick_render_calls": 0,
+        "gesture_events": [],
         "last_render_seconds": None, "max_render_seconds": 0.0,
     }
 
     def fail(message):
         print("EASYHYBRID_FULL_APP_ERROR=" + message, flush=True)
+        app.quit()
+        return GLib.SOURCE_REMOVE
+
+    def complete_pick(main):
+        # Finish after the production GL pick pass selected the fixture O.
+        if state.get("completion_started"):
+            return GLib.SOURCE_REMOVE
+        state["completion_started"] = True
+        if state.get("pick_completion_scheduled"):
+            print("EASYHYBRID_FULL_APP_PICK_COMPLETED_AFTER_RENDER=True", flush=True)
+        vm_widget = main.vm_session.vm_widget
+        vm_widget.make_current()
+        gl_error = GL.glGetError()
+        if gl_error != GL.GL_NO_ERROR:
+            return fail("production scene left OpenGL error 0x%x" % gl_error)
+
+        picked = main.vm_session.vm_glcore.atom_picked
+        molecule = state["molecule"]
+        print("EASYHYBRID_FULL_APP_PICK=O:%s" % picked.atom_id, flush=True)
+        print("EASYHYBRID_FULL_APP_SYSTEMS=%d" % len(main.p_session.psystem), flush=True)
+        system = next(iter(main.p_session.psystem.values()))
+        print("EASYHYBRID_FULL_APP_SYSTEM_LABEL=%s" % system.label, flush=True)
+        print("EASYHYBRID_FULL_APP_ATOMS=%d" % len(molecule.atoms), flush=True)
+        print("EASYHYBRID_FULL_APP_SCENE_DRAWS=%d" % state["scene_draws"], flush=True)
+        print("EASYHYBRID_FULL_APP_GL_VERSION=%s" % state["gl_version"].decode("ascii", "replace"), flush=True)
+        print("EASYHYBRID_FULL_APP_GL_RENDERER=%s" % state["gl_renderer"].decode("utf-8", "replace"), flush=True)
+
+        # A newly loaded system is dirty by design and would open the real
+        # save-confirmation dialog. This renderer regression discards only its
+        # temporary fixture, then follows MainWindow's standard close handler.
+        main.p_session.changed = False
+        main.window.close()
+        main.window.set_visible(False)
+        state["closed"] = True
         app.quit()
         return GLib.SOURCE_REMOVE
 
@@ -148,9 +180,39 @@ _FULL_APP_CYCLE = textwrap.dedent(
                         "xy": (float(core.picking_x), float(core.picking_y)),
                         "size": (core.width, core.height),
                     }
+                    if (
+                        not core.picking
+                        and getattr(core.atom_picked, "symbol", None) == "O"
+                        and not state.get("pick_completion_scheduled")
+                    ):
+                        # Complete from the main loop as soon as the real GL
+                        # readback confirms oxygen; do not depend on another
+                        # periodic poll being serviced by the native backend.
+                        state["pick_completion_scheduled"] = True
+                        state["pick_completion_source"] = GLib.timeout_add(
+                            1,
+                            complete_pick, main
+                        )
                 return result
 
             core.render = count_core_render
+
+            # Keep evidence that a real desktop event reached GTK's
+            # production gesture callbacks. This distinguishes a Win32
+            # desktop/window targeting problem from a framebuffer pick miss.
+            original_mouse_pressed = core.mouse_pressed
+            original_mouse_released = core.mouse_released
+
+            def trace_mouse_pressed(*args, **kwargs):
+                state["gesture_events"].append(("pressed", args[:4]))
+                return original_mouse_pressed(*args, **kwargs)
+
+            def trace_mouse_released(*args, **kwargs):
+                state["gesture_events"].append(("released", args[:4]))
+                return original_mouse_released(*args, **kwargs)
+
+            core.mouse_pressed = trace_mouse_pressed
+            core.mouse_released = trace_mouse_released
 
             molecule = next(iter(vm_session.vm_objects_dic.values()))
             atoms = list(molecule.atoms.values())
@@ -270,43 +332,72 @@ _FULL_APP_CYCLE = textwrap.dedent(
             state["pick_projection"] = (round(px, 5), round(py, 5))
 
             if os.environ.get("EASYHYBRID_FULL_APP_NATIVE_POINTER") == "1":
-                if not sys.platform.startswith("linux"):
-                    return fail("native pointer injection is currently Linux X11 only")
-                import shutil
-
-                xdotool = shutil.which("xdotool")
-                if xdotool is None:
-                    return fail("native Linux pointer smoke requires xdotool")
-                native = vm_widget.get_native()
-                surface = native.get_surface()
-                if surface is None or not isinstance(surface, GdkX11.X11Surface):
-                    return fail("native pointer smoke requires a GDK X11 surface")
                 mapped, window_point = vm_widget.compute_point(
                     main.window, Graphene.Point().init(x, y)
                 )
                 if not mapped:
                     return fail("could not map projected atom point into main window")
-                scale = surface.get_scale_factor()
-                window_xid = GdkX11.X11Surface.get_xid(surface)
-                click_x = round(window_point.x * scale)
-                click_y = round(window_point.y * scale)
-                try:
-                    result = subprocess.run(
-                        [
-                            xdotool, "mousemove", "--window",
-                            str(window_xid), str(click_x), str(click_y),
-                            "click", "1",
-                        ],
-                        capture_output=True,
-                        text=True,
-                        timeout=5,
-                        check=False,
+                mapped_window_point = (window_point.x, window_point.y)
+                window_offset = state.get("native_window_offset", (0.0, 0.0))
+                window_point = Graphene.Point().init(
+                    mapped_window_point[0] + window_offset[0],
+                    mapped_window_point[1] + window_offset[1],
+                )
+                native_correction = (0.0, 0.0)
+                # Correct any measured discrepancy between the OS window
+                # coordinate and the framebuffer point received by GTK. A
+                # zero offset on Linux/macOS leaves their native mapping as-is.
+                events = state.get("gesture_events", [])
+                feedback_start = state.get("native_feedback_event_count", 0)
+                new_events = events[feedback_start:]
+                released = next(
+                    (event[1] for event in reversed(new_events)
+                     if event[0] == "released"),
+                    None,
+                )
+                if released is not None:
+                    sys.path.insert(0, os.path.join(os.path.abspath("."), "tests"))
+                    from native_pointer_input import (
+                        add_window_point_offset,
+                        adjust_window_point_from_gesture_feedback,
                     )
-                except (OSError, subprocess.TimeoutExpired) as error:
-                    return fail("native xdotool click failed: %s" % error)
-                if result.returncode != 0:
-                    return fail("native xdotool click failed: %s" % result.stderr.strip())
-                state["pointer_input"] = "linux-x11-xtest"
+
+                    corrected = adjust_window_point_from_gesture_feedback(
+                        window_point.x,
+                        window_point.y,
+                        target_framebuffer_point=(px, py),
+                        observed_framebuffer_point=(released[1], released[2]),
+                        widget_size=(widget_width, widget_height),
+                        framebuffer_size=(core.width, core.height),
+                    )
+                    native_correction = (
+                        corrected[0] - window_point.x,
+                        corrected[1] - window_point.y,
+                    )
+                    window_offset = add_window_point_offset(
+                        window_offset, native_correction
+                    )
+                    state["native_window_offset"] = window_offset
+                    window_point = Graphene.Point().init(*corrected)
+                state["native_feedback_event_count"] = len(events)
+                state["native_points"] = {
+                    "widget": (round(x, 4), round(y, 4)),
+                    "mapped_window": tuple(round(v, 4) for v in mapped_window_point),
+                    "click_window": (round(window_point.x, 4), round(window_point.y, 4)),
+                    "projection": (round(px, 4), round(py, 4)),
+                    "dimensions": (widget_width, widget_height, core.width, core.height),
+                    "surface_scale": main.window.get_surface().get_scale_factor(),
+                    "feedback_correction": tuple(round(v, 4) for v in native_correction),
+                }
+                sys.path.insert(0, os.path.join(os.path.abspath("."), "tests"))
+                try:
+                    from native_pointer_input import inject_native_pointer
+
+                    state["pointer_input"] = inject_native_pointer(
+                        main.window, window_point.x, window_point.y
+                    )
+                except Exception as error:
+                    return fail("native desktop pointer click failed: %s" % error)
             else:
                 class TestGesture:
                     def __init__(self, x, y):
@@ -319,7 +410,9 @@ _FULL_APP_CYCLE = textwrap.dedent(
                         return Gdk.ModifierType(0)
 
                     def get_current_event(self):
-                        return None
+                        raise AssertionError(
+                            "release handler must not marshal GdkButtonEvent"
+                        )
 
                 gesture = TestGesture(x, y)
                 vm_widget._on_mouse_pressed(gesture, 1, x, y)
@@ -342,31 +435,17 @@ _FULL_APP_CYCLE = textwrap.dedent(
                 state["pick_started"] = False
                 vm_session.vm_widget.queue_render()
                 return GLib.SOURCE_CONTINUE
-            return fail("production MainWindow GTK gesture pick missed oxygen: %r" % picked)
+            return fail(
+                "production MainWindow GTK gesture pick missed oxygen: %r "
+                "(events=%r last_pick_render=%r requested=%r native_points=%r)"
+                % (
+                    picked, state.get("gesture_events", [])[-10:],
+                    state.get("last_pick_render"), state.get("pick_dimensions"),
+                    state.get("native_points"),
+                )
+            )
 
-        vm_session.vm_widget.make_current()
-        gl_error = GL.glGetError()
-        if gl_error != GL.GL_NO_ERROR:
-            return fail("production scene left OpenGL error 0x%x" % gl_error)
-
-        print("EASYHYBRID_FULL_APP_PICK=O:%s" % picked.atom_id, flush=True)
-        print("EASYHYBRID_FULL_APP_SYSTEMS=%d" % len(main.p_session.psystem), flush=True)
-        system = next(iter(main.p_session.psystem.values()))
-        print("EASYHYBRID_FULL_APP_SYSTEM_LABEL=%s" % system.label, flush=True)
-        print("EASYHYBRID_FULL_APP_ATOMS=%d" % len(state["molecule"].atoms), flush=True)
-        print("EASYHYBRID_FULL_APP_SCENE_DRAWS=%d" % state["scene_draws"], flush=True)
-        print("EASYHYBRID_FULL_APP_GL_VERSION=%s" % state["gl_version"].decode("ascii", "replace"), flush=True)
-        print("EASYHYBRID_FULL_APP_GL_RENDERER=%s" % state["gl_renderer"].decode("utf-8", "replace"), flush=True)
-
-        # A newly loaded system is dirty by design and would open the real
-        # save-confirmation dialog. This renderer regression discards only its
-        # temporary fixture, then follows MainWindow's standard close handler.
-        main.p_session.changed = False
-        main.window.close()
-        main.window.set_visible(False)
-        state["closed"] = True
-        app.quit()
-        return GLib.SOURCE_REMOVE
+        return complete_pick(main)
 
     def safe_poll_app():
         state["poll_calls"] += 1
@@ -384,6 +463,26 @@ _FULL_APP_CYCLE = textwrap.dedent(
 
     def lifecycle_timeout():
         main = getattr(app, "main_window", None)
+        core = getattr(getattr(main, "vm_session", None), "vm_glcore", None)
+        last_pick = state.get("last_pick_render") or {}
+        picked = getattr(core, "atom_picked", None)
+        # On macOS the native HID event can complete the actual GL readback
+        # while the next 50 ms lifecycle poll is delayed. The render wrapper
+        # records the completed pick; accept that verified production result
+        # and close cleanly instead of turning poll cadence into a false fail.
+        if (
+            main is not None
+            and state.get("pick_started")
+            and state.get("pick_attempts", 0) > 0
+            and last_pick.get("requested") is True
+            and last_pick.get("pending_after") is False
+            and last_pick.get("picked_after") == "O"
+            and not getattr(core, "picking", True)
+            and getattr(picked, "symbol", None) == "O"
+        ):
+            print("EASYHYBRID_FULL_APP_PICK_COMPLETED_AFTER_POLL_TIMEOUT=True", flush=True)
+            return complete_pick(main)
+
         widget = getattr(getattr(main, "vm_session", None), "vm_widget", None)
         if widget is None:
             details = "gl_area=unavailable"
@@ -436,7 +535,9 @@ _FULL_APP_CYCLE = textwrap.dedent(
         )
 
     GLib.timeout_add_seconds(45, lifecycle_timeout)
+    faulthandler.dump_traceback_later(15, repeat=True)
     status = app.run([sys.argv[0], fixture])
+    faulthandler.cancel_dump_traceback_later()
     print("EASYHYBRID_FULL_APP_STATUS=%d CLOSED=%s" % (status, state.get("closed")), flush=True)
     if status != 0 or not state.get("closed"):
         raise SystemExit(2)
@@ -457,6 +558,18 @@ def _write_water_pdb(path):
         )
     lines.extend(("CONECT    1    2    3", "MASTER        0    0    0    0    0    0    0    3    0    1    0", "END"))
     path.write_text("\n".join(lines) + "\n", encoding="ascii")
+
+
+def test_full_app_native_pointer_test_uses_one_shared_os_dispatcher():
+    """Every native full-app cell shares the same click path and assertions."""
+    assert "from gi.repository import Gdk, GLib, Graphene, Gtk" in _FULL_APP_CYCLE
+    assert "inject_native_pointer(\n                    main.window, window_point.x, window_point.y" in _FULL_APP_CYCLE
+    assert 'last_pick.get("picked_after") == "O"' in _FULL_APP_CYCLE
+    assert "state[\"pick_completion_source\"] = GLib.timeout_add(\n                        1,\n                        complete_pick, main" in _FULL_APP_CYCLE
+    assert 'state["completion_started"] = True' in _FULL_APP_CYCLE
+    assert "EASYHYBRID_FULL_APP_PICK_COMPLETED_AFTER_POLL_TIMEOUT=True" in _FULL_APP_CYCLE
+    assert "GdkX11" not in _FULL_APP_CYCLE
+    assert "xdotool" not in _FULL_APP_CYCLE
 
 
 @pytest.mark.skipif(
@@ -518,7 +631,13 @@ def test_real_easyhybrid_application_mainwindow_load_render_pick_close():
             assert "EASYHYBRID_FULL_APP_MAIN_WINDOW=True" in result.stdout
             assert "EASYHYBRID_FULL_APP_PICK=O:" in result.stdout
             if os.environ.get("EASYHYBRID_FULL_APP_NATIVE_POINTER") == "1":
-                assert "EASYHYBRID_FULL_APP_POINTER=linux-x11-xtest" in result.stdout
+                expected_pointer = {
+                    "linux": "linux-x11-xtest",
+                    "win32": "windows-win32-user32",
+                    "darwin": "macos-quartz-hid",
+                }.get(sys.platform, "")
+                assert expected_pointer, "native pointer path is not defined for this OS"
+                assert "EASYHYBRID_FULL_APP_POINTER=%s" % expected_pointer in result.stdout
             assert "EASYHYBRID_FULL_APP_SYSTEMS=1" in result.stdout
             assert "EASYHYBRID_FULL_APP_SYSTEM_LABEL=water" in result.stdout
             assert "EASYHYBRID_FULL_APP_ATOMS=3" in result.stdout
