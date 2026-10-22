@@ -85,6 +85,22 @@ PyGObject 3.48.1, GLib 2.78.0), and macOS GTK 4.10.5 (Python 3.12.15,
 PyGObject 3.58.1, GLib 2.90.0); renderers were Mesa 26.2.4 llvmpipe WGL and
 Apple Software Renderer OpenGL 4.1.
 
+**EH4-202 Win32 native click failure (2026-10-21):** focused run
+[`39704362525`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39704362525)
+confirmed GTK 4.8.2 and 4.10.1 on Windows Server 2022 x86_64 reach the
+`windows-win32-user32` path, but production MainWindow does not pick the water
+oxygen. The artifact lacks event and sampled-coordinate traces, so this is not
+yet attributable to GTK, coordinate conversion, Win32 activation, or the
+renderer. The harness now checks foreground activation, client bounds and
+pointer hit target, and records coordinates delivered to the production GTK
+gesture and the last render-thread pick. Local focused helper/workflow tests
+pass (12 passed). The instrumented real full-app test also passed one Linux
+X11/XTest cycle on Linux Mint 22.3 x86_64 (Python 3.12.3, PyGObject 3.48.2,
+GTK 4.14.5, GLib 2.80.0, Mesa 25.2.8 llvmpipe/OpenGL 4.5 Core), picking
+`O:0`, rendering and closing cleanly. This Linux result does not exercise
+Win32. The native Win32 diagnosis and actual correction remain pending.
+EH4-202 stays open.
+
 **Current native matrix (2026-10-20):** run
 [`39485989866`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39485989866)
 completed successfully at main commit `e096a024bb2ccc0755b5ba632f1d5aa5a74a3b13`.

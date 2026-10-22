@@ -37,11 +37,28 @@ def _click_windows(window, x: float, y: float) -> str:
     class Point(ctypes.Structure):
         _fields_ = [("x", wintypes.LONG), ("y", wintypes.LONG)]
 
+    class Rect(ctypes.Structure):
+        _fields_ = [
+            ("left", wintypes.LONG), ("top", wintypes.LONG),
+            ("right", wintypes.LONG), ("bottom", wintypes.LONG),
+        ]
+
     user32 = ctypes.WinDLL("user32", use_last_error=True)
     user32.FindWindowW.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR]
     user32.FindWindowW.restype = wintypes.HWND
     user32.ClientToScreen.argtypes = [wintypes.HWND, ctypes.POINTER(Point)]
     user32.ClientToScreen.restype = wintypes.BOOL
+    user32.GetClientRect.argtypes = [wintypes.HWND, ctypes.POINTER(Rect)]
+    user32.GetClientRect.restype = wintypes.BOOL
+    user32.GetWindowRect.argtypes = [wintypes.HWND, ctypes.POINTER(Rect)]
+    user32.GetWindowRect.restype = wintypes.BOOL
+    user32.GetForegroundWindow.restype = wintypes.HWND
+    user32.WindowFromPoint.argtypes = [Point]
+    user32.WindowFromPoint.restype = wintypes.HWND
+    user32.IsChild.argtypes = [wintypes.HWND, wintypes.HWND]
+    user32.IsChild.restype = wintypes.BOOL
+    user32.GetCursorPos.argtypes = [ctypes.POINTER(Point)]
+    user32.GetCursorPos.restype = wintypes.BOOL
     user32.SetCursorPos.argtypes = [ctypes.c_int, ctypes.c_int]
     user32.SetCursorPos.restype = wintypes.BOOL
     user32.mouse_event.argtypes = [wintypes.DWORD, wintypes.DWORD, wintypes.DWORD, wintypes.DWORD, ctypes.c_size_t]
@@ -57,10 +74,54 @@ def _click_windows(window, x: float, y: float) -> str:
     point = Point(*logical_to_device_point(x, y, scale))
     if not user32.ClientToScreen(hwnd, ctypes.byref(point)):
         raise ctypes.WinError(ctypes.get_last_error())
+    client_rect, window_rect = Rect(), Rect()
+    if not user32.GetClientRect(hwnd, ctypes.byref(client_rect)):
+        raise ctypes.WinError(ctypes.get_last_error())
+    if not user32.GetWindowRect(hwnd, ctypes.byref(window_rect)):
+        raise ctypes.WinError(ctypes.get_last_error())
+    client_point = logical_to_device_point(x, y, scale)
+    if not (0 <= client_point[0] < client_rect.right
+            and 0 <= client_point[1] < client_rect.bottom):
+        raise RuntimeError(
+            "GTK point is outside Win32 client area: local=%r client=%sx%s "
+            "scale=%s window_rect=%r"
+            % (
+                client_point, client_rect.right, client_rect.bottom, scale,
+                (window_rect.left, window_rect.top,
+                 window_rect.right, window_rect.bottom),
+            )
+        )
     user32.ShowWindow(hwnd, 9)  # SW_RESTORE
     user32.SetForegroundWindow(hwnd)
+    foreground = user32.GetForegroundWindow()
+    if foreground != hwnd:
+        raise RuntimeError(
+            "Win32 refused to foreground EasyHybrid: hwnd=%s foreground=%s"
+            % (hwnd, foreground)
+        )
     if not user32.SetCursorPos(point.x, point.y):
         raise ctypes.WinError(ctypes.get_last_error())
+
+    cursor = Point()
+    if not user32.GetCursorPos(ctypes.byref(cursor)):
+        raise ctypes.WinError(ctypes.get_last_error())
+    hit_window = user32.WindowFromPoint(cursor)
+    if hit_window != hwnd and not user32.IsChild(hwnd, hit_window):
+        raise RuntimeError(
+            "Win32 pointer is not over EasyHybrid: hwnd=%s hit=%s "
+            "cursor=(%s,%s) client=%r scale=%s"
+            % (hwnd, hit_window, cursor.x, cursor.y, client_point, scale)
+        )
+    print(
+        "EASYHYBRID_WIN32_POINTER_DIAGNOSTIC="
+        "hwnd:%s,foreground:%s,hit:%s,client:%r,screen:(%s,%s),scale:%s,"
+        "client_size:%sx%s"
+        % (
+            hwnd, foreground, hit_window, client_point, point.x, point.y,
+            scale, client_rect.right, client_rect.bottom,
+        ),
+        flush=True,
+    )
 
     user32.mouse_event(0x0002, 0, 0, 0, 0)  # MOUSEEVENTF_LEFTDOWN
     time.sleep(0.04)

@@ -62,6 +62,7 @@ _FULL_APP_CYCLE = textwrap.dedent(
         "started": time.monotonic(), "scene_draws": 0,
         "core_renders": 0, "phase": "application_start", "picked": False,
         "poll_calls": 0, "last_poll": None, "pick_render_calls": 0,
+        "gesture_events": [],
         "last_render_seconds": None, "max_render_seconds": 0.0,
     }
 
@@ -151,6 +152,23 @@ _FULL_APP_CYCLE = textwrap.dedent(
                 return result
 
             core.render = count_core_render
+
+            # Keep evidence that a real desktop event reached GTK's
+            # production gesture callbacks. This distinguishes a Win32
+            # desktop/window targeting problem from a framebuffer pick miss.
+            original_mouse_pressed = core.mouse_pressed
+            original_mouse_released = core.mouse_released
+
+            def trace_mouse_pressed(*args, **kwargs):
+                state["gesture_events"].append(("pressed", args[:4]))
+                return original_mouse_pressed(*args, **kwargs)
+
+            def trace_mouse_released(*args, **kwargs):
+                state["gesture_events"].append(("released", args[:4]))
+                return original_mouse_released(*args, **kwargs)
+
+            core.mouse_pressed = trace_mouse_pressed
+            core.mouse_released = trace_mouse_released
 
             molecule = next(iter(vm_session.vm_objects_dic.values()))
             atoms = list(molecule.atoms.values())
@@ -275,6 +293,13 @@ _FULL_APP_CYCLE = textwrap.dedent(
                 )
                 if not mapped:
                     return fail("could not map projected atom point into main window")
+                state["native_points"] = {
+                    "widget": (round(x, 4), round(y, 4)),
+                    "window": (round(window_point.x, 4), round(window_point.y, 4)),
+                    "projection": (round(px, 4), round(py, 4)),
+                    "dimensions": (widget_width, widget_height, core.width, core.height),
+                    "surface_scale": main.window.get_surface().get_scale_factor(),
+                }
                 if sys.platform.startswith("linux"):
                     import shutil
 
@@ -353,7 +378,15 @@ _FULL_APP_CYCLE = textwrap.dedent(
                 state["pick_started"] = False
                 vm_session.vm_widget.queue_render()
                 return GLib.SOURCE_CONTINUE
-            return fail("production MainWindow GTK gesture pick missed oxygen: %r" % picked)
+            return fail(
+                "production MainWindow GTK gesture pick missed oxygen: %r "
+                "(events=%r last_pick_render=%r requested=%r native_points=%r)"
+                % (
+                    picked, state.get("gesture_events", [])[-10:],
+                    state.get("last_pick_render"), state.get("pick_dimensions"),
+                    state.get("native_points"),
+                )
+            )
 
         vm_session.vm_widget.make_current()
         gl_error = GL.glGetError()

@@ -316,6 +316,21 @@ does not prove native behavior.
 - **Compatibility policy:** GTK runtime minimum = 4.8; GTK 4.6 is too old and rejected by the installer. The `Gtk 4.0` namespace remains the typelib API version. Linux X11 has full-app evidence for GTK 4.8.2, 4.14.5, and 4.24.1. Native GTK/widget and real scene smoke passed for every GTK minor 4.8–4.24 on Linux x86_64, Windows x86_64 and macOS arm64, plus GTK 4.8/4.10 on macOS x86_64 (30/30, exact-version main run `39292753361`); providers and exact patch versions are in `docs/GTK4_COMPATIBILITY.md`. Linux Wayland remains **NOT TESTED**. Python 3.10.22/3.12.3/3.12.15 have Linux test evidence; no maximum is approved. See `docs/EASYHYBRID4_REPORT.md` and `docs/GTK4_COMPATIBILITY.md`.
 - **Rule:** Update the active task pointer after a completed or blocked task. Do not change task ordering without recording why.
 
+**EH4-202 Win32 native click miss (2026-10-21):** focused Windows legacy run
+[`39704362525`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39704362525)
+tested GTK 4.8.2 (Python 3.12.15 / PyGObject 3.46.0 / GLib 2.78.0) and
+GTK 4.10.1 (Python 3.12.15 / PyGObject 3.48.1 / GLib 2.78.0) on Windows
+Server 2022 x86_64 with Mesa 26.2.4 llvmpipe WGL. Both entered
+`windows-win32-user32` without callback exceptions, but MainWindow returned no
+picked atom. The artifacts do not show whether GTK received the event or which
+framebuffer pixel was sampled. Added Win32 foreground/client/hit-target checks
+and production gesture/pick-coordinate traces; focused local helper/workflow
+tests pass (12 passed). The instrumented real full-app X11 smoke also passes
+one cycle on Linux Mint 22.3 x86_64, Python 3.12.3 / PyGObject 3.48.2 / GTK
+4.14.5 / GLib 2.80.0, Mesa 25.2.8 llvmpipe (OpenGL 4.5 Core): native XTest
+picked `O:0`, rendered and closed cleanly. Native diagnosis and correction
+remain pending; EH4-202 is unchecked.
+
 ## 6. End-of-session report template
 
 ```text
