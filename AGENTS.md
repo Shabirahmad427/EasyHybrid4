@@ -85,4 +85,26 @@ passed five cycles and render validation passed. Keep the blocker identity
 check specific to the hosted agent console. The full platform/minor matrix is
 still required.
 
-**Full-interface test boundary (updated 2026-10-22):** `test_easyhybrid_menu_vismol_components_open_and_close_cleanly` builds a standalone GTK host around production EasyHybrid menu and VisMol components; its CI results are component evidence only. The separate opt-in `tests/test_easyhybrid_full_app_smoke.py` launches `EasyHybridApplication`, production `MainWindow`, and real pDynamo3 PDB load/render/pick/close. Native Linux X11/XTest cycles pass locally; focused Windows run `39706994456` passes five Win32 pointer-pick cycles on GTK 4.8.2 and 4.10.1; focused macOS arm64 run `39707517301` passes five Quartz pointer-pick cycles on GTK 4.24.1. Full-app coverage across every GTK minor/platform is not established; do not infer it from the component matrix or these selected full-app cells.
+**Full-interface test boundary (updated 2026-10-22):** `test_easyhybrid_menu_vismol_components_open_and_close_cleanly` builds a standalone GTK host around production EasyHybrid menu and VisMol components; its CI results are component evidence only. The separate opt-in `tests/test_easyhybrid_full_app_smoke.py` launches `EasyHybridApplication`, production `MainWindow`, and real pDynamo3 PDB load/render/pick/close. See the all-cell native full-app results in run `39717469974` below; never infer full-app behavior from component-smoke results alone.
+
+**EH4-202 full native pointer matrix passed (2026-10-22):** run
+[`39717469974`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39717469974)
+passed all **30/30** configured native platform/GTK cells on branch
+`eh4-202-cross-platform-pointer-injection`. Every cell completed five real
+`EasyHybridApplication`/`MainWindow` fixture-load, OS-pointer pick, render and
+clean-close cycles, plus five production menu/VisMol cycles. All nine Windows
+GTK 4.8–4.24 cells passed Win32 input; all nine macOS arm64 cells passed
+Quartz HID; Linux cells passed XTest. The earlier Windows error with cursor
+`(613,444)` and client coordinate `(613,345)` is consistent with the target's
+99-pixel client-to-screen origin, but `WindowFromPoint` returned a different
+HWND. It did not recur in the full matrix. Keep rejecting clicks unless the
+hit-tested HWND is the target or its child, and only minimize the exact
+HostedComputeAgent console after confirming it is the blocker. If this happens
+again, inspect the complete appended hit window title/class/PID/rectangle and
+attempt trace before changing z-order or blocker handling; an abbreviated
+message ending at `scale=1` is insufficient to identify the HWND. Exact GTK
+patch versions and OS runtime details are tabulated in
+`docs/GTK4_COMPATIBILITY.md`; full per-cell runtime evidence is in the run
+artifacts. EH4-202's configured native-context acceptance is complete. Linux
+Wayland, physical GPUs, physical Retina/HiDPI and trackpads remain separately
+**NOT TESTED**.

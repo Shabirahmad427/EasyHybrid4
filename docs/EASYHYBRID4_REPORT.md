@@ -2,25 +2,33 @@
 
 **Report date:** 2026-10-22
 
-**Latest native full-matrix status (2026-10-22):** matrix run
-[`39713404036`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39713404036)
-passed **29/30** native platform/version cells. Its only failure was the
-macOS arm64 GTK 4.24.1 full-app lifecycle step. The uploaded artifact showed
-that native Quartz input reached the production GL pick pass and selected
-oxygen (`O`); a 50 ms lifecycle poll did not observe the completed pick before
-the watchdog. The test now schedules clean close through a default-priority
-1 ms GLib callback directly after render records the completed pick, retaining
-a watchdog that closes only when both the recorded pick render and live core
-confirm oxygen. The focused corrected run
-[`39716542528`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39716542528)
-passed five native app cycles, five component scene cycles, the complete
-regression suite and render validation on macOS 14.8.9 arm64, Python 3.12.15,
-PyGObject 3.58.1, GTK 4.24.1, GLib 2.90.0 and Apple Software Renderer/OpenGL
-4.1. Three app cycles closed from the completed-render callback; two used the
-verified-readback watchdog fallback. Run `39715844952` is an intermediate
-focused failure: two cycles closed after a successful pick and a later cycle
-hit its 60-second subprocess limit. The full matrix has not yet been rerun on
-the latest correction; EH4-202 remains open pending that matrix.
+**Current roadmap pointer:** EH4-203. EH4-202 is complete for all configured
+native software-renderer cells after matrix `39717469974` passed 30/30.
+
+**Latest native full-matrix status (2026-10-22): PASS, 30/30 cells.** Run
+[`39717469974`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39717469974)
+passed the complete Linux x86_64, Windows x86_64 and macOS arm64 GTK 4.8–4.24
+matrix, plus Intel macOS GTK 4.8/4.10. Runtime artifacts confirm exact GTK,
+GLib, Python, PyGObject, OS/architecture and renderer versions. Each cell
+passed five full `EasyHybridApplication`/`MainWindow` cycles with real
+pDynamo3 fixture loading, native OS pointer input (Linux XTest, Windows
+Win32, macOS Quartz), oxygen `O:0` picked, a completed render and clean close.
+Each cell also passed five production menu/VisMol scene cycles and its
+regression/render checks. The earlier macOS GTK 4.24 poll-delay failures are
+resolved by scheduling close after the pick render and retaining the
+readback-verified watchdog fallback. The Windows pointer error showing cursor
+`(613,444)` and target client point `(613,345)` did not recur: the coordinate
+is consistent with the window's 99-pixel screen origin, and the prior failure
+was a separate hit-tested HWND. Keep the current strict target hit test and
+minimize only the positively identified HostedComputeAgent console blocker;
+do not hide arbitrary windows. See the matrix evidence entry in
+[`ROADMAP.md`](ROADMAP.md) and detailed versions in
+[`GTK4_COMPATIBILITY.md`](GTK4_COMPATIBILITY.md).
+
+The matrix is hosted software-renderer evidence. Physical GPU behavior, Linux
+Wayland, Retina/HiDPI on physical displays and real trackpad behavior remain
+**NOT TESTED**. EH4-202 configured-context acceptance is complete; these
+hardware/backend limitations remain assigned to EH4-203 and EH4-302.
 
 **Windows GTK 4.20 repeated-launch pointer failure (2026-10-22):** full
 matrix run [`39708415015`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39708415015)
@@ -50,8 +58,9 @@ passed five fresh app cycles; each native click picked `O:0`, rendered and
 closed. The widget suite passed 65 tests and skipped 3; five production scene
 cycles and render validation also passed. Local helper/workflow/full-app
 regressions pass (**22 passed, 1 skipped**); `py_compile` and `git diff --check`
-pass. The fix is verified for this cell; EH4-202 still requires the full
-native matrix.
+pass. The follow-up matrix `39717469974` subsequently passed all configured
+Windows GTK cells, five native app cycles each; this historical issue is
+resolved in the current matrix.
 
 **Latest native Windows pointer result (2026-10-22):** focused run
 [`39706994456`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39706994456)
@@ -66,8 +75,9 @@ each retry then reset its learned offset to the latest, nearly-zero residual.
 The test now accumulates the measured offset for the app cycle. The same
 commit's local helper/workflow/full-app checks passed (**18 passed, 1 skipped**)
 and `py_compile`/`git diff --check` passed. This is focused Windows evidence;
-EH4-202 still needs the full all-platform/all-GTK matrix and macOS GTK/minor
-coverage beyond the verified 4.24.1 cell.
+That focused run was followed by matrix run `39717469974`, which passed all
+configured Windows, macOS arm64 and Linux GTK cells with native pointer
+injection; see the current result at the top of this report.
 
 **Native macOS pointer result (2026-10-22):** focused run
 [`39707517301`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39707517301)
@@ -79,9 +89,9 @@ pointer picks selected `O:0`, rendered, and closed cleanly. Production
 menu/VisMol passed another five pick/render/close cycles; the complete suite
 reported 114 passed and 6 skipped; render validation passed at both requested
 scales. The scale test reported `scale_applied=false` and widget scale factor
-1, so this does not establish Retina/HiDPI support. Native macOS pointer
-coverage at other GTK minors and on Intel remains untested; EH4-202 still
-requires the full platform/minor matrix.
+1, so this does not establish Retina/HiDPI support. This focused result was
+superseded by matrix `39717469974`, which passed native pointer cycles in all
+configured macOS arm64 GTK minors and Intel macOS GTK 4.8/4.10.
 
 **Purpose:** One consolidated source for repository, architecture, dependency,
 GTK/Python compatibility, parity, platform, testing, and known-limitation
@@ -329,8 +339,8 @@ focused run `39450153293`. macOS arm64 GTK 4.24.1/Python 3.12.15/PyGObject
 3.58.1/GLib 2.90.0/Apple Software Renderer passed five synthetic-coordinate
 cycles in focused run `39476612300`. Those earlier cycles did not inject OS
 events. Newer native XTest/Win32/Quartz evidence is summarized at the beginning
-of this report; full-app coverage still does not span every GTK minor/platform
-pair. A pDynamo import without a system label also exposed and fixed a
+of this report; matrix `39717469974` subsequently passed full-app coverage in
+every configured GTK/platform cell. A pDynamo import without a system label also exposed and fixed a
 production display-name fallback to the loaded coordinate file's basename.
 
 The full-app harness has an opt-in native pointer path. On Linux/X11 it uses
@@ -342,9 +352,9 @@ Windows implementation uses Win32 client-to-screen conversion and mouse
 events. The macOS implementation maps the GTK widget point through AppKit and
 posts Quartz HID events; its CI environment installs PyObjC Cocoa/Quartz.
 Workflow checks now request the native path on all desktop OSes. Windows and
-macOS native injection have since passed in the focused cells listed at the
-beginning of this report; full-app pointer coverage for all GTK/platform
-combinations remains **NOT TESTED** until the latest full matrix passes.
+macOS native injection passed in all configured GTK/platform cells in matrix
+`39717469974`; physical GPU, Retina/HiDPI, Wayland and trackpad claims remain
+separately **NOT TESTED**.
 Focused helper/workflow tests validate coordinate conversion but do not
 substitute for native OS injection.
 The full matrix for the initial Linux harness change failed GTK 4.8.2/Linux: the real

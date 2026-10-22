@@ -39,13 +39,13 @@
 
 | Target | Required checks | Status |
 |---|---|---|
-| Linux x86_64 / X11 | Import, UI, GL, scientific regression, package | PARTIAL: native matrix run `39485989866` built the graphics extensions, exercised the real GL renderer and completed 5 production menu/VisMol open/pick/render/close cycles per GTK cell; separate full-app tests use callback-synthetic input. Full scientific suite, Wayland and packaging remain separate/incomplete |
+| Linux x86_64 / X11 | Import, UI, GL, scientific regression, package | PARTIAL: run `39717469974` completed five real-app native XTest pick/render/close cycles and five production menu/VisMol cycles in every configured GTK minor cell; full scientific suite, Wayland and packaging remain separate/incomplete |
 | Linux x86_64 / Wayland | Import, UI, GL, input, scaling | NOT TESTED |
 | Linux second distribution / native GTK | Startup, integration, package | PARTIAL: GTK window/GLArea smoke PASS on Ubuntu 24.10 (GTK 4.16.3), Fedora 41 (4.16.13) and Debian 13 (4.18.6) under Xvfb; startup integration and packaging NOT TESTED |
-| Windows x64 / native GTK4 | Import, UI, GL, dialogs, package | PARTIAL: native matrix run `39485989866` built graphics extensions and passed GTK/GL and five production menu/VisMol cycles per GTK cell with Mesa llvmpipe WGL; full app passed only in focused GTK 4.8/4.10 cells. Physical GPUs, native COM chooser policy and packaging NOT TESTED |
-| macOS arm64 / native GTK4 | Import, UI, GL, Retina, trackpad, package | PARTIAL: native matrix run `39485989866` built graphics extensions and passed GTK/GL and five production menu/VisMol cycles per GTK cell with Apple Software Renderer; full app passed in focused GTK 4.24.1. The earlier picking failure (`39311621966`) was macOS's 1 px line-width limit and is fixed. Retina/trackpad, physical GPU, and packaging NOT TESTED |
-| macOS x86_64 (if available) | Import, UI, GL, package | PARTIAL: GTK 4.8.2 and 4.10.1 GTK/widget and EasyHybrid scene/pick smoke PASS (run `39317377076`); other minors and packaging NOT TESTED |
-| Every GTK 4.x minor >= 4.8 in declared support range (4.8, 4.10, 4.12, ... through latest stable) | API/feature and real scene UI/GL smoke on each claimed OS; record exact runtime patch version | **PASS for every minor 4.8–4.24 on Linux x86_64, Windows x86_64 and macOS arm64**, plus Intel macOS where provisioned: full matrix run [`39485989866`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39485989866) succeeded at current `main` HEAD, with five production menu/VisMol open/pick/render/close cycles per cell. Each platform artifact records actual GTK/Python/PyGObject/GLib/runtime backend; exact GTK builds are tabulated in [`GTK4_COMPATIBILITY.md`](GTK4_COMPATIBILITY.md). Full-app coverage is a separate subset and its picks are not OS-injected. |
+| Windows x64 / native GTK4 | Import, UI, GL, dialogs, package | PARTIAL: run `39717469974` passed full-app native Win32 pointer pick/render/close and five production menu/VisMol cycles in every GTK 4.8–4.24 cell on Mesa llvmpipe WGL. Physical GPUs, native COM chooser policy and packaging NOT TESTED |
+| macOS arm64 / native GTK4 | Import, UI, GL, Retina, trackpad, package | PARTIAL: run `39717469974` passed full-app native Quartz pointer pick/render/close and five production menu/VisMol cycles in every GTK 4.8–4.24 arm64 cell on Apple Software Renderer. Retina/trackpad, physical GPU, and packaging NOT TESTED |
+| macOS x86_64 (if available) | Import, UI, GL, package | PARTIAL: run `39717469974` passed five full-app Quartz pointer pick/render/close cycles and five menu/VisMol cycles at GTK 4.8.2 and 4.10.1; other minors and packaging NOT TESTED |
+| Every GTK 4.x minor >= 4.8 in declared support range (4.8, 4.10, 4.12, ... through latest stable) | API/feature and real scene UI/GL smoke on each claimed OS; record exact runtime patch version | **PASS, 30/30 cells** in run [`39717469974`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39717469974): Linux x86_64, Windows x86_64 and macOS arm64 across GTK 4.8–4.24, plus Intel macOS GTK 4.8/4.10. Each cell passed five full-app cycles with native OS pointer pick (`O:0`), render and clean close, and five production menu/VisMol cycles. Artifacts confirm exact runtime patch versions, OS/architecture, Python, PyGObject, GLib and backend; see [`GTK4_COMPATIBILITY.md`](GTK4_COMPATIBILITY.md). Physical GPU, Retina/HiDPI and trackpad evidence remain separate. |
 
 Use a **pairwise smoke matrix on pull requests** and more extensive native/version runs before releases; report missing combinations. CI images alone cannot prove real GPU or real trackpad behavior.
 
@@ -89,7 +89,7 @@ files.
 
 - [ ] **EH4-200** Audit graphics engine fork/submodule architecture, OpenGL requirements, native libraries, build, CI and published revisions. **Accept:** reproducible recursive clone + build and clear ownership of graphics fixes. **PARTIAL:** clean recursive clone and seven-extension Linux build pass; the latest full GTK matrix also builds the extensions in every supported OS/version cell. The directory is vendored ordinary source, and the upstream base revision plus license/ownership clearance remain unresolved; see the 2026-10-20 evidence row.
 - [x] **EH4-201** Implement GTK4 Gtk.GLArea setup, lifecycle, realized context, render callback, error diagnostics and resource cleanup. **Accept:** real-context smoke rendering and teardown checks. The production menu and bundled VisMol components passed the isolated component smoke in the full 30-cell GTK/OS matrix; see evidence run `39272229764`. This does not verify the full EasyHybrid4 interface or MainWindow startup.
-- [ ] **EH4-202** Inspect GL capabilities; validate shaders/VBO/VAO/FBO/picking/selection paths, scaling and resize. **Accept:** visual or image-difference evidence with justified thresholds on available real graphics contexts. Full-interface acceptance requires a separate regression that starts `EasyHybridApplication`, constructs the production `MainWindow` with real pDynamo3, loads a generated fixture through the EasyHybrid session, exercises native GTK picking, and closes cleanly. Existing menu/VisMol component-smoke results do not satisfy this criterion.
+- [x] **EH4-202** Inspect GL capabilities; validate shaders/VBO/VAO/FBO/picking/selection paths, scaling and resize. **Accept:** visual or image-difference evidence with justified thresholds on available real graphics contexts. Full-interface acceptance requires a separate regression that starts `EasyHybridApplication`, constructs the production `MainWindow` with real pDynamo3, loads a generated fixture through the EasyHybrid session, exercises native GTK picking, and closes cleanly. Run `39717469974` passed all 30 configured cells: each completed five real full-app native pointer pick/render/close cycles and five production menu/VisMol cycles; real-context rendering, pick, export and resize validation passed. The component and full-app results are recorded separately in the evidence log and runtime artifacts. Physical GPU, Retina/HiDPI and trackpad remain separate hardware acceptance.
 - [ ] **EH4-203** Normalize mouse-wheel, smooth scroll, trackpad, zoom, rotate and pan behavior **by input semantics**, not tuned per named hardware. **Accept:** logged delta/steps tests plus actual macOS trackpad review.
 - [ ] **EH4-204** Verify picking, atom/residue selection, labels, measurements, representations and camera persistence. **Accept:** end-to-end 3D sample fixture tests.
 - [ ] **EH4-205** Implement error/fallback messaging for unsupported graphics capabilities and context failure. **Accept:** useful diagnostics, no silent blank view or crash.
@@ -265,18 +265,13 @@ the corrected matrix must rerun before drawing conclusions from the GLib pin.
 ### Active task and blockers
 
 The GTK 4.8/4.10 WGL issue is resolved by the Windows adapter and passed in
-later native runs (`39068617718`, `39068863706`, and subsequent full GTK
-matrices). Historical diagnosis and fix evidence remain in the earlier log
-entries. The new blocker is the Windows full-app pDynamo3 build: run
-`39368203653` passed GTK/window/GL and EasyHybrid menu/VisMol checks on GTK
-4.8.2 and 4.10.1, then MSVC failed on the pinned pDynamo3 zero-length
-`SNEGATIVE` table (C2466). The Windows-only patch in
-`.github/scripts/patch_pdynamo3_windows.py` now uses a one-element zero
-sentinel; the associated term count remains zero, so the calculation never
-reads it. A local regression test passes. Windows pDynamo3 build/full-app
-validation is pending, and EH4-202 remains open. The Windows 4.16/4.18 source
-jobs were cancelled before pDynamo3 setup; Linux and macOS were skipped in
-this Windows-scoped run.
+later native runs. The pinned pDynamo3 zero-length `SNEGATIVE` table is patched
+for MSVC by `.github/scripts/patch_pdynamo3_windows.py`; its zero count means
+the sentinel is never read. Most recently, run `39717469974` passed the full
+native GTK matrix and full-app native pointer checks in all 30 configured
+cells, completing EH4-202. The current task is EH4-203; its physical macOS
+trackpad behavior remains to be assessed. Linux Wayland, physical GPUs,
+Retina/HiDPI and packaging remain separately untested.
 
 Historical trace result at `1529bf5` (GTK 4.10.1, Windows Server 2022 x86_64, Mesa
 26.2.4 llvmpipe; run `39067856957`): retaining the Mesa DLL fixed the earlier
@@ -312,10 +307,10 @@ diagnosis step, and `EASYHYBRID_TEST_OPENGL_DLL`. Clean full-matrix run `3906886
 Unit coverage is in `tests/test_win32_wgl.py`, using a fake Win32 API; it
 does not prove native behavior.
 
-- **Current task:** EH4-202. Its render/export/picking/resize checks and component smoke passed the full matrix before native OS-pick integration. Full-app native pointer evidence: XTest on Linux/X11 (local GTK 4.8.2/4.14.5/4.24.1), Win32 on Windows GTK 4.8.2/4.10.1 (`39706994456`, five full-app cycles per cell), Windows GTK 4.20.3 (`39712852467`, five cycles), and Quartz HID on macOS arm64 GTK 4.24.1 (`39716542528`, five cycles). Run `39713404036` passed 29/30 cells; GTK 4.24 macOS full-app poll synchronization failed and was corrected. The corrected full all-platform/all-minor matrix remains pending. Real trajectory-data playback remains **NOT TESTED**.
+- **Current task:** EH4-203. EH4-202 is complete after the all-platform/all-minor native matrix passed; physical trackpad behavior is tracked under EH4-203, while Retina/HiDPI and display changes remain under EH4-302. Real trajectory-data playback remains **NOT TESTED**.
 - **EH4-000 provenance limitations:** `origin` points to the user-supplied private EasyHybrid4 repository. Graphics-engine files remain ordinary tracked files rather than an active submodule. Their exact upstream ancestry and ownership/license for local changes remain unresolved. Do not publish graphics changes or convert the directory to a submodule until these facts are reconciled. EH4-200's audit and native build evidence are recorded above; local use and test-only validation of the bundled engine can proceed without publishing it.
-- **Current implementation/testing blockers:** The full component/render matrix at `39485989866` passed at the current main SHA, including five production menu/VisMol cycles per cell. Focused native full-app pointer coverage now passes on Windows GTK 4.8.2/4.10.1 (run `39706994456`) and macOS arm64 GTK 4.24.1 (run `39707517301`), in addition to local Linux X11/XTest full-app runs at GTK 4.8.2/4.14.5/4.24.1. Full-app coverage on every GTK/platform cell, Linux Wayland, physical GPUs, and HiDPI on real Retina displays remain **NOT TESTED**. The exact GTK 4.8/Python 3.10 full-app pDynamo ABI limitation and upstream Gtk.AboutDialog finalization critical remain documented.
-- **Compatibility policy:** GTK runtime minimum = 4.8; GTK 4.6 is too old and rejected by the installer. The `Gtk 4.0` namespace remains the typelib API version. Linux X11 has full-app evidence for GTK 4.8.2, 4.14.5, and 4.24.1. Native GTK/widget and real scene smoke passed for every GTK minor 4.8–4.24 on Linux x86_64, Windows x86_64 and macOS arm64, plus GTK 4.8/4.10 on macOS x86_64 (30/30, exact-version main run `39292753361`); providers and exact patch versions are in `docs/GTK4_COMPATIBILITY.md`. Linux Wayland remains **NOT TESTED**. Python 3.10.22/3.12.3/3.12.15 have Linux test evidence; no maximum is approved. See `docs/EASYHYBRID4_REPORT.md` and `docs/GTK4_COMPATIBILITY.md`.
+- **Current implementation/testing blockers:** EH4-202's 30-cell native acceptance passed in run `39717469974`. Linux Wayland, physical GPUs, Retina/HiDPI on real displays, physical trackpads, native COM chooser policy and packaging remain **NOT TESTED** and are tracked in their corresponding roadmap tasks. The exact GTK 4.8/Python 3.10 full-app pDynamo ABI limitation and upstream Gtk.AboutDialog finalization critical remain documented.
+- **Compatibility policy:** GTK runtime minimum = 4.8; GTK 4.6 is too old and rejected by the installer. The `Gtk 4.0` namespace remains the typelib API version. Run `39717469974` passed native component, full-app native-pointer, and renderer checks for GTK 4.8–4.24 on Linux x86_64, Windows x86_64 and macOS arm64, plus Intel macOS GTK 4.8/4.10 (30/30). Exact GTK patches are tabulated in `docs/GTK4_COMPATIBILITY.md`; exact per-cell Python, PyGObject, GLib and GL backend are in the linked run artifacts. Linux Wayland remains **NOT TESTED**. Python 3.10.22/3.12.3/3.12.15 have Linux test evidence; no maximum is approved.
 - **Rule:** Update the active task pointer after a completed or blocked task. Do not change task ordering without recording why.
 
 **EH4-202 Win32 native click diagnosis (2026-10-21):** focused Windows legacy
@@ -417,6 +412,29 @@ GTK 4.24.1, GLib 2.90.0 and Apple Software Renderer/OpenGL 4.1. Three cycles
 closed from the render callback; two used the verified-readback watchdog path.
 The all-platform/all-minor full matrix must pass on the latest commit before
 the relevant task acceptance can be considered complete.
+
+**EH4-202 full native matrix and Win32 obstruction recheck (2026-10-22):**
+run [`39717469974`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39717469974)
+completed **30/30 cells successfully** on branch
+`eh4-202-cross-platform-pointer-injection`. All nine Windows GTK 4.8–4.24
+cells passed five native Win32 full-app click/pick/render/close cycles each;
+the previously reported cursor `(613,444)` / client `(613,345)` error did not
+recur. The coordinate is consistent with the client-to-screen origin, so the
+old failure was a different HWND covering the target; the current helper keeps
+the hit-target guard and only minimizes the specifically identified hosted
+runner console. Do not broaden that rule based on an abbreviated diagnostic.
+All nine macOS arm64 GTK 4.8–4.24 cells passed five Quartz HID full-app cycles;
+all Linux cells passed five XTest full-app cycles. Each of the 30 cells also
+passed five production menu/VisMol cycles. Runtime artifacts were downloaded
+and inspected: each records exact OS/architecture, Python, PyGObject, GTK,
+GLib and GL renderer. Representative records: Windows GTK 4.8.2 uses Python
+3.12.15/PyGObject 3.46.0/GLib 2.78.0/Mesa 26.2.4 WGL; Windows GTK 4.18.6
+uses Python 3.14.8/PyGObject 3.58.1/GLib 2.90.1/Mesa 26.2.4 WGL; macOS
+arm64 GTK 4.24.1 uses Python 3.12.15/PyGObject 3.58.1/GLib 2.90.0/Apple
+Software Renderer OpenGL 4.1. Intel macOS GTK 4.8.2 and 4.10.1 also passed.
+The full suite and render validation passed in every artifact. This run
+supersedes the pending-matrix status above; physical GPU, Linux Wayland,
+Retina/HiDPI and real trackpad behavior remain separate **NOT TESTED** claims.
 
 ## 6. End-of-session report template
 
