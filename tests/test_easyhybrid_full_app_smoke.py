@@ -67,6 +67,35 @@ _FULL_APP_CYCLE = textwrap.dedent(
         app.quit()
         return GLib.SOURCE_REMOVE
 
+    def complete_pick(main):
+        # Finish after the production GL pick pass selected the fixture O.
+        vm_widget = main.vm_session.vm_widget
+        vm_widget.make_current()
+        gl_error = GL.glGetError()
+        if gl_error != GL.GL_NO_ERROR:
+            return fail("production scene left OpenGL error 0x%x" % gl_error)
+
+        picked = main.vm_session.vm_glcore.atom_picked
+        molecule = state["molecule"]
+        print("EASYHYBRID_FULL_APP_PICK=O:%s" % picked.atom_id, flush=True)
+        print("EASYHYBRID_FULL_APP_SYSTEMS=%d" % len(main.p_session.psystem), flush=True)
+        system = next(iter(main.p_session.psystem.values()))
+        print("EASYHYBRID_FULL_APP_SYSTEM_LABEL=%s" % system.label, flush=True)
+        print("EASYHYBRID_FULL_APP_ATOMS=%d" % len(molecule.atoms), flush=True)
+        print("EASYHYBRID_FULL_APP_SCENE_DRAWS=%d" % state["scene_draws"], flush=True)
+        print("EASYHYBRID_FULL_APP_GL_VERSION=%s" % state["gl_version"].decode("ascii", "replace"), flush=True)
+        print("EASYHYBRID_FULL_APP_GL_RENDERER=%s" % state["gl_renderer"].decode("utf-8", "replace"), flush=True)
+
+        # A newly loaded system is dirty by design and would open the real
+        # save-confirmation dialog. This renderer regression discards only its
+        # temporary fixture, then follows MainWindow's standard close handler.
+        main.p_session.changed = False
+        main.window.close()
+        main.window.set_visible(False)
+        state["closed"] = True
+        app.quit()
+        return GLib.SOURCE_REMOVE
+
     def poll_app():
         main = getattr(app, "main_window", None)
         if main is None:
@@ -397,29 +426,7 @@ _FULL_APP_CYCLE = textwrap.dedent(
                 )
             )
 
-        vm_session.vm_widget.make_current()
-        gl_error = GL.glGetError()
-        if gl_error != GL.GL_NO_ERROR:
-            return fail("production scene left OpenGL error 0x%x" % gl_error)
-
-        print("EASYHYBRID_FULL_APP_PICK=O:%s" % picked.atom_id, flush=True)
-        print("EASYHYBRID_FULL_APP_SYSTEMS=%d" % len(main.p_session.psystem), flush=True)
-        system = next(iter(main.p_session.psystem.values()))
-        print("EASYHYBRID_FULL_APP_SYSTEM_LABEL=%s" % system.label, flush=True)
-        print("EASYHYBRID_FULL_APP_ATOMS=%d" % len(state["molecule"].atoms), flush=True)
-        print("EASYHYBRID_FULL_APP_SCENE_DRAWS=%d" % state["scene_draws"], flush=True)
-        print("EASYHYBRID_FULL_APP_GL_VERSION=%s" % state["gl_version"].decode("ascii", "replace"), flush=True)
-        print("EASYHYBRID_FULL_APP_GL_RENDERER=%s" % state["gl_renderer"].decode("utf-8", "replace"), flush=True)
-
-        # A newly loaded system is dirty by design and would open the real
-        # save-confirmation dialog. This renderer regression discards only its
-        # temporary fixture, then follows MainWindow's standard close handler.
-        main.p_session.changed = False
-        main.window.close()
-        main.window.set_visible(False)
-        state["closed"] = True
-        app.quit()
-        return GLib.SOURCE_REMOVE
+        return complete_pick(main)
 
     def safe_poll_app():
         state["poll_calls"] += 1
@@ -437,6 +444,26 @@ _FULL_APP_CYCLE = textwrap.dedent(
 
     def lifecycle_timeout():
         main = getattr(app, "main_window", None)
+        core = getattr(getattr(main, "vm_session", None), "vm_glcore", None)
+        last_pick = state.get("last_pick_render") or {}
+        picked = getattr(core, "atom_picked", None)
+        # On macOS the native HID event can complete the actual GL readback
+        # while the next 50 ms lifecycle poll is delayed. The render wrapper
+        # records the completed pick; accept that verified production result
+        # and close cleanly instead of turning poll cadence into a false fail.
+        if (
+            main is not None
+            and state.get("pick_started")
+            and state.get("pick_attempts", 0) > 0
+            and last_pick.get("requested") is True
+            and last_pick.get("pending_after") is False
+            and last_pick.get("picked_after") == "O"
+            and not getattr(core, "picking", True)
+            and getattr(picked, "symbol", None) == "O"
+        ):
+            print("EASYHYBRID_FULL_APP_PICK_COMPLETED_AFTER_POLL_TIMEOUT=True", flush=True)
+            return complete_pick(main)
+
         widget = getattr(getattr(main, "vm_session", None), "vm_widget", None)
         if widget is None:
             details = "gl_area=unavailable"
@@ -516,6 +543,8 @@ def test_full_app_native_pointer_test_uses_one_shared_os_dispatcher():
     """Every native full-app cell shares the same click path and assertions."""
     assert "from gi.repository import Gdk, GLib, Graphene, Gtk" in _FULL_APP_CYCLE
     assert "inject_native_pointer(\n                    main.window, window_point.x, window_point.y" in _FULL_APP_CYCLE
+    assert 'last_pick.get("picked_after") == "O"' in _FULL_APP_CYCLE
+    assert "EASYHYBRID_FULL_APP_PICK_COMPLETED_AFTER_POLL_TIMEOUT=True" in _FULL_APP_CYCLE
     assert "GdkX11" not in _FULL_APP_CYCLE
     assert "xdotool" not in _FULL_APP_CYCLE
 
