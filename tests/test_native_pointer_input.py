@@ -9,6 +9,7 @@ from native_pointer_input import (
     adjust_window_point_from_gesture_feedback,
     appkit_to_quartz_point,
     logical_to_device_point,
+    retry_until_native_hit_target,
 )
 
 
@@ -92,6 +93,42 @@ def test_native_click_feedback_rejects_invalid_dimensions():
             widget_size=(0, 20),
             framebuffer_size=(10, 20),
         )
+
+
+def test_native_windows_hit_target_is_restacked_after_previous_window_covers_it():
+    events = []
+    hit_results = iter((False, True))
+
+    def prepare_target():
+        events.append("raise_target")
+
+    def move_pointer():
+        events.append("move_pointer")
+
+    def is_target_under_pointer():
+        events.append("hit_test")
+        return next(hit_results)
+
+    assert retry_until_native_hit_target(
+        prepare_target,
+        move_pointer,
+        is_target_under_pointer,
+    ) == 2
+    assert events == [
+        "raise_target", "move_pointer", "hit_test",
+        "raise_target", "move_pointer", "hit_test",
+    ]
+
+
+def test_native_windows_hit_target_retry_has_a_bounded_failure():
+    assert retry_until_native_hit_target(
+        lambda: None,
+        lambda: None,
+        lambda: False,
+        attempts=3,
+    ) is None
+    with pytest.raises(ValueError, match="positive"):
+        retry_until_native_hit_target(lambda: None, lambda: None, lambda: True, attempts=0)
 
 
 def test_appkit_point_maps_to_quartz_on_secondary_display():

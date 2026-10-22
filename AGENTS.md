@@ -45,4 +45,16 @@ passed five real-app pointer-pick/render/close cycles at Windows GTK 4.8.2 and
 4.10.1. Keep a regression test for cumulative offset and inspect press/release
 coordinates plus the final picked atom if this failure returns.
 
+**Windows GTK 4.20 repeated-launch overlay (diagnosed 2026-10-22):** the
+all-scope matrix run [`39708415015`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39708415015)
+passed the first real-app native Win32 pick on GTK 4.20.3 but a later fresh
+process found an older HWND foreground and under the correct screen point.
+The click was correctly withheld. The helper now tries foreground activation,
+then re-stacks the disposable window topmost, moves the pointer, and requires a
+fresh `WindowFromPoint` target check before clicking. It retries that
+hit-test/restack sequence at most five times and logs each observed HWND if
+they all fail. Local helper/workflow/full-app regression checks pass (**20
+passed, 1 skipped**); native confirmation on GTK 4.20.3 is pending. Do not
+consider the Win32 path broadly verified until that native retry passes.
+
 **Full-interface test boundary (updated 2026-10-22):** `test_easyhybrid_menu_vismol_components_open_and_close_cleanly` builds a standalone GTK host around production EasyHybrid menu and VisMol components; its CI results are component evidence only. The separate opt-in `tests/test_easyhybrid_full_app_smoke.py` launches `EasyHybridApplication`, production `MainWindow`, and real pDynamo3 PDB load/render/pick/close. Native Linux X11/XTest cycles pass locally; focused Windows run `39706994456` passes five Win32 pointer-pick cycles on GTK 4.8.2 and 4.10.1; focused macOS arm64 run `39707517301` passes five Quartz pointer-pick cycles on GTK 4.24.1. Full-app coverage across every GTK minor/platform is not established; do not infer it from the component matrix or these selected full-app cells.

@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import sys
 import time
+from collections.abc import Callable
 
 
 def logical_to_device_point(x: float, y: float, scale: int) -> tuple[int, int]:
@@ -49,6 +50,24 @@ def add_window_point_offset(
 ) -> tuple[float, float]:
     """Accumulate measured native-window correction across click attempts."""
     return offset[0] + correction[0], offset[1] + correction[1]
+
+
+def retry_until_native_hit_target(
+    prepare_target: Callable[[], None],
+    move_pointer: Callable[[], None],
+    is_target_under_pointer: Callable[[], bool],
+    *,
+    attempts: int = 5,
+) -> int | None:
+    """Restack a native test window until hit-testing confirms the target."""
+    if attempts < 1:
+        raise ValueError("attempts must be positive")
+    for attempt in range(1, attempts + 1):
+        prepare_target()
+        move_pointer()
+        if is_target_under_pointer():
+            return attempt
+    return None
 
 
 def appkit_to_quartz_point(
@@ -116,17 +135,15 @@ def _click_windows(window, x: float, y: float) -> str:
     # Restore/raise before converting client coordinates: SW_RESTORE may move
     # a minimized window, which would make a pre-restore ClientToScreen stale.
     user32.ShowWindow(hwnd, 9)  # SW_RESTORE
-    user32.BringWindowToTop(hwnd)
-    # A prior test process can remain above a new non-foreground window. Put
-    # this disposable test window in the topmost band for the real click;
-    # restore its ordinary z-order immediately afterwards.
+    # Hosted Windows can refuse foreground activation, or restack a window
+    # from the previous app cycle above a newly created window. Attempt
+    # activation first, then put this disposable test window at the top of the
+    # topmost band and verify the actual hit target before injecting a click.
     topmost = ctypes.c_void_p(-1)  # HWND_TOPMOST
     not_topmost = ctypes.c_void_p(-2)  # HWND_NOTOPMOST
     z_order_flags = 0x0053  # SWP_NOMOVE|SWP_NOSIZE|SWP_NOACTIVATE|SWP_SHOWWINDOW
-    if not user32.SetWindowPos(hwnd, topmost, 0, 0, 0, 0, z_order_flags):
-        raise ctypes.WinError(ctypes.get_last_error())
     user32.SetForegroundWindow(hwnd)
-    foreground = user32.GetForegroundWindow()
+    user32.BringWindowToTop(hwnd)
     point = Point(*logical_to_device_point(x, y, scale))
     if not user32.ClientToScreen(hwnd, ctypes.byref(point)):
         raise ctypes.WinError(ctypes.get_last_error())
@@ -147,30 +164,54 @@ def _click_windows(window, x: float, y: float) -> str:
                  window_rect.right, window_rect.bottom),
             )
         )
-    # Hosted runners may keep the previous test process or runner shell as
-    # the foreground window. Windows can refuse SetForegroundWindow in that
-    # case, but a real pointer click still activates the verified window under
-    # the cursor. The hit-test below and the production GTK pick are the actual
-    # delivery checks; foreground state alone is not.
-    if not user32.SetCursorPos(point.x, point.y):
-        raise ctypes.WinError(ctypes.get_last_error())
+    hit_attempts = []
 
+    def prepare_target():
+        # Activation is best-effort on hosted runners. Restack after the
+        # attempt because activation of another foreground window can change
+        # z-order between app cycles.
+        user32.SetForegroundWindow(hwnd)
+        user32.BringWindowToTop(hwnd)
+        if not user32.SetWindowPos(hwnd, topmost, 0, 0, 0, 0, z_order_flags):
+            raise ctypes.WinError(ctypes.get_last_error())
+
+    def move_pointer():
+        if not user32.SetCursorPos(point.x, point.y):
+            raise ctypes.WinError(ctypes.get_last_error())
+        time.sleep(0.025)
+
+    def target_is_under_pointer():
+        cursor = Point()
+        if not user32.GetCursorPos(ctypes.byref(cursor)):
+            raise ctypes.WinError(ctypes.get_last_error())
+        hit_window = user32.WindowFromPoint(cursor)
+        foreground = user32.GetForegroundWindow()
+        hit_attempts.append((cursor.x, cursor.y, hit_window, foreground))
+        return hit_window == hwnd or user32.IsChild(hwnd, hit_window)
+
+    confirmed_attempt = retry_until_native_hit_target(
+        prepare_target, move_pointer, target_is_under_pointer
+    )
     cursor = Point()
     if not user32.GetCursorPos(ctypes.byref(cursor)):
         raise ctypes.WinError(ctypes.get_last_error())
     hit_window = user32.WindowFromPoint(cursor)
-    if hit_window != hwnd and not user32.IsChild(hwnd, hit_window):
+    foreground = user32.GetForegroundWindow()
+    if confirmed_attempt is None:
+        hit_rect = Rect()
+        user32.GetWindowRect(hit_window, ctypes.byref(hit_rect))
         raise RuntimeError(
             "Win32 pointer is not over EasyHybrid: hwnd=%s hit=%s "
             "cursor=(%s,%s) screen=(%s,%s) window_rect=%r client_rect=%r "
-            "foreground=%s client=%r scale=%s"
+            "hit_rect=%r foreground=%s client=%r scale=%s attempts=%r"
             % (
                 hwnd, hit_window, cursor.x, cursor.y, point.x, point.y,
                 (window_rect.left, window_rect.top,
                  window_rect.right, window_rect.bottom),
                 (client_rect.left, client_rect.top,
                  client_rect.right, client_rect.bottom),
-                foreground, client_point, scale,
+                (hit_rect.left, hit_rect.top, hit_rect.right, hit_rect.bottom),
+                foreground, client_point, scale, hit_attempts,
             )
         )
     print(
@@ -184,10 +225,12 @@ def _click_windows(window, x: float, y: float) -> str:
         flush=True,
     )
 
-    user32.mouse_event(0x0002, 0, 0, 0, 0)  # MOUSEEVENTF_LEFTDOWN
-    time.sleep(0.04)
-    user32.mouse_event(0x0004, 0, 0, 0, 0)  # MOUSEEVENTF_LEFTUP
-    user32.SetWindowPos(hwnd, not_topmost, 0, 0, 0, 0, z_order_flags)
+    try:
+        user32.mouse_event(0x0002, 0, 0, 0, 0)  # MOUSEEVENTF_LEFTDOWN
+        time.sleep(0.04)
+    finally:
+        user32.mouse_event(0x0004, 0, 0, 0, 0)  # MOUSEEVENTF_LEFTUP
+        user32.SetWindowPos(hwnd, not_topmost, 0, 0, 0, 0, z_order_flags)
     return "windows-win32-user32"
 
 

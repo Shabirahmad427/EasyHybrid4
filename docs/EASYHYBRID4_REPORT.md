@@ -2,6 +2,18 @@
 
 **Report date:** 2026-10-22
 
+**Windows GTK 4.20 repeated-launch pointer failure (2026-10-22):** full
+matrix run [`39708415015`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39708415015)
+revealed a failure on Windows Server 2022 x86_64, Python 3.12.15, PyGObject
+3.58.1, GTK 4.20.3, GLib 2.90.1 and Mesa 26.2.4 llvmpipe WGL. The first
+full-app process completed its native Win32 click/pick/close. A later process
+found the previous HWND foreground and under the correct screen point, so the
+helper withheld the click. The helper now activates first, raises its window,
+then retries pointer placement and `WindowFromPoint` verification up to five
+times before allowing injection. Local helper/workflow/full-app regressions
+pass (**20 passed, 1 skipped**); `py_compile` and `git diff --check` pass.
+Native confirmation of this correction is pending; EH4-202 remains open.
+
 **Latest native Windows pointer result (2026-10-22):** focused run
 [`39706994456`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39706994456)
 passed Windows x86_64 GTK 4.8.2 and 4.10.1. In each cell the real
