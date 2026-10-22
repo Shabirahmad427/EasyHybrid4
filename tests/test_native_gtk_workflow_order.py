@@ -43,6 +43,7 @@ def test_failed_windows_gtk420_cell_can_be_dispatched_alone():
     assert "inputs.scope == 'windows-gtk420') && '[\"windows-x86_64\"]'" in workflow
     assert "inputs.scope == 'windows-gtk420' && '[\"4.20\"]'" in workflow
     assert workflow.count("inputs.scope == 'windows-gtk420'") == 3
+    assert workflow.count("inputs.scope != 'windows-gtk420'") == 3
 
 
 def test_full_app_timeout_reports_gtk_scene_progress():

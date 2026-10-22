@@ -325,7 +325,7 @@ jobs:
   # end-of-life and served from their archives; Debian 13 is current stable.
   gtk-linux-distro:
     name: GTK ${{ matrix.gtk }} / linux-x86_64 (${{ matrix.distro }})
-    if: inputs.scope != 'linux-gtk48' && inputs.scope != 'windows-legacy' && inputs.scope != 'macos-diagnostic' && inputs.scope != 'macos-gtk424' && inputs.scope != 'windows'
+    if: inputs.scope != 'linux-gtk48' && inputs.scope != 'windows-legacy' && inputs.scope != 'windows-gtk420' && inputs.scope != 'macos-diagnostic' && inputs.scope != 'macos-gtk424' && inputs.scope != 'windows'
     runs-on: ubuntu-24.04
     container: ${{ matrix.image }}
     timeout-minutes: 30
@@ -508,7 +508,7 @@ jobs:
   # UCRT64 dependencies, then test with the same pinned Mesa renderer.
   gtk-windows-msys2:
     name: GTK ${{ matrix.gtk }} / windows-x86_64 (msys2 source ${{ matrix.version }})
-    if: inputs.scope != 'linux-gtk48' && inputs.scope != 'windows-legacy' && inputs.scope != 'macos-diagnostic' && inputs.scope != 'macos-gtk424'
+    if: inputs.scope != 'linux-gtk48' && inputs.scope != 'windows-legacy' && inputs.scope != 'windows-gtk420' && inputs.scope != 'macos-diagnostic' && inputs.scope != 'macos-gtk424'
     runs-on: windows-2022
     timeout-minutes: 75
     strategy:
@@ -732,7 +732,7 @@ jobs:
   # dependencies on the native arm64 runner.
   gtk-macos-source:
     name: GTK ${{ matrix.gtk }} / macos-arm64 (source ${{ matrix.version }})
-    if: inputs.scope != 'linux-gtk48' && inputs.scope != 'windows-legacy' && inputs.scope != 'windows' && inputs.scope != 'macos-gtk424'
+    if: inputs.scope != 'linux-gtk48' && inputs.scope != 'windows-legacy' && inputs.scope != 'windows' && inputs.scope != 'windows-gtk420' && inputs.scope != 'macos-gtk424'
     runs-on: macos-14
     timeout-minutes: 75
     strategy:
