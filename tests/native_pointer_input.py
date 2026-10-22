@@ -124,11 +124,11 @@ def _click_windows(window, x: float, y: float) -> str:
     user32.ShowWindow(hwnd, 9)  # SW_RESTORE
     user32.SetForegroundWindow(hwnd)
     foreground = user32.GetForegroundWindow()
-    if foreground != hwnd:
-        raise RuntimeError(
-            "Win32 refused to foreground EasyHybrid: hwnd=%s foreground=%s"
-            % (hwnd, foreground)
-        )
+    # Hosted runners may keep the previous test process or runner shell as
+    # the foreground window. Windows can refuse SetForegroundWindow in that
+    # case, but a real pointer click still activates the verified window under
+    # the cursor. The hit-test below and the production GTK pick are the actual
+    # delivery checks; foreground state alone is not.
     if not user32.SetCursorPos(point.x, point.y):
         raise ctypes.WinError(ctypes.get_last_error())
 
@@ -144,10 +144,10 @@ def _click_windows(window, x: float, y: float) -> str:
         )
     print(
         "EASYHYBRID_WIN32_POINTER_DIAGNOSTIC="
-        "hwnd:%s,foreground:%s,hit:%s,client:%r,screen:(%s,%s),scale:%s,"
+        "hwnd:%s,foreground:%s,foreground_match:%s,hit:%s,client:%r,screen:(%s,%s),scale:%s,"
         "client_size:%sx%s"
         % (
-            hwnd, foreground, hit_window, client_point, point.x, point.y,
+            hwnd, foreground, foreground == hwnd, hit_window, client_point, point.x, point.y,
             scale, client_rect.right, client_rect.bottom,
         ),
         flush=True,

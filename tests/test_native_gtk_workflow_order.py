@@ -61,3 +61,5 @@ def test_full_app_matrix_injects_native_pointer_on_all_desktop_oses():
     assert 'return _click_linux_x11(window, x, y)' in pointer
     assert 'return _click_windows(window, x, y)' in pointer
     assert 'return _click_macos(window, x, y)' in pointer
+    assert 'if foreground != hwnd' not in pointer
+    assert 'hit_window != hwnd and not user32.IsChild(hwnd, hit_window)' in pointer

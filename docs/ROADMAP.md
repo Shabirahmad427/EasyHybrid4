@@ -334,6 +334,19 @@ and `git diff --check`: **PASS**. Native Linux full-app rerun, corrected focused
 Windows cells, and the required full matrix remain pending. EH4-202 is
 unchecked.
 
+**EH4-202 Win32 repeated-launch follow-up (2026-10-22):** focused run
+[`39705506718`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39705506718)
+used Windows Server 2022 x86_64, Python 3.12.15, PyGObject 3.46.0/3.48.1,
+GTK 4.8.2/4.10.1 and Mesa 26.2.4 llvmpipe WGL. In both GTK cells, the first
+fresh application cycle calibrated the native point and picked `O:0`; the
+second launch failed before clicking because `SetForegroundWindow` was refused
+for the new process. The Win32 helper now treats foreground activation as
+best-effort, while requiring that `WindowFromPoint` identifies the EasyHybrid
+window (or child) and retaining the actual production gesture pick as the
+acceptance assertion. This is a runner focus-lock issue rather than another
+GTK coordinate discrepancy. Corrected Windows rerun is pending; EH4-202 stays
+unchecked.
+
 ## 6. End-of-session report template
 
 ```text

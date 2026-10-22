@@ -116,6 +116,18 @@ and `git diff --check`. This correction has not yet been verified on a native
 display or runner; corrected Windows and full-matrix runs remain pending.
 EH4-202 remains unchecked.
 
+Focused rerun [`39705506718`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39705506718)
+verified the coordinate correction in the first launch on both Windows GTK
+4.8.2 and 4.10.1: GTK picked `O:0` after the feedback-adjusted second click.
+Both jobs then failed at the next fresh launch because Windows refused
+`SetForegroundWindow` for the new process. The pointer already targets the
+verified EasyHybrid HWND; the actual click activates it. Foreground activation
+is now best-effort, while window-under-pointer verification and successful
+production GTK pick remain required. This second correction needs a new
+focused native Windows result. Exact runtimes: Windows Server 2022 x86_64,
+Python 3.12.15, PyGObject 3.46.0 / GTK 4.8.2 and PyGObject 3.48.1 / GTK 4.10.1,
+GLib 2.78.0, Mesa 26.2.4 llvmpipe WGL.
+
 **Current native matrix (2026-10-20):** run
 [`39485989866`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39485989866)
 completed successfully at main commit `e096a024bb2ccc0755b5ba632f1d5aa5a74a3b13`.
