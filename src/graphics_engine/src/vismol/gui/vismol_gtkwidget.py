@@ -302,20 +302,18 @@ class VismolGTKWidget(_WidgetBase):
             self._scroll_remainder = 0.0
             self._scroll_unit_mode = mode
 
-        if surface:
-            # Surface deltas are logical pixels on every platform. Accumulate
-            # them into modest wheel-equivalent actions; wheel deltas remain
-            # detents. Read modifiers from this event for smooth input, which
-            # may not generate a separate key-controller transition.
-            state = controller.get_current_event_state()
-            ctrl = bool(state & Gdk.ModifierType.CONTROL_MASK)
-            shift = bool(state & Gdk.ModifierType.SHIFT_MASK)
-            modifiers = (ctrl, shift)
-            if modifiers != self._scroll_modifiers:
-                self._scroll_modifiers = modifiers
-                self._scroll_remainder = 0.0
-        else:
-            self._scroll_modifiers = None
+        # Read modifiers from the scroll event for both wheel and smooth
+        # input. A surface gesture may not generate a separate key-controller
+        # transition, and keeping this common makes modified actions independent
+        # of whether GTK reports detents or logical-pixel deltas.
+        get_state = getattr(controller, "get_current_event_state", None)
+        state = get_state() if callable(get_state) else Gdk.ModifierType(0)
+        ctrl = bool(state & Gdk.ModifierType.CONTROL_MASK)
+        shift = bool(state & Gdk.ModifierType.SHIFT_MASK)
+        modifiers = (ctrl, shift)
+        if modifiers != self._scroll_modifiers:
+            self._scroll_modifiers = modifiers
+            self._scroll_remainder = 0.0
 
         steps, self._scroll_remainder = scroll_delta_to_steps(
             dy, surface=surface, remainder=self._scroll_remainder
@@ -324,17 +322,13 @@ class VismolGTKWidget(_WidgetBase):
             # GDK's positive vertical delta means down. VisMol's legacy
             # direction convention uses -1 for down and +1 for up.
             direction = -1 if steps > 0 else 1
-            if surface:
-                saved_ctrl, saved_shift = self.vm_glcore.ctrl, self.vm_glcore.shift
-                self.vm_glcore.ctrl, self.vm_glcore.shift = ctrl, shift
-                try:
-                    for _ in range(abs(steps)):
-                        self.vm_glcore.mouse_scroll(direction)
-                finally:
-                    self.vm_glcore.ctrl, self.vm_glcore.shift = saved_ctrl, saved_shift
-            else:
+            saved_ctrl, saved_shift = self.vm_glcore.ctrl, self.vm_glcore.shift
+            self.vm_glcore.ctrl, self.vm_glcore.shift = ctrl, shift
+            try:
                 for _ in range(abs(steps)):
                     self.vm_glcore.mouse_scroll(direction)
+            finally:
+                self.vm_glcore.ctrl, self.vm_glcore.shift = saved_ctrl, saved_shift
         return True
 
     def _on_key_pressed(self, _controller, keyval, _keycode, _state):
