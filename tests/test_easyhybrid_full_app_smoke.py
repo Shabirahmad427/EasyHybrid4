@@ -19,6 +19,7 @@ _FULL_APP_CYCLE = textwrap.dedent(
     import os
     import sys
     import time
+    import faulthandler
     import numpy as np
 
     from src.os_integration.gtk_startup import configure_startup_environment
@@ -188,7 +189,8 @@ _FULL_APP_CYCLE = textwrap.dedent(
                         # readback confirms oxygen; do not depend on another
                         # periodic poll being serviced by the native backend.
                         state["pick_completion_scheduled"] = True
-                        state["pick_completion_source"] = GLib.idle_add(
+                        state["pick_completion_source"] = GLib.timeout_add(
+                            1,
                             complete_pick, main
                         )
                 return result
@@ -533,7 +535,9 @@ _FULL_APP_CYCLE = textwrap.dedent(
         )
 
     GLib.timeout_add_seconds(45, lifecycle_timeout)
+    faulthandler.dump_traceback_later(15, repeat=True)
     status = app.run([sys.argv[0], fixture])
+    faulthandler.cancel_dump_traceback_later()
     print("EASYHYBRID_FULL_APP_STATUS=%d CLOSED=%s" % (status, state.get("closed")), flush=True)
     if status != 0 or not state.get("closed"):
         raise SystemExit(2)
@@ -561,7 +565,7 @@ def test_full_app_native_pointer_test_uses_one_shared_os_dispatcher():
     assert "from gi.repository import Gdk, GLib, Graphene, Gtk" in _FULL_APP_CYCLE
     assert "inject_native_pointer(\n                    main.window, window_point.x, window_point.y" in _FULL_APP_CYCLE
     assert 'last_pick.get("picked_after") == "O"' in _FULL_APP_CYCLE
-    assert "GLib.idle_add(\n                        complete_pick, main" in _FULL_APP_CYCLE
+    assert "state[\"pick_completion_source\"] = GLib.timeout_add(\n                        1,\n                        complete_pick, main" in _FULL_APP_CYCLE
     assert 'state["completion_started"] = True' in _FULL_APP_CYCLE
     assert "EASYHYBRID_FULL_APP_PICK_COMPLETED_AFTER_POLL_TIMEOUT=True" in _FULL_APP_CYCLE
     assert "GdkX11" not in _FULL_APP_CYCLE
