@@ -290,6 +290,11 @@ _FULL_APP_CYCLE = textwrap.dedent(
                 if not mapped:
                     return fail("could not map projected atom point into main window")
                 mapped_window_point = (window_point.x, window_point.y)
+                window_offset = state.get("native_window_offset", (0.0, 0.0))
+                window_point = Graphene.Point().init(
+                    mapped_window_point[0] + window_offset[0],
+                    mapped_window_point[1] + window_offset[1],
+                )
                 native_correction = (0.0, 0.0)
                 # Correct any measured discrepancy between the OS window
                 # coordinate and the framebuffer point received by GTK. A
@@ -305,6 +310,7 @@ _FULL_APP_CYCLE = textwrap.dedent(
                 if released is not None:
                     sys.path.insert(0, os.path.join(os.path.abspath("."), "tests"))
                     from native_pointer_input import (
+                        add_window_point_offset,
                         adjust_window_point_from_gesture_feedback,
                     )
 
@@ -320,6 +326,10 @@ _FULL_APP_CYCLE = textwrap.dedent(
                         corrected[0] - window_point.x,
                         corrected[1] - window_point.y,
                     )
+                    window_offset = add_window_point_offset(
+                        window_offset, native_correction
+                    )
+                    state["native_window_offset"] = window_offset
                     window_point = Graphene.Point().init(*corrected)
                 state["native_feedback_event_count"] = len(events)
                 state["native_points"] = {

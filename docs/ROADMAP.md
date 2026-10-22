@@ -356,6 +356,16 @@ helper still rejects a click unless `WindowFromPoint` confirms the target
 window. Local Windows-native verification is unavailable; rerun the same
 focused GTK 4.8/4.10 cells before expanding coverage.
 
+The next native artifact, run `39706561091` (Windows GTK 4.8.2 / PyGObject
+3.46.0 and GTK 4.10.1 / PyGObject 3.48.1; Python 3.12.15, GLib 2.78.0),
+confirms the topmost click reaches the intended HWND. Its event trace showed
+the coordinate offset being learned and then discarded: the next attempt
+started from the base GTK mapping again, alternating between `(347,199)` and
+the corrected `(361,211)`. The harness now accumulates measured corrections
+for the entire app cycle, with a regression test that verifies a near-zero
+residual does not erase the learned offset. The GTK 4.8 native pick remains
+failed in that run; the accumulation fix needs focused Windows verification.
+
 ## 6. End-of-session report template
 
 ```text

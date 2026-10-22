@@ -137,6 +137,16 @@ clear the overlay. It temporarily raises the disposable test window to
 It still requires `WindowFromPoint` to identify the EasyHybrid window. Focused
 rerun is pending.
 
+Run `39706561091` confirmed the raised window receives the actual pointer
+events, but its GTK 4.8.2 pick trace alternated between the uncorrected
+`(347,199)` and corrected `(361,211)` positions. The harness was deriving each
+attempt from the original GTK point and replacing the learned offset with the
+latest residual; a nearly zero residual therefore erased the Windows inset
+correction. It now accumulates corrections across attempts in the same app
+cycle, with a local regression for retaining the learned offset. GTK 4.8 still
+failed in that run; the cumulative correction is awaiting focused Windows
+verification.
+
 **Current native matrix (2026-10-20):** run
 [`39485989866`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39485989866)
 completed successfully at main commit `e096a024bb2ccc0755b5ba632f1d5aa5a74a3b13`.

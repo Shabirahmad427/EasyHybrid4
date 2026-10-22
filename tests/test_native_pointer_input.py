@@ -5,6 +5,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent))
 from native_pointer_input import (
+    add_window_point_offset,
     adjust_window_point_from_gesture_feedback,
     appkit_to_quartz_point,
     logical_to_device_point,
@@ -33,6 +34,41 @@ def test_native_click_feedback_corrects_toplevel_client_offset():
         widget_size=(771, 357),
         framebuffer_size=(771, 357),
     ) == pytest.approx((627.6, 355.6))
+
+
+def test_native_click_feedback_offset_accumulates_after_calibration():
+    base = (613.3, 343.8)
+    offset = (0.0, 0.0)
+    corrected = adjust_window_point_from_gesture_feedback(
+        base[0] + offset[0],
+        base[1] + offset[1],
+        target_framebuffer_point=(361.3, 209.8),
+        observed_framebuffer_point=(347.0, 198.0),
+        widget_size=(771, 357),
+        framebuffer_size=(771, 357),
+    )
+    offset = add_window_point_offset(
+        offset, (corrected[0] - base[0], corrected[1] - base[1])
+    )
+    # A second click is already aligned. Its small residual must refine the
+    # learned offset instead of resetting the next click to the base point.
+    next_corrected = adjust_window_point_from_gesture_feedback(
+        base[0] + offset[0],
+        base[1] + offset[1],
+        target_framebuffer_point=(361.3, 209.8),
+        observed_framebuffer_point=(361.0, 210.0),
+        widget_size=(771, 357),
+        framebuffer_size=(771, 357),
+    )
+    offset = add_window_point_offset(
+        offset,
+        (next_corrected[0] - (base[0] + offset[0]),
+         next_corrected[1] - (base[1] + offset[1])),
+    )
+    assert (base[0] + offset[0], base[1] + offset[1]) == pytest.approx(
+        next_corrected
+    )
+    assert offset[0] > 14 and offset[1] > 9
 
 
 def test_native_click_feedback_accounts_for_hidpi_widget_ratio():

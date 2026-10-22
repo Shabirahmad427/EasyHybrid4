@@ -44,6 +44,13 @@ def adjust_window_point_from_gesture_feedback(
     return window_x + dx, window_y + dy
 
 
+def add_window_point_offset(
+    offset: tuple[float, float], correction: tuple[float, float]
+) -> tuple[float, float]:
+    """Accumulate measured native-window correction across click attempts."""
+    return offset[0] + correction[0], offset[1] + correction[1]
+
+
 def appkit_to_quartz_point(
     x: float,
     y: float,
