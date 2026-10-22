@@ -2,7 +2,7 @@
 
 Before **every** coding session, read `docs/ROADMAP.md` in full. Treat it as the authoritative task queue. Read `docs/EASYHYBRID4_REPORT.md` for consolidated repository, compatibility, test, and limitation status. Select the next eligible unchecked task, work incrementally, add tests, run only tests you can actually execute, and record OS/architecture and exact GTK runtime versions in the roadmap evidence log. Never claim Linux tests prove macOS/Windows support. Do not mark a task complete unless its acceptance criteria pass. Preserve scientific calculations, project compatibility and published graphics submodule reachability. Update the roadmap and consolidated report before ending.
 
-**Native GTK acceptance:** before merging an implementation to `main`, run the full `.github/workflows/native-gtk-matrix.yml`: Linux x86_64, Windows x86_64 and macOS arm64 for every released GTK4 minor from 4.8 through the supported latest; also Intel macOS cells where provisioned. The GTK component matrix must run the production menu/VisMol renderer smoke through at least 5 open/callback-pick/render/close cycles per cell (reduced from 20 on 2026-10-20 at the maintainer's request: 20 cycles cost about 4 minutes per macOS job and macOS runners queue in waves). The current harness calls the GTK gesture callbacks with test coordinates; it does not inject an OS pointer event. This isolated test window is not the EasyHybrid4 interface. Full-interface acceptance additionally must launch `EasyHybridApplication`, construct and present the real `MainWindow` with the real pDynamo3 runtime available, load a generated molecular fixture through the application session, inject a real OS pointer event through the GTK pick path, and close cleanly. Record these as separate results; do not call component-smoke evidence a full-app pass. Read the uploaded runtime artifact and confirm the actual GTK patch version, OS/architecture, Python, PyGObject and GL backend; a green job or requested matrix label alone is not version evidence. Physical GPU, Retina, trackpad and Wayland results remain separate claims.
+**Native GTK acceptance:** before merging an implementation to `main`, run the full `.github/workflows/native-gtk-matrix.yml`: Linux x86_64, Windows x86_64 and macOS arm64 for every released GTK4 minor from 4.8 through the supported latest; also Intel macOS cells where provisioned. The GTK component matrix must run the production menu/VisMol renderer smoke through at least 5 open/callback-pick/render/close cycles per cell (reduced from 20 on 2026-10-20 at the maintainer's request: 20 cycles cost about 4 minutes per macOS job and macOS runners queue in waves). The component harness calls GTK gesture callbacks with test coordinates; it does not inject an OS pointer event, and its isolated host is not the EasyHybrid4 interface. The separate full-app harness launches `EasyHybridApplication` and production `MainWindow` with real pDynamo3, loads a generated fixture, injects native OS pointer events through the production GTK pick path, and checks clean close. Keep component and full-app results separate. Read the uploaded runtime artifact and confirm the actual GTK patch version, OS/architecture, Python, PyGObject and GL backend; a green job or requested matrix label alone is not version evidence. Physical GPU, Retina, trackpad and Wayland results remain separate claims.
 
 **Failure protocol:** inspect the first failing assertion/native stack and the affected job's uploaded runtime log before starting another run. Identify whether it is application code, GTK/backend behavior, test setup or missing dependency; make one focused correction, run the smallest relevant check once, then run the full matrix once. Do not launch overlapping or repeated matrices, rerun passing cells, or push a test-only retry before understanding the failure. If CI fails, fix that failure and rerun the failed coverage in the same work sequence before adding more checks.
 
@@ -13,6 +13,27 @@ Before **every** coding session, read `docs/ROADMAP.md` in full. Treat it as the
 **macOS shader-compiler trap (verified 2026-10-20):** after a GL step that builds many new shader programs (the render validation), Apple's `CVMCompiler` service runs at 80-100% CPU for tens of seconds after the test process exits. A GTK startup in that window takes 21-44 s instead of 2-6 s and stalls in `window.present()`; it is not an EasyHybrid hang and leaves no process behind. Run timed suites before render validation (the workflow does), and do not chase it with display-sleep/App Nap changes: `pmset` already shows sleep prevented on hosted runners (disproved in `39342373577`). Windows GTK 4.20+ and macOS ignore `GDK_SCALE`; HiDPI evidence there is NOT TESTED. NumPy 2 removed `ndarray.ptp()`; use `np.ptp`.
 
 **macOS GTK 4.24 full-app centering test (verified 2026-10-20):** the macOS arm64 full-app harness previously timed out waiting for three (then two) repeated GLib timer samples, even though its one-step test centering animation had reached the target (`centering_residual=0`, `transform_delta=0`). macOS polling cadence produced only one repeated sample in that interval. This was a test synchronization assumption, not a GTK 4.24 or renderer failure. The harness now gates on the actual centered residual and transform delta, and focused run `39476612300` passed the full app and all five-cycle scene checks at GTK 4.24.1 / Apple Software Renderer. Keep the test-only one-step centering setup; do not restore a fixed count of timer samples.
+
+**macOS GTK 4.24 native-pick poll delay (diagnosed 2026-10-22):** matrix run
+[`39713404036`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39713404036)
+passed 29/30 cells; macOS arm64 GTK 4.24.1's failed full-app cycle had a
+completed Quartz HID click and a GL pick render that read oxygen (`O`), while
+the lifecycle poll did not advance to close before its watchdog. Focused run
+[`39714957617`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39714957617)
+confirmed the completed readback and clean close in all five cycles using a
+watchdog fallback, but showed that fallback could cost 45 seconds per cycle.
+The follow-up [`39715844952`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39715844952)
+had two cycles close through the verified pick path and one later subprocess
+hit its 60-second limit. The harness now schedules a default-priority 1 ms
+GLib callback immediately after the real GL pick render records oxygen, with
+the verified-readback watchdog fallback retained. Focused run
+[`39716542528`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39716542528)
+passed all five native macOS arm64 GTK 4.24.1 Quartz click/pick/render/close
+cycles; three completed through the render callback and two required the
+watchdog path. Its artifact reports Python 3.12.15, PyGObject 3.58.1, GLib
+2.90.0 and Apple Software Renderer/OpenGL 4.1. Keep the fallback: macOS may
+delay the periodic poll after a completed GL readback. The full matrix must be
+rerun on the latest fix before merge.
 
 **macOS Quartz native pointer (verified 2026-10-22):** focused run
 [`39707517301`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39707517301)

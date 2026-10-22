@@ -2,6 +2,26 @@
 
 **Report date:** 2026-10-22
 
+**Latest native full-matrix status (2026-10-22):** matrix run
+[`39713404036`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39713404036)
+passed **29/30** native platform/version cells. Its only failure was the
+macOS arm64 GTK 4.24.1 full-app lifecycle step. The uploaded artifact showed
+that native Quartz input reached the production GL pick pass and selected
+oxygen (`O`); a 50 ms lifecycle poll did not observe the completed pick before
+the watchdog. The test now schedules clean close through a default-priority
+1 ms GLib callback directly after render records the completed pick, retaining
+a watchdog that closes only when both the recorded pick render and live core
+confirm oxygen. The focused corrected run
+[`39716542528`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39716542528)
+passed five native app cycles, five component scene cycles, the complete
+regression suite and render validation on macOS 14.8.9 arm64, Python 3.12.15,
+PyGObject 3.58.1, GTK 4.24.1, GLib 2.90.0 and Apple Software Renderer/OpenGL
+4.1. Three app cycles closed from the completed-render callback; two used the
+verified-readback watchdog fallback. Run `39715844952` is an intermediate
+focused failure: two cycles closed after a successful pick and a later cycle
+hit its 60-second subprocess limit. The full matrix has not yet been rerun on
+the latest correction; EH4-202 remains open pending that matrix.
+
 **Windows GTK 4.20 repeated-launch pointer failure (2026-10-22):** full
 matrix run [`39708415015`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39708415015)
 revealed a failure on Windows Server 2022 x86_64, Python 3.12.15, PyGObject
@@ -294,10 +314,9 @@ selection VAO now binds its radius/instance attributes to the selection
 program (fix from the Codex session); run `39321285586` passed **30/30**
 with it. Only a static test covers it; a real-context spheres pick is pending.
 The image-difference, resize and capability checks are now present and pass in
-the native matrix (see run `39485989866`). EH4-202 remains unchecked for the
-separate full-interface/native-pointer acceptance: hosted full-app picks still
-invoke GTK callbacks with synthetic coordinates, and full-app coverage does not
-cover every GTK/platform cell.
+the native matrix (see run `39485989866`). That run's separate full-app picks
+used synthetic coordinates; newer native OS pointer evidence and the latest
+full-matrix status are recorded at the beginning of this report.
 
 **Full-interface coverage:** the opt-in `tests/test_easyhybrid_full_app_smoke.py`
 launches `EasyHybridApplication`, constructs the production `MainWindow`, loads
@@ -307,12 +326,11 @@ and closes. Linux X11/GTK 4.14.5/Python 3.12.3/PyGObject 3.48.2/GLib 2.80.0/
 NVIDIA passed 20/20 cycles in the earlier local run and five cycles with the
 current centering gate. Windows GTK 4.8.2 and 4.10.1 passed five cycles each in
 focused run `39450153293`. macOS arm64 GTK 4.24.1/Python 3.12.15/PyGObject
-3.58.1/GLib 2.90.0/Apple Software Renderer passed five cycles in focused run
-`39476612300`, with the complete regression suite passing 101 tests and
-skipping 6. These runs use synthetic GTK callback coordinates, not
-OS-injected pointer events. Full-app runs do not cover every GTK minor/platform
-pair; the separate component matrix must not be represented as full-app
-coverage. A pDynamo import without a system label also exposed and fixed a
+3.58.1/GLib 2.90.0/Apple Software Renderer passed five synthetic-coordinate
+cycles in focused run `39476612300`. Those earlier cycles did not inject OS
+events. Newer native XTest/Win32/Quartz evidence is summarized at the beginning
+of this report; full-app coverage still does not span every GTK minor/platform
+pair. A pDynamo import without a system label also exposed and fixed a
 production display-name fallback to the loaded coordinate file's basename.
 
 The full-app harness has an opt-in native pointer path. On Linux/X11 it uses
@@ -323,10 +341,12 @@ scene rendered, and each window closed cleanly (Python 3.12.3, PyGObject
 Windows implementation uses Win32 client-to-screen conversion and mouse
 events. The macOS implementation maps the GTK widget point through AppKit and
 posts Quartz HID events; its CI environment installs PyObjC Cocoa/Quartz.
-Workflow checks now request the native path on all desktop OSes. The Windows
-and macOS injection paths and all GTK/platform combinations for this change
-are **NOT TESTED**. Focused local helper/workflow tests pass 11/11, including
-pure coordinate conversion cases; these do not prove native OS injection.
+Workflow checks now request the native path on all desktop OSes. Windows and
+macOS native injection have since passed in the focused cells listed at the
+beginning of this report; full-app pointer coverage for all GTK/platform
+combinations remains **NOT TESTED** until the latest full matrix passes.
+Focused helper/workflow tests validate coordinate conversion but do not
+substitute for native OS injection.
 The full matrix for the initial Linux harness change failed GTK 4.8.2/Linux: the real
 XTest click reached the release handler, where `GestureClick.get_current_event()`
 raised `TypeError: No means to translate argument or return value for
