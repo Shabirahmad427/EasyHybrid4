@@ -14,6 +14,7 @@ on:
           - all
           - linux-gtk48
           - windows-legacy
+          - windows-gtk420
           - macos-diagnostic
           - macos-gtk424
           - windows
@@ -36,14 +37,14 @@ jobs:
       fail-fast: false
       max-parallel: 9
       matrix:
-        os: ${{ fromJSON(inputs.scope == 'linux-gtk48' && '["linux-x86_64"]' || (inputs.scope == 'windows-legacy' || inputs.scope == 'windows') && '["windows-x86_64"]' || (inputs.scope == 'macos-diagnostic' || inputs.scope == 'macos-gtk424') && '["macos-arm64"]' || '["linux-x86_64", "windows-x86_64", "macos-arm64"]') }}
-        gtk: ${{ fromJSON(inputs.scope == 'linux-gtk48' && '["4.8"]' || inputs.scope == 'windows-legacy' && '["4.8", "4.10"]' || inputs.scope == 'macos-gtk424' && '["4.24"]' || '["4.8", "4.10", "4.12", "4.14", "4.16", "4.18", "4.20", "4.22", "4.24"]') }}
+        os: ${{ fromJSON(inputs.scope == 'linux-gtk48' && '["linux-x86_64"]' || (inputs.scope == 'windows-legacy' || inputs.scope == 'windows' || inputs.scope == 'windows-gtk420') && '["windows-x86_64"]' || (inputs.scope == 'macos-diagnostic' || inputs.scope == 'macos-gtk424') && '["macos-arm64"]' || '["linux-x86_64", "windows-x86_64", "macos-arm64"]') }}
+        gtk: ${{ fromJSON(inputs.scope == 'linux-gtk48' && '["4.8"]' || inputs.scope == 'windows-legacy' && '["4.8", "4.10"]' || inputs.scope == 'windows-gtk420' && '["4.20"]' || inputs.scope == 'macos-gtk424' && '["4.24"]' || '["4.8", "4.10", "4.12", "4.14", "4.16", "4.18", "4.20", "4.22", "4.24"]') }}
         # conda-forge publishes no GTK 4.16/4.18 builds, and GTK 4.8/4.10 only
         # for osx-64. Those cells are covered by the distro, MSYS2 and
         # source-build jobs below; GTK 4.8/4.10 also run here on Intel macOS.
         # Focused Windows dispatches must not also add Intel macOS cells.
         include: >-
-          ${{ fromJSON((inputs.scope == 'linux-gtk48' || inputs.scope == 'windows' || inputs.scope == 'windows-legacy' || inputs.scope == 'macos-diagnostic' || inputs.scope == 'macos-gtk424') && '[]' || '[{"os": "macos-x86_64", "gtk": "4.8"}, {"os": "macos-x86_64", "gtk": "4.10"}]') }}
+          ${{ fromJSON((inputs.scope == 'linux-gtk48' || inputs.scope == 'windows' || inputs.scope == 'windows-legacy' || inputs.scope == 'windows-gtk420' || inputs.scope == 'macos-diagnostic' || inputs.scope == 'macos-gtk424') && '[]' || '[{"os": "macos-x86_64", "gtk": "4.8"}, {"os": "macos-x86_64", "gtk": "4.10"}]') }}
         exclude:
           - os: linux-x86_64
             gtk: "4.16"

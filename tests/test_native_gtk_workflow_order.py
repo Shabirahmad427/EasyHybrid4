@@ -36,6 +36,15 @@ def test_failed_linux_gtk48_cell_can_be_dispatched_alone():
     assert workflow.count("inputs.scope != 'linux-gtk48'") == 3
 
 
+def test_failed_windows_gtk420_cell_can_be_dispatched_alone():
+    workflow = (ROOT / ".github" / "workflows" / "native-gtk-matrix.yml").read_text()
+
+    assert "- windows-gtk420" in workflow
+    assert "inputs.scope == 'windows-gtk420') && '[\"windows-x86_64\"]'" in workflow
+    assert "inputs.scope == 'windows-gtk420' && '[\"4.20\"]'" in workflow
+    assert workflow.count("inputs.scope == 'windows-gtk420'") == 3
+
+
 def test_full_app_timeout_reports_gtk_scene_progress():
     smoke = (ROOT / "tests" / "test_easyhybrid_full_app_smoke.py").read_text()
 
