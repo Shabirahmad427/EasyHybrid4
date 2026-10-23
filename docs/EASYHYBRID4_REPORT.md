@@ -155,6 +155,15 @@ remain pending.
 EH4-204 remains unchecked. Index-selection and invert changes pass focused
 unit coverage but are not yet exercised by the full-app scenario.
 
+**EH4-204 `.easy` round trip (2026-10-23; partial):** commit `aeeb4e7` makes
+the real-app fixture save a `.easy` session, corrupt the live camera, reopen
+it and require restored camera matrices plus a rendered scene. This passed
+5/5 native-pointer cycles on Linux X11 GTK 4.24.1 (NVIDIA, EGL). GTK 4.24.1
+rejects `GDK_DEBUG=gl-glx` and its X11 GLArea context is EGL, so forcing
+PyOpenGL GLX left no current context. Startup now defaults to EGL there.
+Repository branches were archived as `archive/<branch>` tags on 2026-10-23.
+The all-platform/all-minor matrix run `40042467519` is pending.
+
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
 used GTK 4.24.1 / GLib 2.90.0 / PyGObject 3.58.1 / Python 3.12.15 on
