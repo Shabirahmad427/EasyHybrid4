@@ -15,7 +15,8 @@ app; `configure_gl_context_environment()` defaults GTK >= 4.24 X11 to EGL.
 
 **Branch hygiene (2026-10-23):** use one branch per roadmap task and reuse it
 for every retry or matrix rerun; do not create `-stacked`/`-full-matrix`
-variants. Old branches are preserved as `archive/<branch>` tags.
+variants. Never delete existing task branches: the maintainer wants each
+one's work fixed and merged to `main` (one PR and full native matrix per task).
 
 **GTK widget-test build ordering (verified 2026-10-22):**
 `test_gtk4_widget_patterns.py` imports the production VisMol GTK widget, which

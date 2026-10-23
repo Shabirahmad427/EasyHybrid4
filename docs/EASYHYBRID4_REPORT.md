@@ -161,7 +161,6 @@ it and require restored camera matrices plus a rendered scene. This passed
 5/5 native-pointer cycles on Linux X11 GTK 4.24.1 (NVIDIA, EGL). GTK 4.24.1
 rejects `GDK_DEBUG=gl-glx` and its X11 GLArea context is EGL, so forcing
 PyOpenGL GLX left no current context. Startup now defaults to EGL there.
-Repository branches were archived as `archive/<branch>` tags on 2026-10-23.
 The all-platform/all-minor matrix run `40042467519` is pending.
 
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
