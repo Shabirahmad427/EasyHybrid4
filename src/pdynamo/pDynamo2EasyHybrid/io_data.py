@@ -303,38 +303,50 @@ class LoadAndSaveData:
         is saved by the user, the interface checks if there is a 
         temporary file and deletes it.
         """
-        if tmp:
-            
-            #.Saves a temporary file with the same name as the original session + "~"
-            if filename:
-                tmpfile = filename+'~'
-                with open(tmpfile,'wb') as outfile:
+        # GTK model rows are attached to live pDynamo systems for the UI but
+        # cannot be serialized into a .easy session. Detach these references
+        # only while pickling, then restore them even if serialization fails.
+        missing = object()
+        try:
+            for data in easyhybrid_session_data['systems']:
+                system = data['system']
+                tree_row = getattr(system, 'tree_row', missing)
+                choice_row = getattr(system, 'system_choice_row', missing)
+                backup[id(system)] = (system, tree_row, choice_row)
+                if tree_row is not missing:
+                    system.tree_row = None
+                if choice_row is not missing:
+                    system.system_choice_row = None
+
+            if tmp:
+                # Save a temporary file beside the named session, or under
+                # the configured temporary directory for an unsaved session.
+                if filename:
+                    tmpfile = filename + '~'
+                else:
+                    tmpfile = os.path.join(
+                        self.vm_session.vm_config.easyhybrid_tmp,
+                        self.random_code + '.easy',
+                    )
+                with open(tmpfile, 'wb') as outfile:
                     pickle.dump(easyhybrid_session_data, outfile)
-            
-            #.Saves a temporary file when there is no previous session name.
             else:
-                tmpfile = os.path.join(self.vm_session.vm_config.easyhybrid_tmp, 
-                                       self.random_code+'.easy')
-                with open(tmpfile,'wb') as outfile:
+                with open(filename, 'wb') as outfile:
                     pickle.dump(easyhybrid_session_data, outfile)
-                
-
-
-        else:
-            with open(filename,'wb') as outfile:
-                pickle.dump(easyhybrid_session_data, outfile)
                 self.changed = False
-            if os.path.exists(filename+'~'):
-                os.remove(filename+'~')
-            else:
-                pass
+                if os.path.exists(filename + '~'):
+                    os.remove(filename + '~')
+        finally:
+            for system, tree_row, choice_row in backup.values():
+                if tree_row is not missing:
+                    system.tree_row = tree_row
+                elif hasattr(system, 'tree_row'):
+                    del system.tree_row
+                if choice_row is not missing:
+                    system.system_choice_row = choice_row
+                elif hasattr(system, 'system_choice_row'):
+                    del system.system_choice_row
         #---------------------------------------------------------------
-            
-        for e_id, data in backup.items():
-            pass
-            #self.psystem[e_id]
-            #self.psystem[e_id].tree_row   = data[0]
-            #self.psystem[e_id].system_choice_row  = data[1]
         
         self.main.session_filename = filename
         
