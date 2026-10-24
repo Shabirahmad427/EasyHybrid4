@@ -524,6 +524,12 @@ OpenGL 4.5 Core. The pDynamo3 source/build revision
 not installed in the GTK environment. This is Linux GTK 4.14.5 evidence only;
 Windows/macOS native pointer injection and full-app tests on other GTK/platform
 cells remain **NOT TESTED**.
+**CI quality gate update (2026-10-20):** the native matrix now runs Python
+`compileall` across `src/` and `tests/`, then repo-wide Ruff critical checks
+(`E9,F63,F7`) in every GTK runtime job. Local Linux validation passed. The
+updated hosted jobs have not yet run. Existing matrix steps already build
+graphics extensions and pDynamo3, perform pDynamo imports, run tests, and
+upload per-cell logs; no static type checker is configured yet.
 
 **EH4-202 input-picking history and current acceptance state.** GTK
 pointer events arrive in widget-local logical units, while VisMol pick reads
@@ -1271,7 +1277,7 @@ migration is claimed but end-to-end behavior is not demonstrated.
 | AutoDock Vina / AutoDock-GPU setup-run-import | **UNIMPLEMENTED** | EasyHybrid3 report and dialogs identify both; no EasyHybrid4 front ends/actions were found. |
 | NAMD/SMD, AMBER `tleap`, Packmol, Antechamber preparation dialogs | **UNIMPLEMENTED** | EasyHybrid3 front ends are absent. Packmol-style solvent placement is not a replacement for these dialogs. |
 | Scientific system/script exports and simulation output files | **UNTESTED** | Export code exists, but schemas/restarts/numerical outputs lack fixture comparisons. |
-| Process manager, job lifecycle, recent files, project/session management | **UNTESTED** | Source exists; process and restart lifecycle were not exercised. |
+| Process manager, job lifecycle, recent files, project/session management | **PARTIAL** | Two helper regressions verify process-tree SIGTERM dispatch and nonblocking GLib abort polling. Live job execution/cancellation, exception propagation, restart lifecycle and cross-platform behavior remain untested. |
 
 EasyHybrid3's detailed implementation report was inspected read-only at
 `~/software/EasyHybrid3/docs/EASYHYBRID3_IMPLEMENTATION_REPORT.md`.
