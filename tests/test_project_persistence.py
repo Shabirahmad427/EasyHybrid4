@@ -11,20 +11,13 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 
-pytestmark = pytest.mark.skipif(
-    not os.environ.get("PDYNAMO3_HOME"),
-    reason="requires the pDynamo3 runtime used by project persistence",
-)
-
-
 def _project_io():
-    pytest.importorskip("pBabel")
-    from pdynamo.pDynamo2EasyHybrid.io_data import (
-        PROJECT_FORMAT_VERSION,
-        _read_project_payload,
+    from pdynamo.pDynamo2EasyHybrid.project_file import (
+        CURRENT_PROJECT_FORMAT,
+        read_project_file,
     )
 
-    return PROJECT_FORMAT_VERSION, _read_project_payload
+    return CURRENT_PROJECT_FORMAT, read_project_file
 
 
 def test_project_payload_round_trip_and_legacy_version(tmp_path):

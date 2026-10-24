@@ -60,7 +60,12 @@ def test_reaction_coordinate_uses_real_pdynamo_coordinates():
     ) == pytest.approx((1.0, 3.0))
 
 
+@pytest.mark.skipif(
+    not os.environ.get("PDYNAMO3_HOME"),
+    reason="requires the pDynamo3 runtime imported by the export dialog",
+)
 def test_simulation_export_script_covers_supported_simulation_types(tmp_path):
+    pytest.importorskip("pBabel")
     from gui.windows.setup.windows_and_dialogs.dialogs.export_dialogs import (
         build_simulation_script,
     )
@@ -91,7 +96,12 @@ def test_simulation_export_script_covers_supported_simulation_types(tmp_path):
             assert "Unpickle(parameters['prod_coordinates'])" in script
 
 
+@pytest.mark.skipif(
+    not os.environ.get("PDYNAMO3_HOME"),
+    reason="requires the pDynamo3 runtime imported by the export dialog",
+)
 def test_simulation_export_rejects_unknown_type():
+    pytest.importorskip("pBabel")
     from gui.windows.setup.windows_and_dialogs.dialogs.export_dialogs import (
         build_simulation_script,
     )

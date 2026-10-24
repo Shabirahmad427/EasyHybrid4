@@ -28,7 +28,7 @@ def test_session_pickle_restores_live_tree_rows_when_write_fails(tmp_path, monke
     rows = (system.tree_row, system.system_choice_row)
     session_data = {"systems": [{"system": system}]}
 
-    def fail_dump(_data, _stream):
+    def fail_dump(_data, _stream, **_kwargs):
         assert system.tree_row is None
         assert system.system_choice_row is None
         raise OSError("simulated disk-full failure")

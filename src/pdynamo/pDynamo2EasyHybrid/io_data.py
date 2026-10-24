@@ -55,6 +55,7 @@ import random
 import string
 
 from pprint import pprint
+from pdynamo.pDynamo2EasyHybrid.project_file import read_project_file, write_project_file
 
 #VISMOL_HOME = os.environ.get('VISMOL_HOME')
 
@@ -74,28 +75,6 @@ from vismol.model.atom import Atom
 #print ('\n\n\n\n\n\nATOM',Atom,'\n\n\n\n\n\nATOM')
 from logging import getLogger
 logger = getLogger(__name__)
-
-PROJECT_FORMAT_VERSION = 1
-
-
-def _read_project_payload(filename):
-    """Read and validate a project before mutating the active application."""
-    with open(filename, "rb") as project_file:
-        payload = pickle.load(project_file)
-    if not isinstance(payload, dict):
-        raise ValueError("Invalid EasyHybrid project: expected a mapping")
-    version = payload.get("format_version", 0)
-    if not isinstance(version, int) or version < 0 or version > PROJECT_FORMAT_VERSION:
-        raise ValueError("Unsupported EasyHybrid project format version: {!r}".format(version))
-    systems = payload.get("systems")
-    if not isinstance(systems, list):
-        raise ValueError("Invalid EasyHybrid project: systems must be a list")
-    for index, system_data in enumerate(systems):
-        if not isinstance(system_data, dict) or "system" not in system_data or not isinstance(
-            system_data.get("vobjects"), list
-        ):
-            raise ValueError("Invalid EasyHybrid project: malformed system entry {}".format(index))
-    return payload
 
 #---------------------------------------
 from pBabel                    import*                                     
@@ -205,8 +184,7 @@ class LoadAndSaveData:
                     system.tree_row = None
                 if choice_row is not missing:
                     system.system_choice_row = None
-            with open(filename, 'wb') as outfile:
-                pickle.dump(easyhybrid_session_data, outfile)
+            write_project_file(filename, easyhybrid_session_data)
         finally:
             for system, tree_row, choice_row in backup:
                 if tree_row is not missing:
@@ -222,7 +200,6 @@ class LoadAndSaveData:
         temporary file and deletes it.
         """
         easyhybrid_session_data = {}
-        easyhybrid_session_data['format_version'] = PROJECT_FORMAT_VERSION
         backup = {}
         
         '''- - - - - - - - - - pDynamo systems - - - - - - - - - - - '''
@@ -402,12 +379,12 @@ class LoadAndSaveData:
     def load_easyhybrid_serialization_file (self, filename = None, tmp = False):
         if filename is None:
             return None
-        # Validate/deserialise first: corrupt or newer files must not clear the
-        # currently open project as a side effect of a failed load.
-        easyhybrid_session_data = _read_project_payload(filename)
+        # Read and validate before clearing the current session. A truncated,
+        # corrupt, or newer-format file must not destroy the live project.
+        easyhybrid_session_data = read_project_file(filename)
         self.main.restart()
-        self.main.bottom_notebook.status_teeview_add_new_item(message = ':  {}  loaded'.format(filename),
-                                                               system = None)
+        self.main.bottom_notebook.status_teeview_add_new_item(
+            message=':  {}  loaded'.format(filename), system=None)
         #print(easyhybrid_session_data)
         
         '''- - - - - - - - - - camera/view orientation - - - - - - - - - - '''
