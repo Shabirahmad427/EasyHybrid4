@@ -165,6 +165,33 @@ class LoadAndSaveData:
             logger.warning('Autosave failed: %s', e)
         self.autosave_change_counter = 0
 
+    def _write_session_pickle (self, filename, easyhybrid_session_data):
+        """ Pickle a session without its live GTK model rows.
+
+            GTK rows are attached to pDynamo systems for the UI but cannot be
+            serialized. Detach them only while pickling, then restore them
+            even if serialization fails. """
+        missing = object()
+        backup = []
+        try:
+            for data in easyhybrid_session_data['systems']:
+                system = data['system']
+                tree_row = getattr(system, 'tree_row', missing)
+                choice_row = getattr(system, 'system_choice_row', missing)
+                backup.append((system, tree_row, choice_row))
+                if tree_row is not missing:
+                    system.tree_row = None
+                if choice_row is not missing:
+                    system.system_choice_row = None
+            with open(filename, 'wb') as outfile:
+                pickle.dump(easyhybrid_session_data, outfile)
+        finally:
+            for system, tree_row, choice_row in backup:
+                if tree_row is not missing:
+                    system.tree_row = tree_row
+                if choice_row is not missing:
+                    system.system_choice_row = choice_row
+
     def save_easyhybrid_session (self, filename = 'session.easy', tmp = False):
         """   
         When the interface makes some modification to the session, 
@@ -303,49 +330,22 @@ class LoadAndSaveData:
         is saved by the user, the interface checks if there is a 
         temporary file and deletes it.
         """
-        # GTK model rows are attached to live pDynamo systems for the UI but
-        # cannot be serialized into a .easy session. Detach these references
-        # only while pickling, then restore them even if serialization fails.
-        missing = object()
-        try:
-            for data in easyhybrid_session_data['systems']:
-                system = data['system']
-                tree_row = getattr(system, 'tree_row', missing)
-                choice_row = getattr(system, 'system_choice_row', missing)
-                backup[id(system)] = (system, tree_row, choice_row)
-                if tree_row is not missing:
-                    system.tree_row = None
-                if choice_row is not missing:
-                    system.system_choice_row = None
-
-            if tmp:
-                # Save a temporary file beside the named session, or under
-                # the configured temporary directory for an unsaved session.
-                if filename:
-                    tmpfile = filename + '~'
-                else:
-                    tmpfile = os.path.join(
-                        self.vm_session.vm_config.easyhybrid_tmp,
-                        self.random_code + '.easy',
-                    )
-                with open(tmpfile, 'wb') as outfile:
-                    pickle.dump(easyhybrid_session_data, outfile)
+        if tmp:
+            # Save a temporary file beside the named session, or under
+            # the configured temporary directory for an unsaved session.
+            if filename:
+                tmpfile = filename + '~'
             else:
-                with open(filename, 'wb') as outfile:
-                    pickle.dump(easyhybrid_session_data, outfile)
-                self.changed = False
-                if os.path.exists(filename + '~'):
-                    os.remove(filename + '~')
-        finally:
-            for system, tree_row, choice_row in backup.values():
-                if tree_row is not missing:
-                    system.tree_row = tree_row
-                elif hasattr(system, 'tree_row'):
-                    del system.tree_row
-                if choice_row is not missing:
-                    system.system_choice_row = choice_row
-                elif hasattr(system, 'system_choice_row'):
-                    del system.system_choice_row
+                tmpfile = os.path.join(
+                    self.vm_session.vm_config.easyhybrid_tmp,
+                    self.random_code + '.easy',
+                )
+            self._write_session_pickle(tmpfile, easyhybrid_session_data)
+        else:
+            self._write_session_pickle(filename, easyhybrid_session_data)
+            self.changed = False
+            if os.path.exists(filename + '~'):
+                os.remove(filename + '~')
         #---------------------------------------------------------------
         
         self.main.session_filename = filename
