@@ -30,14 +30,18 @@ PR #9's EH4-402 scientific
 coverage passed 26 headless tests with no skips in all 30 native matrix cells
 (`40112239125`) and is merged. The compiler-output cache is configured for the
 macOS GTK source builds and Windows MSYS2 GTK 4.16/4.18 builds; hosted cold/warm
-cache behavior and timing reduction remain **NOT TESTED**. The first EH4-500
-workflow attempt (`40123686791`) was rejected before jobs started because
-`runner.temp` was referenced in job-level `env`; `CCACHE_DIR` now comes from
-`$RUNNER_TEMP` inside the macOS build step, matching the Windows step. Focused
-workflow regressions pass locally; hosted source-build checks and the full
-EH4-500 matrix are still pending. EH4-200 provenance, EH4-203 physical
-trackpad review, EH4-301 clipboard/accessibility, and packaging tasks remain
-open.
+cache behavior has been measured in sequential cold/warm focused runs
+(`40126461301`, `40127443099`), each passing all six source-build cells. Warm
+artifacts report cache restore in every cell and 99.46–99.62% compiler-cache
+hits; source-build steps fell from 159–446 seconds cold to 24–57 seconds warm
+(78–91% reduction). Exact GTK patches, OS/architecture, Python, PyGObject,
+GLib and renderers are recorded in `ROADMAP.md`. The first EH4-500 workflow
+attempt (`40123686791`) was rejected before jobs started because `runner.temp`
+was referenced in job-level `env`; commit `5d6edf5` moves `CCACHE_DIR` to
+`$RUNNER_TEMP` inside the build steps. Local workflow regressions pass, but the
+required full 30-cell PR matrix remains pending. EH4-200 provenance, EH4-203
+physical trackpad review, EH4-301 clipboard/accessibility, and packaging tasks
+remain open.
 
 **EH4-405 batch PR #6 matrix status:** corrected head `341a7cc`, merged as
 `b676d00`, passed full matrix
@@ -1425,8 +1429,10 @@ run the full supported GTK-version matrix. The plan job skips a `main` push
 when its tree is already covered by the merged PR, or when only Markdown
 changed; it does not skip code pushes. Compiler-output caching for the macOS
 GTK source builds and Windows MSYS2 GTK 4.16/4.18 builds is implemented on the
-EH4-500 branch but remains **NOT TESTED** until the cache-specific workflow
-dispatch and full matrix run. The cache excludes installed GTK prefixes.
+EH4-500 branch. Focused cold/warm runs `40126461301` and `40127443099` passed
+all six source-build cells; warm artifacts show 99.46–99.62% ccache hits and
+GTK build-step reductions of 78–91%. The cache excludes installed GTK
+prefixes. The full 30-cell PR matrix is still required before merge.
 
 The workflow does not replace dated manual checks for macOS Retina/trackpad or
 physical GPUs; those remain separate native-hardware evidence.
