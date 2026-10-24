@@ -237,6 +237,18 @@ _FULL_APP_CYCLE = textwrap.dedent(
         print("EASYHYBRID_FULL_APP_GL_VERSION=%s" % state["gl_version"].decode("ascii", "replace"), flush=True)
         print("EASYHYBRID_FULL_APP_GL_RENDERER=%s" % state["gl_renderer"].decode("utf-8", "replace"), flush=True)
 
+        # EH4-601: the About dialog's report from the production GLArea.
+        from src.os_integration.diagnostics import collect_diagnostics
+
+        report = collect_diagnostics(gl_area=main.vm_session.vm_widget)
+        if report["OpenGL"].startswith("unavailable") or report["GTK"].startswith("unavailable"):
+            return fail("diagnostic report missing GL/GTK details: %r" % report)
+        print(
+            "EASYHYBRID_FULL_APP_DIAGNOSTICS=GTK %s; GL %s; %s; %s"
+            % (report["GTK"], report["OpenGL"], report["GL renderer"], report["GDK backend"]),
+            flush=True,
+        )
+
         # Exercise the actual .easy serializer and loader with a generated
         # filename. Corrupt the live camera after saving so reopening must
         # restore the serialized view, then require a real scene render.
@@ -915,6 +927,7 @@ def test_real_easyhybrid_application_mainwindow_load_render_pick_close():
             assert "EASYHYBRID_FULL_APP_SYSTEM_LABEL=water" in result.stdout
             assert "EASYHYBRID_FULL_APP_ATOMS=3" in result.stdout
             assert "EASYHYBRID_FULL_APP_SCENE_DRAWS=" in result.stdout
+            assert "EASYHYBRID_FULL_APP_DIAGNOSTICS=GTK " in result.stdout
             assert "EASYHYBRID_FULL_APP_STATUS=0 CLOSED=True" in result.stdout
             assert "Traceback" not in result.stderr
             assert "CRITICAL" not in result.stderr

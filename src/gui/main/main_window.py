@@ -1574,6 +1574,14 @@ class MainWindow:
                 'Martin John Field',
             ])
             dialog.set_license_type(Gtk.License.GPL_3_0)
+            # "System" tab: runtime/GL/pDynamo versions for bug reports. The
+            # collector never raises, even without a realized GL context.
+            from src.os_integration.diagnostics import collect_diagnostics, format_diagnostics
+
+            dialog.set_system_information(format_diagnostics(collect_diagnostics(
+                app_home=self.home,
+                gl_area=getattr(self.vm_session, "vm_widget", None),
+            )))
             logo_path = os.path.join(self.home, 'src/gui/icons/easyhybrid_solo_100x100.png')
             if os.path.isfile(logo_path):
                 dialog.set_logo(GdkPixbuf.Pixbuf.new_from_file(logo_path))
