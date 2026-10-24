@@ -109,6 +109,7 @@ scales. The scale test reported `scale_applied=false` and widget scale factor
 1, so this does not establish Retina/HiDPI support. This focused result was
 superseded by matrix `39717469974`, which passed native pointer cycles in all
 configured macOS arm64 GTK minors and Intel macOS GTK 4.8/4.10.
+**Report date:** 2026-10-21
 
 **Purpose:** One consolidated source for repository, architecture, dependency,
 GTK/Python compatibility, parity, platform, testing, and known-limitation
@@ -1261,6 +1262,8 @@ migration is claimed but end-to-end behavior is not demonstrated.
 | GTK widget startup/lifecycle | **BROKEN (diagnostic observed)** | User-provided launch output showed two `gtk_box_remove` parent assertion critical messages. Visible impact and responsible removal path are unknown. |
 | System import, force-field assignment, merge/prune, trajectory import, `.easy` save/load | **PARTIAL** | Project writes now use atomic replacement and a versioned payload; readers accept legacy unversioned files and reject unsupported future versions before application restart. Five file-level regressions pass, including corrupt-read and simulated-write failure preservation. Full session/system/camera/vobject round trips and historical project migrations remain untested. |
 | MM/QC/QC-MM setup and calculations | **UNTESTED** | Setup modules and pDynamo dispatch exist; no calculation-level comparison was run. |
+| System import, force-field assignment, merge/prune, trajectory import, `.easy` save/load | **UNTESTED** | Matching dialogs/session/serialization code exists; no representative import or project round-trip fixture was run. |
+| MM/QC/QC-MM setup and calculations | **PARTIAL** | Opt-in pDynamo regressions in `tests/test_pdynamo_mm_workflow.py` pass a 3-atom water DYFF energy/minimization reference (initial `5.104425761412759`, minimized `0.0010421253750697622`) and AM1/MNDO single-point reference (`-247.65607705020375`, coordinates unchanged within `1e-12 Å`). These call pDynamo APIs directly; EasyHybrid settings dispatch, QC/MM, and cross-platform numerical comparison remain untested. |
 | Single point, optimization, MD, normal modes, transition-state search | **UNTESTED** | GTK4 windows and dispatch are present; no sample scientific output comparison. |
 | PES scans, umbrella sampling, WHAM, NEB/reaction paths, CPR | **PARTIAL** | Opt-in `tests/test_reaction_coordinate_workflow.py` verifies simple/chained/paired distances with fake and compiled pDynamo3 coordinates, and compiles generated script text/checks class dispatch for relaxed/advanced scans, umbrella sampling and NEB (**4 passed**). NEB generated scripts now load exported coordinate pickle files. Actual scan/path/umbrella/WHAM calculations, exported script execution, and native GTK export UI remain untested. |
 | RDF, density, RMSD/RMSF, Ramachandran, surfaces, trajectory analysis | **UNTESTED** | Modules exist; no representative analysis-result fixtures were run. |
