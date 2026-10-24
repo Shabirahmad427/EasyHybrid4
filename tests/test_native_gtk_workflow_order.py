@@ -119,3 +119,20 @@ def test_full_app_matrix_injects_native_pointer_on_all_desktop_oses():
     assert pointer.index('user32.SetForegroundWindow(hwnd)', pointer.index('def prepare_target')) < pointer.index(
         'user32.SetWindowPos(hwnd, topmost', pointer.index('def prepare_target')
     )
+
+
+def test_every_provider_runs_pdynamo_scientific_tests_without_a_display():
+    workflow = (ROOT / ".github" / "workflows" / "native-gtk-matrix.yml").read_text()
+    runner = (ROOT / ".github" / "scripts" / "run_scientific_tests.py").read_text()
+
+    # One step per provider job (conda, Linux distro, MSYS2, macOS source),
+    # each after its pDynamo3 build and before the full-app step.
+    assert workflow.count(".github/scripts/run_scientific_tests.py") == 4
+    for job in ("gtk-runtime:", "gtk-linux-distro:", "gtk-windows-msys2:", "gtk-macos-source:"):
+        start = workflow.index(job)
+        build = workflow.index("- name: Build pDynamo3", start)
+        science = workflow.index("run_scientific_tests.py", start)
+        full_app = workflow.index("- name: Run the full EasyHybrid application", start)
+        assert build < science < full_app
+    assert 'for name in ("DISPLAY", "WAYLAND_DISPLAY")' in runner
+    assert '"skipped" in summary' in runner
