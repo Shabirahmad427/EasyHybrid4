@@ -180,9 +180,11 @@ unit coverage but are not yet exercised by the full-app scenario.
 the real-app fixture save a `.easy` session, corrupt the live camera, reopen
 it and require restored camera matrices plus a rendered scene. This passed
 5/5 native-pointer cycles on Linux X11 GTK 4.24.1 (NVIDIA, EGL). GTK 4.24.1
-rejects `GDK_DEBUG=gl-glx` and its X11 GLArea context is EGL, so forcing
-PyOpenGL GLX left no current context. Startup now defaults to EGL there.
-The all-platform/all-minor matrix run `40042467519` is pending.
+rejects `GDK_DEBUG=gl-glx` and selects EGL or GLX per X11 system (EGL on
+native NVIDIA, GLX in the CI conda Xvfb cell); a PyOpenGL mismatch leaves no
+current context. Commit `611eac0` pins GLX with `GDK_DISABLE=egl` and passed
+5/5 locally on native NVIDIA X11 and Xvfb llvmpipe. All-platform/all-minor
+matrix run `40043447733` is pending.
 
 **EH4-205 focused implementation (2026-10-21):** the production VisMol
 `Gtk.GLArea` now checks the realized OpenGL version before initializing its
@@ -259,6 +261,21 @@ changing the host desktop clipboard. GTK 4.24.1 printed an unrecognized
 `gl-glx` debug-flag warning, a Mesa DRI3 warning, and an unavailable IBus
 module warning; the tests passed. This remains Linux-only test coverage; all
 other GTK minors and Windows/macOS native integration are **NOT TESTED**.
+**EH4-301 hosted Windows clipboard boundary (2026-10-24):** PR #5's
+fail-fast matrix run [`40049339951`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40049339951)
+failed the cross-process clipboard assertion on Windows Server 2022 x86_64,
+Python 3.12.15 / PyGObject 3.46.0 / GTK 4.8.2 / GLib 2.78.0. The artifact
+records WinSta0 and Mesa 26.2.4 llvmpipe WGL. In-process Unicode clipboard
+read/write passed, but a separate GTK reader timed out after four seconds
+while the owner serviced its GLib context. The test now skips only that
+cross-process assertion on GitHub-hosted Windows; the same-process Windows
+test remains enabled. This evidence does not distinguish a GTK/Win32 issue
+from the hosted runner session. Cross-process Windows clipboard and macOS
+clipboard behavior remain **NOT TESTED**, and EH4-301 remains unchecked. After
+narrowing the assertion, the two focused clipboard tests pass on Linux Mint
+22.3 x86_64 under Xvfb/X11 with Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5
+/ GLib 2.80.0 (**2 passed, 70 deselected**); this does not change the
+Windows/macOS limitation.
 **EH4-302 local X11 scale/resize check (2026-10-20; partial):** the real
 Gtk.GLArea renderer validation passed at `GDK_SCALE=1` and `2` on Linux Mint
 22.3 x86_64, Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib 2.80.0,
@@ -358,6 +375,17 @@ Mint 22.3 x86_64, the GTK 4.14.5/Xvfb renderer test passed at scale 1 and 2
 resize, export, and 9/9 sphere-pick samples passed with llvmpipe OpenGL 4.5
 Core. Additional OS/GTK runtimes, other structure formats and wider scientific
 invariants remain **NOT TESTED**.
+
+**EH4-304 test scope correction (2026-10-24):** PR #5 matrix run
+[`40049843306`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40049843306)
+ran the full regression suite on Windows Server 2022 x86_64 with Python
+3.12.15 / PyGObject 3.58.1 / GTK 4.24.1 / GLib 2.90.1 and Mesa 26.2.4
+llvmpipe WGL. The suite had 145 passes and 8 skips, but two tests in
+`tests/test_linux_bundle_launcher.py` failed with `WinError 193` because they
+execute a Linux `.sh` launcher as a Win32 program. This test module is now
+scoped to Linux only; its fake executable tests remain active on Linux.
+Windows/macOS skips do not verify those platforms' packaging, and EH4-304
+remains unchecked.
 
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)

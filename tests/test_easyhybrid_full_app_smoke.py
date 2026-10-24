@@ -244,6 +244,7 @@ _FULL_APP_CYCLE = textwrap.dedent(
         session_path = os.path.join(os.environ["HOME"], "camera-roundtrip.easy")
         live_tree_row = getattr(system, "tree_row", None)
         live_choice_row = getattr(system, "system_choice_row", None)
+        print("EASYHYBRID_FULL_APP_SESSION_SAVE_STARTED=True", flush=True)
         main.p_session.save_easyhybrid_session(filename=session_path)
         if system.tree_row is not live_tree_row:
             return fail("session save did not restore the live system tree row")
@@ -263,6 +264,7 @@ _FULL_APP_CYCLE = textwrap.dedent(
             np.zeros_like(core.glcamera.projection_matrix)
         )
         main.p_session.load_easyhybrid_serialization_file(filename=session_path)
+        print("EASYHYBRID_FULL_APP_SESSION_LOADED=True", flush=True)
         core = main.vm_session.vm_glcore
         if not np.array_equal(core.model_mat, expected_camera["model_mat"]):
             return fail(".easy load did not immediately restore model matrix")
@@ -759,6 +761,48 @@ def test_full_app_native_pointer_test_uses_one_shared_os_dispatcher():
     assert "xdotool" not in _FULL_APP_CYCLE
 
 
+def _run_full_app_cycle(fixture, environment, cycle, timeout=90):
+    """Run one app cycle; on timeout keep its partial output and native stack.
+
+    macOS GTK 4.24 can defer the post-pick GLib callback until the in-app
+    45 s watchdog verifies the completed GL readback; with the .easy
+    save/reopen/render that left too little of a 60 s budget (run
+    40044668172: cycle 4 printed CLOSED=True, then hit the limit).
+    """
+    process = subprocess.Popen(
+        [sys.executable, "-c", _FULL_APP_CYCLE, str(fixture)],
+        cwd=Path(__file__).resolve().parents[1],
+        env=environment,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        stdout, stderr = process.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        native_stack = ""
+        if sys.platform == "darwin":
+            # faulthandler only shows Python frames; a main loop blocked in
+            # GTK, GSK or the GL driver needs the native call graph.
+            sampled = subprocess.run(
+                ["sample", str(process.pid), "3", "-mayDie"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
+            )
+            # The call graph precedes the long binary-image list.
+            report = sampled.stdout.split("Binary Images:")[0]
+            native_stack = report[:16000] + sampled.stderr[-2000:]
+        process.kill()
+        stdout, stderr = process.communicate()
+        pytest.fail(
+            "full-app cycle %d exceeded %d s\n--- stdout ---\n%s\n--- stderr ---\n%s"
+            "\n--- native stack ---\n%s" % (cycle, timeout, stdout, stderr, native_stack)
+        )
+    return subprocess.CompletedProcess(process.args, process.returncode, stdout, stderr)
+
+
 @pytest.mark.skipif(
     os.environ.get("EASYHYBRID_RUN_FULL_APP_GRAPHICS") != "1",
     reason="requires the real pDynamo3 runtime, bundled extensions, and a native GTK display",
@@ -803,15 +847,7 @@ def test_real_easyhybrid_application_mainwindow_load_render_pick_close():
         assert fixture.is_file(), "frozen water PDB fixture is missing"
 
         for cycle in range(1, cycles + 1):
-            result = subprocess.run(
-                [sys.executable, "-c", _FULL_APP_CYCLE, str(fixture)],
-                cwd=Path(__file__).resolve().parents[1],
-                env=base_environment,
-                capture_output=True,
-                text=True,
-                timeout=60,
-                check=False,
-            )
+            result = _run_full_app_cycle(fixture, base_environment, cycle)
             print("EASYHYBRID_FULL_APP_CYCLE=%d" % cycle)
             print(result.stdout.strip())
             assert result.returncode == 0, result.stdout + result.stderr
