@@ -29,6 +29,10 @@
 #      to facilitate QM/MM partitioning and molecular simulations.
 #
 from util.debug import dprint
+from pdynamo.pDynamo2EasyHybrid.camera_state import (
+    capture_camera_state,
+    restore_camera_state,
+)
 import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, GLib
@@ -51,6 +55,7 @@ import random
 import string
 
 from pprint import pprint
+from pdynamo.pDynamo2EasyHybrid.project_file import read_project_file, write_project_file
 
 #VISMOL_HOME = os.environ.get('VISMOL_HOME')
 
@@ -70,6 +75,7 @@ from vismol.model.atom import Atom
 #print ('\n\n\n\n\n\nATOM',Atom,'\n\n\n\n\n\nATOM')
 from logging import getLogger
 logger = getLogger(__name__)
+
 
 #---------------------------------------
 from pBabel                    import*                                     
@@ -161,6 +167,32 @@ class LoadAndSaveData:
             logger.warning('Autosave failed: %s', e)
         self.autosave_change_counter = 0
 
+    def _write_session_pickle (self, filename, easyhybrid_session_data):
+        """ Pickle a session without its live GTK model rows.
+
+            GTK rows are attached to pDynamo systems for the UI but cannot be
+            serialized. Detach them only while pickling, then restore them
+            even if serialization fails. """
+        missing = object()
+        backup = []
+        try:
+            for data in easyhybrid_session_data['systems']:
+                system = data['system']
+                tree_row = getattr(system, 'tree_row', missing)
+                choice_row = getattr(system, 'system_choice_row', missing)
+                backup.append((system, tree_row, choice_row))
+                if tree_row is not missing:
+                    system.tree_row = None
+                if choice_row is not missing:
+                    system.system_choice_row = None
+            write_project_file(filename, easyhybrid_session_data)
+        finally:
+            for system, tree_row, choice_row in backup:
+                if tree_row is not missing:
+                    system.tree_row = tree_row
+                if choice_row is not missing:
+                    system.system_choice_row = choice_row
+
     def save_easyhybrid_session (self, filename = 'session.easy', tmp = False):
         """   
         When the interface makes some modification to the session, 
@@ -186,28 +218,9 @@ class LoadAndSaveData:
         # and line width calculations). Restoring just these on load is
         # enough: objects loaded afterwards pick up vm_glcore.model_mat
         # automatically, they don't need their own per-object copy saved.
-        glcamera = self.vm_session.vm_glcore.glcamera
-        easyhybrid_session_data['camera'] = {
-            'model_mat'           : np.copy(self.vm_session.vm_glcore.model_mat),
-            'zero_reference_point': np.copy(self.vm_session.vm_glcore.zero_reference_point),
-            'dist_cam_zrp'        : float(self.vm_session.vm_glcore.dist_cam_zrp),
-            'view_matrix'         : np.copy(glcamera.view_matrix),
-            'projection_matrix'   : np.copy(glcamera.projection_matrix),
-            'z_near'              : float(glcamera.z_near),
-            'z_far'               : float(glcamera.z_far),
-            # [NEW - OPTIONAL property] Size of the GLArea (viewport) at
-            # save time. Used on load to restore the same aspect
-            # ratio and avoid camera distortion (the projection_matrix saved
-            # above was computed for THIS aspect ratio; if the .easy is
-            # reopened in a window of different size/proportion, without this
-            # the image would be stretched/compressed). NEW key: files
-            # .easy saved before this change simply will not have it --
-            # load_easyhybrid_serialization_file uses .get() and only tries
-            # to restore the size if the key exists, so old sessions
-            # keep loading normally, just without this extra adjustment.
-            'glarea_width'        : float(self.vm_session.vm_glcore.width),
-            'glarea_height'       : float(self.vm_session.vm_glcore.height),
-        }
+        easyhybrid_session_data['camera'] = capture_camera_state(
+            self.vm_session.vm_glcore
+        )
         
         for e_id, system in self.psystem.items():
             
@@ -319,37 +332,22 @@ class LoadAndSaveData:
         temporary file and deletes it.
         """
         if tmp:
-            
-            #.Saves a temporary file with the same name as the original session + "~"
+            # Save a temporary file beside the named session, or under
+            # the configured temporary directory for an unsaved session.
             if filename:
-                tmpfile = filename+'~'
-                with open(tmpfile,'wb') as outfile:
-                    pickle.dump(easyhybrid_session_data, outfile)
-            
-            #.Saves a temporary file when there is no previous session name.
+                tmpfile = filename + '~'
             else:
-                tmpfile = os.path.join(self.vm_session.vm_config.easyhybrid_tmp, 
-                                       self.random_code+'.easy')
-                with open(tmpfile,'wb') as outfile:
-                    pickle.dump(easyhybrid_session_data, outfile)
-                
-
-
+                tmpfile = os.path.join(
+                    self.vm_session.vm_config.easyhybrid_tmp,
+                    self.random_code + '.easy',
+                )
+            self._write_session_pickle(tmpfile, easyhybrid_session_data)
         else:
-            with open(filename,'wb') as outfile:
-                pickle.dump(easyhybrid_session_data, outfile)
-                self.changed = False
-            if os.path.exists(filename+'~'):
-                os.remove(filename+'~')
-            else:
-                pass
+            self._write_session_pickle(filename, easyhybrid_session_data)
+            self.changed = False
+            if os.path.exists(filename + '~'):
+                os.remove(filename + '~')
         #---------------------------------------------------------------
-            
-        for e_id, data in backup.items():
-            pass
-            #self.psystem[e_id]
-            #self.psystem[e_id].tree_row   = data[0]
-            #self.psystem[e_id].system_choice_row  = data[1]
         
         self.main.session_filename = filename
         
@@ -380,58 +378,25 @@ class LoadAndSaveData:
         #'''- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - '''
 
     def load_easyhybrid_serialization_file (self, filename = None, tmp = False):
-        self.main.restart() 
-        self.main.bottom_notebook.status_teeview_add_new_item(message = ':  {}  loaded'.format(filename), 
-                                                               system =  None )
         if filename is None:
             return None
-        with open(filename, "rb") as f:
-            # Load the object from the file
-            easyhybrid_session_data = pickle.load(f)
+        # Read and validate before clearing the current session. A truncated,
+        # corrupt, or newer-format file must not destroy the live project.
+        easyhybrid_session_data = read_project_file(filename)
+        self.main.restart()
+        self.main.bottom_notebook.status_teeview_add_new_item(
+            message=':  {}  loaded'.format(filename), system=None)
         #print(easyhybrid_session_data)
         
         '''- - - - - - - - - - camera/view orientation - - - - - - - - - - '''
         # Older .easy files won't have this key - skip restoring and keep
         # whatever default view vm_glcore already has in that case.
         camera_data = easyhybrid_session_data.get('camera')
-        if camera_data is not None:
-            vm_glcore = self.vm_session.vm_glcore
-            glcamera = vm_glcore.glcamera
-            vm_glcore.model_mat            = np.copy(camera_data['model_mat'])
-            vm_glcore.zero_reference_point = np.copy(camera_data['zero_reference_point'])
-            vm_glcore.dist_cam_zrp         = camera_data['dist_cam_zrp']
-            glcamera.set_view_matrix(np.copy(camera_data['view_matrix']))
-            glcamera.set_projection_matrix(np.copy(camera_data['projection_matrix']))
-            glcamera.z_near = camera_data['z_near']
-            glcamera.z_far  = camera_data['z_far']
-            glcamera.update_fog()
-            
-            # [NEW - OPTIONAL property] .easy files saved before this
-            # change do not have 'glarea_width'/'glarea_height' -- .get() returns
-            # None and the block below is skipped, without breaking anything (same
-            # compatibility pattern as the 'camera' block above).
-            #
-            # When present: tries to resize the GLArea to the same size
-            # as when it was saved (set_size_request -- 'best effort', the
-            # GTK container may not respect it 100% depending on the layout) and,
-            # more importantly to actually eliminate distortion, recomputes the
-            # aspect ratio/projection_matrix via resize_window() using that
-            # SAME saved size (with z_near/z_far already restored above) --
-            # the raw projection_matrix restored just above was computed
-            # for the aspect ratio AT SAVE TIME, which may not match
-            # the current window's; resize_window ensures consistency.
-            glarea_w = camera_data.get('glarea_width')
-            glarea_h = camera_data.get('glarea_height')
-            if glarea_w and glarea_h:
-                vm_widget = getattr(self.vm_session, 'vm_widget', None)
-                if vm_widget is not None:
-                    try:
-                        vm_widget.set_size_request(int(glarea_w), int(glarea_h))
-                    except Exception as e:
-                        dprint('Could not resize GLArea on session load:', e)
-                vm_glcore.resize_window(glarea_w, glarea_h)
-            
-            vm_glcore.queue_draw()
+        restore_camera_state(
+            camera_data,
+            self.vm_session.vm_glcore,
+            vm_widget=getattr(self.vm_session, 'vm_widget', None),
+        )
         
         for data  in easyhybrid_session_data['systems']:
             system = data['system']

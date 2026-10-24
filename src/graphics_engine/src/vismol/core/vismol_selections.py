@@ -64,37 +64,30 @@ class VismolViewingSelection:
         Called latter on: selection_function_viewing_set
         
         """
-        coords = []
-        # Iterate through all VismolObjects in the VismolSession
         for vm_object in self.vm_session.vm_objects_dic.values():
-            # Check if the current frame is within the range of frames in the VismolObject
-            if self.vm_session.frame >= vm_object.frames.shape[0]:
-                frame = vm_object.frames.shape[0] - 1
-            else:
-                frame = self.vm_session.frame
-            
-            # Iterate through the selected atoms in the VismolPickingSelection
-            for atom in self.selected_atoms:
-                # Check if the selected atom belongs to the current VismolObject
-                if atom.vm_object == vm_object:
-                    # Add the selected atom's ID to the selected_atom_ids set of the VismolObject
-                    vm_object.selected_atom_ids.add(atom.atom_id)
+            vm_object.selected_atom_ids.clear()
 
-        # Clear the selected_objects set in the VismolPickingSelection
-        self.selected_objects.clear()
-
-        # Iterate through the selected atoms and add their corresponding VismolObjects to the selected_objects set
+        # Rebuild derived state from the canonical selected_atoms set. This
+        # also handles programmatic selection (selecting_by_indexes/invert).
         for atom in self.selected_atoms:
-            self.selected_objects.add(atom.vm_object)
+            atom.selected = True
+            atom.vm_object.selected_atom_ids.add(atom.atom_id)
+        self.selected_objects = {atom.vm_object for atom in self.selected_atoms}
     
     def selection_function_viewing_set(self, selected, _type=None, disable=True):
         """ Takes a selected atom and passes it to the appropriate selection function.
         """
         if selected is None:
+            for atom in self.selected_atoms:
+                atom.selected = False
             self.selected_atoms.clear()
+            self.selected_objects.clear()
+            self.selected_coords = None
             self.active = False
             for vm_object in self.vm_session.vm_objects_dic.values():
                 vm_object.selected_atom_ids.clear()
+                for atom in vm_object.atoms.values():
+                    atom.selected = False
         else:
             if self.selection_mode == "atom":
                 self.selecting_by_atom(selected, disable)
@@ -275,33 +268,39 @@ class VismolViewingSelection:
     def selecting_by_indexes(self, vismol_object, indexes, clear=False):
         """ Function doc """
         if clear:
-            self._clear_selection_buffer()
+            self.selection_function_viewing_set(None)
         for i in indexes:
             vismol_object.atoms[i].selected = True
-        
-        self._build_selection_buffer()
+        self.selected_atoms.update(self._build_selection_buffer())
         self._build_selected_atoms_coords_and_selected_objects_from_selected_atoms()
     
     def invert_selection(self, vismol_object=None):
-        """ not workign """
-        if vismol_object is None:
-            for vm_object in self.vm_session.vm_objects_dic.values():
-                for atom in vm_object.atoms.values():
-                    atom.selected = not atom.selected
-        else:
-            for atom in vismol_object.atoms.values():
-                atom.selected = not atom.selected
+        """Invert atom selection and synchronize all derived selection state."""
+        atoms = (
+            vismol_object.atoms.values()
+            if vismol_object is not None
+            else (
+                atom
+                for vm_object in self.vm_session.vm_objects_dic.values()
+                for atom in vm_object.atoms.values()
+            )
+        )
+        atoms = tuple(atoms)
+        for atom in atoms:
+            atom.selected = not atom.selected
         
-        self._build_selection_buffer()
+        self.selected_atoms.clear()
+        self.selected_atoms.update(self._build_selection_buffer())
         self._build_selected_atoms_coords_and_selected_objects_from_selected_atoms()
     
     def _build_selection_buffer(self):
         """ Function doc """
-        self.selected_atoms.clear()
-        for vm_object in self.vm_session.vm_objects_dic.values():
-            for atom in vm_object.atoms.values():
-                if atom.selected:
-                    self.selected_atoms.add(atom)
+        return set(
+            atom
+            for vm_object in self.vm_session.vm_objects_dic.values()
+            for atom in vm_object.atoms.values()
+            if atom.selected
+        )
     
     def get_selection_info(self):
         """ Function doc """

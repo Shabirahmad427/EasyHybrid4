@@ -11,7 +11,9 @@ import ast
 import io
 import os
 import re
+import subprocess
 import sys
+import time
 import tokenize
 from pathlib import Path
 import xml.etree.ElementTree as ET
@@ -380,6 +382,113 @@ def test_event_controllers_dispatch_mouse_and_keyboard_input():
         window.destroy()
 
 
+@needs_display
+def test_native_clipboard_round_trip_preserves_unicode_text():
+    """Exercise GDK's desktop clipboard provider on the active display."""
+    clipboard = Gdk.Display.get_default().get_clipboard()
+    expected = "EasyHybrid4 clipboard: água Δ"
+    value = GObject.Value()
+    value.init(GObject.TYPE_STRING)
+    value.set_string(expected)
+    provider = Gdk.ContentProvider.new_for_value(value)
+    assert clipboard.set_content(provider)
+
+    loop = GLib.MainLoop()
+    result = {"text": None, "error": None}
+
+    def on_read(source, async_result):
+        try:
+            result["text"] = source.read_text_finish(async_result)
+        except Exception as error:
+            result["error"] = error
+        finally:
+            loop.quit()
+
+    clipboard.read_text_async(None, on_read)
+    timeout = GLib.timeout_add(3000, lambda: (loop.quit(), GLib.SOURCE_REMOVE)[1])
+    loop.run()
+    if GLib.MainContext.default().find_source_by_id(timeout) is not None:
+        GLib.source_remove(timeout)
+
+    assert result["error"] is None
+    assert result["text"] == expected
+
+
+@needs_display
+def test_native_clipboard_text_is_available_to_another_process():
+    """Verify the desktop selection can be read outside its owner process."""
+    if sys.platform == "win32" and os.environ.get("GITHUB_ACTIONS") == "true":
+        pytest.skip(
+            "The hosted Windows GTK 4.8.2 runner timed out reading clipboard text "
+            "from a child GTK process (run 40049339951); native Windows "
+            "cross-process clipboard behavior remains unverified."
+        )
+
+    clipboard = Gdk.Display.get_default().get_clipboard()
+    expected = "EasyHybrid4 cross-process clipboard: água Δ"
+    value = GObject.Value()
+    value.init(GObject.TYPE_STRING)
+    value.set_string(expected)
+    assert clipboard.set_content(Gdk.ContentProvider.new_for_value(value))
+
+    reader = r"""
+import gi
+gi.require_version("Gdk", "4.0")
+gi.require_version("Gtk", "4.0")
+from gi.repository import Gdk, GLib, Gtk
+Gtk.init()
+
+result = {"text": None, "error": None}
+clipboard = Gdk.Display.get_default().get_clipboard()
+loop = GLib.MainLoop()
+def on_read(source, async_result):
+    try:
+        result["text"] = source.read_text_finish(async_result)
+    except Exception as error:
+        result["error"] = error
+    finally:
+        loop.quit()
+clipboard.read_text_async(None, on_read)
+timeout = GLib.timeout_add(4000, lambda: (loop.quit(), GLib.SOURCE_REMOVE)[1])
+loop.run()
+if GLib.MainContext.default().find_source_by_id(timeout) is not None:
+    GLib.source_remove(timeout)
+if result["error"] is not None:
+    raise result["error"]
+if result["text"] is None:
+    raise RuntimeError("clipboard read timed out")
+print(result["text"])
+"""
+    process = subprocess.Popen(
+        [sys.executable, "-c", reader],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    deadline = time.monotonic() + 6
+    context = GLib.MainContext.default()
+    while process.poll() is None and time.monotonic() < deadline:
+        while context.pending():
+            context.iteration(False)
+        time.sleep(0.01)
+    if process.poll() is None:
+        process.kill()
+    stdout, stderr = process.communicate(timeout=1)
+    assert process.returncode == 0, stdout + stderr
+    assert stdout.rstrip("\r\n") == expected
+
+
+@needs_display
+def test_display_monitor_geometry_limits_restored_window_size():
+    from src.gtk4_compat import clamp_window_size_to_monitors, monitor_geometry_sizes
+
+    sizes = monitor_geometry_sizes(Gdk.Display.get_default())
+    assert sizes, "GDK did not report any connected monitor geometry"
+    width, height = clamp_window_size_to_monitors(10000, 10000, sizes)
+    assert width <= max(size[0] for size in sizes) - 48
+    assert height <= max(size[1] for size in sizes) - 96
+
+
 def test_xtb_worker_callbacks_skip_closed_window_widgets():
     from gui.windows.setup.xtb_fragment_charges_window import XtbFragmentChargesWindow
 
@@ -522,20 +631,29 @@ def test_normal_mode_playback_wraps_on_main_loop_and_stops():
     assert player._playback_source_id is None
 
 
-def test_scroll_delta_conversion_preserves_smooth_steps_and_wheel_sign():
+def test_scroll_delta_conversion_uses_downward_semantics_for_both_units():
     from src.gtk4_compat import scroll_delta_to_steps
 
     steps, remainder = scroll_delta_to_steps(12, surface=True)
     assert steps == 0
-    assert remainder == pytest.approx(-0.4)
+    assert remainder == pytest.approx(0.4)
 
     steps, remainder = scroll_delta_to_steps(19, surface=True, remainder=remainder)
-    assert steps == -1
-    assert remainder == pytest.approx(-1.0 / 30.0)
+    assert steps == 1
+    assert remainder == pytest.approx(1.0 / 30.0)
 
     steps, remainder = scroll_delta_to_steps(-2.5, surface=False, remainder=remainder)
     assert steps == -2
-    assert remainder == pytest.approx(-0.5 - 1.0 / 30.0)
+    assert remainder == pytest.approx(-0.5 + 1.0 / 30.0)
+
+    # A detent and 30 surface logical pixels have the same direction and
+    # produce the same normalized action.
+    wheel_down, _ = scroll_delta_to_steps(1, surface=False)
+    surface_down, _ = scroll_delta_to_steps(30, surface=True)
+    wheel_up, _ = scroll_delta_to_steps(-1, surface=False)
+    surface_up, _ = scroll_delta_to_steps(-30, surface=True)
+    assert (wheel_down, surface_down) == (1, 1)
+    assert (wheel_up, surface_up) == (-1, -1)
 
     steps, remainder = scroll_delta_to_steps(0.25, surface=False, remainder=0.0)
     assert steps == 0
@@ -547,6 +665,89 @@ def test_scroll_delta_conversion_preserves_smooth_steps_and_wheel_sign():
     steps, remainder = scroll_delta_to_steps(float("nan"), surface=True, remainder=0.25)
     assert steps == 0
     assert remainder == 0.25
+
+
+def test_vismol_scroll_handler_uses_reported_event_units(monkeypatch):
+    from types import SimpleNamespace
+
+    engine_path = str(PROJECT_ROOT / "src" / "graphics_engine" / "src")
+    if engine_path not in sys.path:
+        sys.path.insert(0, engine_path)
+    from vismol.gui import vismol_gtkwidget as widget_module
+
+    monkeypatch.setattr(widget_module, "_HAS_SCROLL_UNIT_API", True)
+
+    class Core:
+        def __init__(self):
+            self.ctrl = False
+            self.shift = False
+            self.actions = []
+
+        def mouse_scroll(self, direction):
+            self.actions.append((direction, self.ctrl, self.shift))
+
+    class Controller:
+        def __init__(self, unit, state=Gdk.ModifierType(0)):
+            self.unit = unit
+            self.state = state
+
+        def get_unit(self):
+            return self.unit
+
+        def get_current_event_state(self):
+            return self.state
+
+    core = Core()
+    widget = SimpleNamespace(
+        vm_glcore=core,
+        _scroll_remainder=0.0,
+        _scroll_modifiers=None,
+        _scroll_unit_mode=None,
+    )
+    handle = widget_module.VismolGTKWidget._on_mouse_scroll
+
+    wheel_down = Controller(Gdk.ScrollUnit.WHEEL)
+    surface_down = Controller(
+        Gdk.ScrollUnit.SURFACE, Gdk.ModifierType.CONTROL_MASK
+    )
+
+    handle(widget, wheel_down, 0.0, 1.0)
+    assert core.actions == [(-1, False, False)]
+
+    wheel_down_ctrl = Controller(
+        Gdk.ScrollUnit.WHEEL, Gdk.ModifierType.CONTROL_MASK
+    )
+    handle(widget, wheel_down_ctrl, 0.0, 1.0)
+    assert core.actions[-1] == (-1, True, False)
+    assert core.ctrl is False
+
+    wheel_down_shift = Controller(
+        Gdk.ScrollUnit.WHEEL, Gdk.ModifierType.SHIFT_MASK
+    )
+    handle(widget, wheel_down_shift, 0.0, 1.0)
+    assert core.actions[-1] == (-1, False, True)
+    assert core.shift is False
+
+    # A half-step surface delta does not zoom yet; the next event completes
+    # one downward action with the modifier state from that gesture.
+    handle(widget, surface_down, 0.0, 15.0)
+    assert core.actions == [
+        (-1, False, False), (-1, True, False), (-1, False, True)
+    ]
+    handle(widget, surface_down, 0.0, 15.0)
+    assert core.actions[-1] == (-1, True, False)
+    assert core.ctrl is False
+    assert widget._scroll_remainder == pytest.approx(0.0)
+
+    # Unit changes reset partial deltas; wheel and surface use the same sign.
+    handle(widget, wheel_down, 0.0, 1.0)
+    handle(widget, Controller(Gdk.ScrollUnit.SURFACE), 0.0, -30.0)
+    assert core.actions[-2:] == [(-1, False, False), (1, False, False)]
+
+    # Older/incomplete typelibs take the existing wheel-unit fallback.
+    monkeypatch.setattr(widget_module, "_HAS_SCROLL_UNIT_API", False)
+    handle(widget, SimpleNamespace(), 0.0, 1.0)
+    assert core.actions[-1] == (-1, False, False)
 
 
 # --------------------------------------------------------------------------- #

@@ -29,6 +29,7 @@ from gi.repository import Gtk, Gdk
 from src.gtk4_compat import texture_from_pixbuf
 from gui import file_dialogs
 from gui.response_dialog import ResponseDialog
+from vismol.gui.graphics_diagnostics import parse_gl_version, report_graphics_failure
 from src.gtk4_compat import (
     GTK_INVALID_LIST_POSITION,
     apply_legacy_win32_wgl_workaround,
@@ -145,10 +146,11 @@ class VismolGTKWidget(_WidgetBase):
         motion_controller.connect("motion", self._on_mouse_motion)
         self.add_controller(motion_controller)
 
-        # Surface-unit processing is used only where the caller handles
-        # smooth deltas explicitly; other platforms get GTK-normalized steps.
+        # Keep GTK deltas continuous wherever event units are available.
+        # Normalize wheel detents and surface pixels by event unit, regardless
+        # of operating system or device name.
         scroll_flags = scroll_controller_flags(
-            Gtk, use_surface_units=_IS_MACOS and _HAS_SCROLL_UNIT_API
+            Gtk, use_surface_units=_HAS_SCROLL_UNIT_API
         )
         scroll_controller = Gtk.EventControllerScroll.new(scroll_flags)
         scroll_controller.connect("scroll", self._on_mouse_scroll)
@@ -164,6 +166,7 @@ class VismolGTKWidget(_WidgetBase):
         )
         self.vm_session = vismol_session
         self.vm_glcore = VismolGLCore(self, vismol_session, width, height)
+        self._graphics_failed = False
         self.glmenu_bg = None
         self.glmenu_sele = None
         self.glmenu_obj = None
@@ -183,21 +186,49 @@ class VismolGTKWidget(_WidgetBase):
         # guarantee it is current merely because the realize signal fired.
         # Make it current before any PyOpenGL calls; otherwise older GTK4
         # runtimes can emit a render callback with no current GL context.
-        self.make_current()
-        if self.get_error() != None:
-            # Report GLArea context errors visibly instead of failing
-            # without an explanation.
-            error = self.get_error()
-            print("FATAL: OpenGL context could not be created -- EasyHybrid cannot start.")
-            print("  args:   ", error.args if error is not None else None)
-            print("  code:   ", error.code if error is not None else None)
-            print("  domain: ", error.domain if error is not None else None)
-            print("  message:", error.message if error is not None else None)
-            print("The GTK4 GLArea could not negotiate an OpenGL 3.3+ core context "
-                  "with this system's graphics driver.")
-            self.quit()
+        if self._graphics_failed:
             return
-        self.vm_glcore.initialize()
+        try:
+            self.make_current()
+            error = self.get_error()
+            if error is not None:
+                detail = "domain=%s code=%s message=%s" % (
+                    getattr(error, "domain", "unknown"),
+                    getattr(error, "code", "unknown"),
+                    getattr(error, "message", str(error)),
+                )
+                self._show_graphics_failure("OpenGL context creation", context_error=detail)
+                return
+
+            version_value = glGetString(GL_VERSION)
+            version_text = (
+                version_value.decode("ascii", "replace")
+                if isinstance(version_value, bytes)
+                else str(version_value or "")
+            )
+            version = parse_gl_version(version_text)
+            if version is None or version < (3, 3):
+                self._show_graphics_failure(
+                    "OpenGL capability check", gl_version=version_text or None
+                )
+                return
+
+            self.vm_glcore.initialize()
+        except Exception as error:
+            logger.exception("VisMol OpenGL initialization failed")
+            self._show_graphics_failure(
+                "OpenGL initialization", exception="%s: %s" % (type(error).__name__, error)
+            )
+
+    def _show_graphics_failure(self, phase, *, gl_version=None, context_error=None, exception=None):
+        """Stop GL callbacks and show a portable GTK4 diagnostic to the user."""
+        report_graphics_failure(
+            self,
+            phase,
+            gl_version=gl_version,
+            context_error=context_error,
+            exception=exception,
+        )
     
     def reshape(self, widget, width, height):
         """ Resizing function, takes the widht and height of the widget
@@ -208,15 +239,31 @@ class VismolGTKWidget(_WidgetBase):
             width -- Actual width of the window
             height -- Actual height of the window
         """
-        self.vm_glcore.resize_window(width, height)
+        if not self._graphics_failed:
+            try:
+                self.vm_glcore.resize_window(width, height)
+            except Exception as error:
+                logger.exception("VisMol OpenGL resize failed")
+                self._show_graphics_failure(
+                    "OpenGL resize", exception="%s: %s" % (type(error).__name__, error)
+                )
         self.queue_draw()
     
     def render(self, area, context):
         """ This is the function that will be called everytime the window
             needs to be re-drawed.
         """
-        self.vm_glcore.render()
-        return True
+        if self._graphics_failed:
+            return True
+        try:
+            self.vm_glcore.render()
+            return True
+        except Exception as error:
+            logger.exception("VisMol OpenGL render failed")
+            self._show_graphics_failure(
+                "OpenGL rendering", exception="%s: %s" % (type(error).__name__, error)
+            )
+            return True
 
     def mouse_pressed(self, widget, event):
         """ Function doc """
@@ -262,17 +309,13 @@ class VismolGTKWidget(_WidgetBase):
     def _on_mouse_released(self, gesture, _press_count, x, y):
         button = gesture.get_current_button()
         state = gesture.get_current_event_state()
-        # GTK 4.8's PyGObject typelib may not expose GdkButtonEvent, causing
-        # get_current_event() to raise TypeError even though the gesture
-        # itself is valid. The GL core only uses this event as optional
-        # context; button/state are available through stable gesture APIs.
-        try:
-            event = gesture.get_current_event()
-        except (TypeError, RuntimeError):
-            event = None
+        # Do not request get_current_event(): some GTK/PyGObject combinations
+        # cannot marshal GdkButtonEvent. The GL core only uses the event as
+        # optional context-menu metadata; the gesture coordinates are saved
+        # below and provide the menu position.
         self._menu_x, self._menu_y = int(x), int(y)
         x, y = self._framebuffer_coordinates(x, y)
-        self.vm_glcore.mouse_released(button, x, y, button_state=state, event=event)
+        self.vm_glcore.mouse_released(button, x, y, button_state=state)
 
     def _on_mouse_motion(self, controller, x, y):
         x, y = self._framebuffer_coordinates(x, y)
@@ -292,64 +335,46 @@ class VismolGTKWidget(_WidgetBase):
     def _on_mouse_scroll(self, controller, _dx, dy):
         if not np.isfinite(dy):
             return True
-        if not _IS_MACOS or not _HAS_SCROLL_UNIT_API:
-            if self._scroll_unit_mode != "wheel":
-                self._scroll_remainder = 0.0
-                self._scroll_unit_mode = "wheel"
-            steps, self._scroll_remainder = scroll_delta_to_steps(
-                dy, surface=False, remainder=self._scroll_remainder
-            )
-            direction = 1 if steps < 0 else -1
-            for _ in range(abs(steps)):
-                self.vm_glcore.mouse_scroll(direction)
-            return True
-
         if dy == 0:
             return True
 
-        unit = get_scroll_unit(controller)
-        if unit == Gdk.ScrollUnit.SURFACE:
-            if self._scroll_unit_mode != "surface":
-                self._scroll_remainder = 0.0
-                self._scroll_unit_mode = "surface"
-            # Quartz trackpads report surface pixels, often 1–20 per event.
-            # Accumulate 30 pixels per wheel step to avoid runaway zoom and
-            # the resulting loss of the molecule from the clipping volume.
-            state = controller.get_current_event_state()
-            ctrl = bool(state & Gdk.ModifierType.CONTROL_MASK)
-            shift = bool(state & Gdk.ModifierType.SHIFT_MASK)
-            modifiers = (ctrl, shift)
-            if modifiers != self._scroll_modifiers:
-                self._scroll_modifiers = modifiers
-                self._scroll_remainder = 0.0
-            steps, self._scroll_remainder = scroll_delta_to_steps(
-                dy, surface=True, remainder=self._scroll_remainder
-            )
-            if steps == 0:
-                return True
+        unit = get_scroll_unit(controller) if _HAS_SCROLL_UNIT_API else None
+        scroll_units = getattr(Gdk, "ScrollUnit", None)
+        surface = scroll_units is not None and unit == getattr(
+            scroll_units, "SURFACE", None
+        )
+        mode = "surface" if surface else "wheel"
+        if self._scroll_unit_mode != mode:
+            self._scroll_remainder = 0.0
+            self._scroll_unit_mode = mode
 
+        # Read modifiers from the scroll event for both wheel and smooth
+        # input. A surface gesture may not generate a separate key-controller
+        # transition, and keeping this common makes modified actions independent
+        # of whether GTK reports detents or logical-pixel deltas.
+        get_state = getattr(controller, "get_current_event_state", None)
+        state = get_state() if callable(get_state) else Gdk.ModifierType(0)
+        ctrl = bool(state & Gdk.ModifierType.CONTROL_MASK)
+        shift = bool(state & Gdk.ModifierType.SHIFT_MASK)
+        modifiers = (ctrl, shift)
+        if modifiers != self._scroll_modifiers:
+            self._scroll_modifiers = modifiers
+            self._scroll_remainder = 0.0
+
+        steps, self._scroll_remainder = scroll_delta_to_steps(
+            dy, surface=surface, remainder=self._scroll_remainder
+        )
+        if steps:
+            # GDK's positive vertical delta means down. VisMol's legacy
+            # direction convention uses -1 for down and +1 for up.
+            direction = -1 if steps > 0 else 1
             saved_ctrl, saved_shift = self.vm_glcore.ctrl, self.vm_glcore.shift
             self.vm_glcore.ctrl, self.vm_glcore.shift = ctrl, shift
             try:
-                direction = 1 if steps > 0 else -1
                 for _ in range(abs(steps)):
                     self.vm_glcore.mouse_scroll(direction)
             finally:
                 self.vm_glcore.ctrl, self.vm_glcore.shift = saved_ctrl, saved_shift
-        else:
-            # Wheel-unit deltas can still be fractional on some backends.
-            # Preserve their remainder just like the older-runtime fallback.
-            if self._scroll_unit_mode != "wheel":
-                self._scroll_remainder = 0.0
-                self._scroll_unit_mode = "wheel"
-            self._scroll_modifiers = None
-            steps, self._scroll_remainder = scroll_delta_to_steps(
-                dy, surface=False, remainder=self._scroll_remainder
-            )
-            if steps:
-                direction = 1 if steps < 0 else -1
-                for _ in range(abs(steps)):
-                    self.vm_glcore.mouse_scroll(direction)
         return True
 
     def _on_key_pressed(self, _controller, keyval, _keycode, _state):

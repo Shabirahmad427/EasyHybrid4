@@ -21,7 +21,6 @@ Cross-scale comparisons (GDK_SCALE=1 vs 2) are made by the pytest wrapper.
 import json
 import os
 import sys
-import tempfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ROOT)
@@ -47,16 +46,8 @@ from vismol.utils import parser  # noqa: E402
 # lines by design and are only required to be visible.
 REPRESENTATIONS = ("lines", "nonbonded", "sticks", "spheres", "vdw_spheres",
                    "stick_spheres", "dots", "impostor")
-# A water molecule (bonded representations) and three isolated atoms 4 A
-# apart, so each impostor sphere can be measured on its own.
-ATOMS = (
-    ("O", "HOH", 1, 0.000, 3.000, "O"),
-    ("H1", "HOH", 1, 0.957, 3.000, "H"),
-    ("H2", "HOH", 1, -0.240, 3.927, "H"),
-    ("C", "CAA", 2, -4.000, -2.000, "C"),
-    ("N", "NAA", 3, 0.000, -2.000, "N"),
-    ("S", "SAA", 4, 4.000, -2.000, "S"),
-)
+# Frozen at tests/fixtures/render_validation.pdb: a bonded water molecule and
+# three isolated atoms 4 A apart, so impostor sprites can be measured alone.
 ISOLATED = ("C", "N", "S")
 PICK_OFFSETS = ((0, 0), (3, 0), (-3, 0), (0, 3), (0, -3),
                 (2, 2), (2, -2), (-2, 2), (-2, -2))
@@ -71,18 +62,6 @@ def check(name, ok, detail):
     result["checks"][name] = {"ok": bool(ok), "detail": detail}
     if not ok:
         result["failures"].append(name)
-
-
-def fixture_pdb(directory):
-    lines = [
-        "HETATM%5d %-4s %3s A%4d    %8.3f%8.3f%8.3f%6.2f%6.2f          %2s  "
-        % (index, name, residue, number, x, y, 0.0, 1.0, 0.0, element)
-        for index, (name, residue, number, x, y, element) in enumerate(ATOMS, 1)
-    ]
-    path = os.path.join(directory, "render_validation.pdb")
-    with open(path, "w", encoding="ascii") as handle:
-        handle.write("\n".join(lines) + "\nEND\n")
-    return path
 
 
 def wrap_render(glcore):
@@ -220,8 +199,8 @@ def run_steps():
     check("glsl_3_30", version_tuple(caps["GL_SHADING_LANGUAGE_VERSION"]) >= (3, 30),
           caps["GL_SHADING_LANGUAGE_VERSION"])
 
-    with tempfile.TemporaryDirectory(prefix="easyhybrid-render-") as directory:
-        molecule, show = parser.parse_file(session, fixture_pdb(directory))
+    fixture = os.path.join(ROOT, "tests", "fixtures", "render_validation.pdb")
+    molecule, show = parser.parse_file(session, fixture)
     molecule._generate_color_vectors(session.atom_id_counter)
     molecule.active = True
     VismolSession._add_vismol_object(session, molecule, show_molecule=show)
@@ -295,6 +274,12 @@ def run_steps():
     for name in REPRESENTATIONS:
         activate_only(name)
         shot = yield from capture(name)
+        if name == REPRESENTATIONS[0]:
+            # Gtk.GLArea renders into its own framebuffer. Rendering or
+            # reading framebuffer 0 can appear to work on some drivers while
+            # bypassing the widget's actual render target.
+            check("gtk_glarea_framebuffer_bound", shot["framebuffer"] != 0,
+                  shot["framebuffer"])
         mask = foreground(shot["image"], background)
         save_image(name, shot["image"])
         coverage[name] = float(mask.mean())

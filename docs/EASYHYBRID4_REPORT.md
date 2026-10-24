@@ -1,10 +1,435 @@
 # EasyHybrid4 Development and Compatibility Report
 
-**Report date:** 2026-10-20
+**Report date:** 2026-10-24
+
+**Project persistence (partial, EH4-404):** EasyHybrid `.easy` payloads now
+write format version 1; payloads without a version key are treated as legacy
+version 0. The loader validates the deserialized mapping, systems list and
+system entries, and rejects unsupported future versions before restarting
+the active application. Linux Xvfb/pDynamo tests pass 7 cases for legacy and
+current payloads, malformed schemas and truncated pickle files. This does not
+yet verify a full UI session round-trip, older historical project fixtures,
+autosave recovery or Windows/macOS/other GTK runtimes. Python pickle files
+remain trusted local project data; schema checks do not make untrusted pickle
+loading safe.
+
+**Simulation worker errors (partial, EH4-405):** an unsupported simulation
+type previously put `RUNNING` on the multiprocessing queue and returned without
+an error, leaving the process-manager row active indefinitely. The child now
+reports it through the normal `ERROR` message path. Exception details are
+serialized as strings so exceptions that cannot be pickled do not silently
+break queue delivery. A direct worker queue regression passes locally under
+Linux Xvfb with Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib 2.80.0.
+Cancellation, progress reporting, GUI responsiveness, and unexpected worker
+crash detection remain unverified.
+
+**Current roadmap pointer:** EH4-200 graphics-engine provenance audit. EH4-203
+still needs physical macOS trackpad review. EH4-204, EH4-205 and EH4-400–405
+passed their configured native matrix acceptance; domain-specific scientific
+and persistence criteria remain tracked separately. EH4-200 provenance,
+EH4-301 clipboard/accessibility, and packaging tasks remain open.
+
+**EH4-405 batch PR #6 matrix status:** corrected head `341a7cc`, merged as
+`b676d00`, passed full matrix
+[`40102390980`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40102390980)
+**30/30**. All 30 runtime artifacts confirm five full-app native pick,
+`.easy` session save/reopen, render and clean-close cycles and five production
+scene cycles; widget-pattern and renderer validation also passed. The GTK
+4.24 full regression suite passed 165 tests (16 skipped) on Linux, 163 (18
+skipped) on Windows, and 163 (18 skipped) on macOS arm64. Exact versions and
+platform coverage are in [`GTK4_COMPATIBILITY.md`](GTK4_COMPATIBILITY.md).
+Earlier fail-fast runs `40052058048` and `40101418631` exposed two harness
+defects: an oversized Windows inline command (`WinError 206`) and then a
+working-directory import loss from direct temp-script execution. The final
+short `runpy` bootstrap fixes both; focused regression: **1 passed**. The
+failed runs are not acceptance evidence.
+
+**Latest native full-matrix status (2026-10-24): PASS, 30/30 cells.** Run
+[`40102390980`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40102390980)
+passed the Linux x86_64, Windows x86_64 and macOS arm64 GTK 4.8–4.24 cells,
+plus Intel macOS GTK 4.8/4.10. Runtime artifacts confirm exact GTK, GLib,
+Python, PyGObject, OS/architecture and renderer versions. Each cell passed
+five full `EasyHybridApplication`/`MainWindow` cycles with generated pDynamo3
+fixture loading, native OS pointer input (Linux XTest, Windows Win32, macOS
+Quartz), oxygen `O:0` picked, render and clean close. Each also passed five
+production menu/VisMol scene cycles, the complete regression suite and
+render validation. The matrix uses hosted software renderers. Cross-process
+Windows/macOS clipboard, physical GPUs, Wayland, Retina/HiDPI and trackpad
+behavior remain separately **NOT TESTED**. See the matrix evidence entry in
+[`ROADMAP.md`](ROADMAP.md) and detailed versions in
+[`GTK4_COMPATIBILITY.md`](GTK4_COMPATIBILITY.md).
+
+Real trackpad behavior remains assigned to EH4-203; display scaling remains
+under EH4-302.
+
+**Windows GTK 4.20 repeated-launch pointer failure (2026-10-22):** full
+matrix run [`39708415015`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39708415015)
+revealed a failure on Windows Server 2022 x86_64, Python 3.12.15, PyGObject
+3.58.1, GTK 4.20.3, GLib 2.90.1 and Mesa 26.2.4 llvmpipe WGL. The first
+full-app process completed its native Win32 click/pick/close. A later process
+found the previous HWND foreground and under the correct screen point, so the
+helper withheld the click. Initial correction `553adf3` activated first,
+raised the window, and retried pointer placement and `WindowFromPoint`
+verification up to five times. Follow-up native diagnostics identified the
+cover as GitHub HostedComputeAgent's console (`ConsoleWindowClass`, PID 4920);
+`SetForegroundWindow` returned false while the target's raise/topmost calls
+returned true. The focused run
+[`39711834067`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39711834067)
+failed safely without sending a click through the console. The helper now
+temporarily attaches the GTK thread's input queue to the foreground console's
+queue while activating and raising the target. Run
+[`39712180632`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39712180632)
+showed Windows refuses that attachment (`false`) too. The next focused run
+[`39712548364`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39712548364)
+showed `GetConsoleWindow` is null because the console belongs to HostedComputeAgent,
+not the child Python process. The helper now recognizes the exact hosted
+console title and minimizes it only when it is the actual hit-tested blocker,
+then restores it after the click. Focused Windows GTK 4.20.3 run
+[`39712852467`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39712852467)
+passed five fresh app cycles; each native click picked `O:0`, rendered and
+closed. The widget suite passed 65 tests and skipped 3; five production scene
+cycles and render validation also passed. Local helper/workflow/full-app
+regressions pass (**22 passed, 1 skipped**); `py_compile` and `git diff --check`
+pass. The follow-up matrix `39717469974` subsequently passed all configured
+Windows GTK cells, five native app cycles each; this historical issue is
+resolved in the current matrix.
+
+**Latest native Windows pointer result (2026-10-22):** focused run
+[`39706994456`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39706994456)
+passed Windows x86_64 GTK 4.8.2 and 4.10.1. In each cell the real
+`EasyHybridApplication`/`MainWindow` loaded the generated water fixture,
+received OS-injected Win32 clicks through the production GTK pick path, picked
+oxygen, rendered, and closed through five fresh-app cycles. The production
+menu/VisMol scene also passed five open/pick/render/close cycles and render
+validation succeeded. The failure was test coordinate calibration: the first
+Win32 point differed from GTK's received logical point by about `(14.3, 11.8)`;
+each retry then reset its learned offset to the latest, nearly-zero residual.
+The test now accumulates the measured offset for the app cycle. The same
+commit's local helper/workflow/full-app checks passed (**18 passed, 1 skipped**)
+and `py_compile`/`git diff --check` passed. This is focused Windows evidence;
+That focused run was followed by matrix run `39717469974`, which passed all
+configured Windows, macOS arm64 and Linux GTK cells with native pointer
+injection; see the current result at the top of this report.
+
+**Native macOS pointer result (2026-10-22):** focused run
+[`39707517301`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39707517301)
+passed on macOS 14.8.9 arm64 with Python 3.12.15, PyGObject 3.58.1, GTK
+4.24.1, GLib 2.90.0, and Apple Software Renderer/OpenGL 4.1. The production
+`EasyHybridApplication`/`MainWindow` loaded the generated water fixture and
+completed five fresh-app cycles using `macos-quartz-hid`; all five native
+pointer picks selected `O:0`, rendered, and closed cleanly. Production
+menu/VisMol passed another five pick/render/close cycles; the complete suite
+reported 114 passed and 6 skipped; render validation passed at both requested
+scales. The scale test reported `scale_applied=false` and widget scale factor
+1, so this does not establish Retina/HiDPI support. This focused result was
+superseded by matrix `39717469974`, which passed native pointer cycles in all
+configured macOS arm64 GTK minors and Intel macOS GTK 4.8/4.10.
 
 **Purpose:** One consolidated source for repository, architecture, dependency,
 GTK/Python compatibility, parity, platform, testing, and known-limitation
 status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).
+
+**EH4-203 scroll semantics (2026-10-22; full native matrix passed, trackpad review pending):** GTK's
+`EventControllerScroll.get_unit()`/`Gdk.ScrollUnit` capability is detected on
+GTK 4.8.2, 4.14.5 and 4.24.1. VisMol requests continuous deltas wherever that
+capability exists, normalizes wheel detents and surface logical pixels to a
+positive-down convention, and accumulates fractional deltas. Both units read
+Ctrl/Shift from the current event and apply them only while dispatching the
+normalized action, preserving the previous GL-core modifier state. Incomplete
+typelibs keep the discrete fallback. The focused delta, event-unit, direction
+and modifier tests passed **3/3** on each of three local Linux GTK runtimes
+(GTK 4.8.2, 4.14.5 and 4.24.1). This was native Linux Mint 22.3 x86_64 with
+Python 3.12.15/PyGObject 3.58.1/GLib 2.90.0 for GTK 4.8.2 and 4.24.1, and
+Python 3.12.3/PyGObject 3.48.2/GLib 2.80.0 for GTK 4.14.5. The tests exercised
+the production scroll callback with deterministic event-unit inputs; they did
+not create a GL context or use a physical input device. Corrected full native
+matrix run
+[`39801594903`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39801594903)
+completed successfully across 30 cells: Linux x86_64, Windows x86_64 and
+macOS arm64 for GTK 4.8–4.24, plus Intel macOS GTK 4.8/4.10. All 30 runtime
+artifacts confirm exact OS/architecture, Python, PyGObject, GTK patch, GLib
+and GL backend. Each reports passing widget-pattern tests, five full-app
+native pointer pick/render/close cycles and five production menu/VisMol
+cycles. The first attempt `39799035762` exposed workflow test ordering:
+widget-pattern tests imported `vismol.utils.matrix_operations` before Cython
+extensions were built, so no scroll assertion was reached in those jobs.
+Commit `f57cf86` builds graphics extensions before widget-pattern tests in all
+four workflow configurations; its static ordering guard passes locally.
+EH4-203 remains unchecked pending physical macOS trackpad review, which is
+**NOT TESTED** by the hosted synthetic-event tests.
+
+**EH4-204 selection-state correction (2026-10-22; partial):** viewing
+selection clear now resets `Atom.selected`, `selected_objects`, and the
+per-object ID buffer. Programmatic index selection and invert-selection now
+rebuild the atom set, object set, flags and ID buffers consistently. Focused
+production selection regressions cover atom-only selection, whole-residue
+select/toggle, clear, index selection, invert, and atom label text. Six
+focused tests pass on Linux GTK 4.8.2 and GTK 4.24.1. The opt-in real-app
+water fixture test verifies a native Linux XTest oxygen click selects all
+three water atoms in default residue mode, then clears and checks oxygen-only
+atom mode. It also uses production session controls to hide/show the oxygen
+nonbonded representation and show/draw/hide its `O` text through the atom label
+representation. The full-app cycle passed at GTK 4.24.1, Python 3.12.15, PyGObject
+3.58.1 and GLib 2.90.0, using pDynamo3
+`6b28dd8958e1a705fcdca130f4ab862a8af8de82` compiled in a disposable Python
+3.12 tree. X11/Xvfb used EGL/PyOpenGL and Mesa 25.2.8 llvmpipe (LLVM 20.1.2),
+OpenGL 4.5 Core; fixture load, pick, selection assertions, render and close
+passed. The session serializer now delegates camera capture/restore to a
+separately tested helper. Camera helper tests cover pickle round-trip, viewport
+and matrix restoration, old payloads without viewport dimensions, absent
+camera state, and best-effort GTK size-request failure. The combined camera and
+selection tests pass on local Linux GTK 4.8.2 and 4.24.1. A subsequent one-cycle
+full-app check at GTK 4.24.1 also passes after the serializer refactor, confirming
+the production module import and water load/native pick/render/close path. That
+same real-app fixture now exercises the production pk1/pk2/pk3 measurement
+workflow and checks both water O–H distances and the H–O–H angle against the
+known fixture coordinates; it passes locally at GTK 4.24.1.
+The user's Python 3.10 pDynamo3 environment/source was not modified. This is
+local Linux evidence only; full `.easy` save/reopen integration, multi-cycle
+full-app coverage on this branch, and the all-platform/all-version matrix
+remain pending.
+EH4-204 remains unchecked. Index-selection and invert changes pass focused
+unit coverage but are not yet exercised by the full-app scenario.
+
+**EH4-204 `.easy` round trip (2026-10-23; partial):** commit `aeeb4e7` makes
+the real-app fixture save a `.easy` session, corrupt the live camera, reopen
+it and require restored camera matrices plus a rendered scene. This passed
+5/5 native-pointer cycles on Linux X11 GTK 4.24.1 (NVIDIA, EGL). GTK 4.24.1
+rejects `GDK_DEBUG=gl-glx` and selects EGL or GLX per X11 system (EGL on
+native NVIDIA, GLX in the CI conda Xvfb cell); a PyOpenGL mismatch leaves no
+current context. Commit `611eac0` pins GLX with `GDK_DISABLE=egl` and passed
+5/5 locally on native NVIDIA X11 and Xvfb llvmpipe. All-platform/all-minor
+matrix run `40043447733` is pending.
+
+**EH4-204 native acceptance (2026-10-24; complete):** final-head matrix
+[`40045300452`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40045300452)
+passed **30/30** cells, and focused macOS GTK 4.24 artifact run
+`40045322982` passed. Every cell completed five full-app cycles with native
+OS-pointer selection, atom/residue behavior, labels, measurements,
+representation changes, `.easy` camera save/reopen, render and clean close;
+each passed five production menu/VisMol cycles and rendering/export/picking
+validation. All 30 artifacts record `EASYHYBRID_FULL_APP_CAMERA_SESSION_ROUND_TRIP=True`.
+GTK patches covered Linux 4.8.2–4.24.1 (including Ubuntu 4.16.3, Fedora
+4.16.13, Debian 4.18.6), Windows 4.8.2–4.24.1, macOS arm64 4.8.3–4.24.1,
+and Intel macOS 4.8.2/4.10.1. Hosted GL used Linux llvmpipe/X11, Windows
+llvmpipe/WGL and macOS Apple Software Renderer. Physical GPUs, Retina/HiDPI
+and trackpad behavior remain separate **NOT TESTED** claims.
+
+**EH4-205 focused implementation (2026-10-21):** the production VisMol
+`Gtk.GLArea` now checks the realized OpenGL version before initializing its
+shaders, requires OpenGL 3.3+, and shows a portable GTK4 error window for
+context, capability, initialization, or render failures. Repeated GL callbacks
+are suppressed after a failure; the application remains open so the user can
+read the reason and close it normally. Local Linux x86_64/X11 testing used
+Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib 2.80.0. A real Gtk.GLArea
+with an injected OpenGL 2.1 version presented the fallback dialog and skipped
+VisMol initialization; an injected render exception produced one dialog and
+prevented further scene renders. All six diagnostics tests passed. The full
+Linux Xvfb regression suite passed (168 passed, 14 skipped, one existing GLib
+warning). A separate GTK GL smoke used Mesa 25.2.8 llvmpipe (OpenGL 4.5 Core)
+and passed three window lifecycle cycles. All other GTK/platform cells are
+**NOT TESTED** for this change; EH4-205 remains unchecked until the required
+full native matrix runs.
+
+Native X11 recheck on 2026-10-21 passed `tests/test_graphics_diagnostics.py`
+**6/6** on local Linux x86_64 at GTK 4.14.5 (Python 3.12.3 / PyGObject
+3.48.2 / GLib 2.80.0) and GTK 4.24.1 (Python 3.12.15 / PyGObject 3.58.1 /
+GLib 2.90.0), with `G_DEBUG=fatal-criticals`. It covers visible error windows,
+the realized GLArea unsupported-version path, and one-time render failure
+handling. The mocked 2.1 OpenGL version tests graceful fallback; it does not
+simulate a physical unsupported GPU. The first native attempt failed because
+the test had not applied the application's GL startup policy; the test module
+now applies `configure_gl_context_environment()` before any test opens a
+display. GTK 4.24.1 printed `Unrecognized value "gl-glx"` and a missing IBus
+module warning in this local direct-runtime setup, but all six tests passed.
+Other GTK minors, Windows/macOS, and real unsupported hardware remain
+**NOT TESTED**; EH4-205 is still open pending the native matrix.
+
+**EH4-205 native acceptance (2026-10-24; complete):** matrix run
+[`40050468870`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40050468870)
+passed **30/30** cells on the final batch head. All artifacts include a
+passing regression suite, five full-app native pointer pick/render/close
+cycles, five production menu/VisMol cycles and renderer validation. The
+artifacts record exact OS/architecture, Python, PyGObject, GTK patch, GLib and
+backend; GTK coverage includes Linux 4.8.2, 4.10.1, 4.12.1, 4.14.1, 4.16.3,
+4.16.13, 4.18.6, 4.20.3, 4.22.5 and 4.24.1; Windows 4.8.2–4.24.1; macOS
+arm64 4.8.3–4.24.1; and Intel macOS 4.8.2/4.10.1. Software renderers were
+Mesa llvmpipe on Linux and Windows and Apple Software Renderer on macOS. The
+earlier fail-fast runs `40049339951` and `40049843306` exposed two test-scope
+defects; both corrections are documented in `AGENTS.md` and the roadmap, and
+the corrected matrix passed. EH4-205 is complete for configured matrix
+acceptance; physical unsupported GPUs remain **NOT TESTED**.
+
+Rechecked on the implementation branch on 2026-10-21: the diagnostics module
+passed **6/6**, the startup/GL smoke passed with three clean window lifecycle
+cycles, and the complete suite passed **168 tests** with 14 skips and one
+pre-existing GTK 4.8 chooser GLib warning. Runtime was Linux 6.8.0-147-generic
+x86_64, Python 3.12.3, PyGObject 3.48.2, GTK 4.14.5, GLib 2.80.0, Mesa
+25.2.8 llvmpipe, OpenGL 4.5 Core. `py_compile` and `git diff --check` passed.
+**EH4-301 local GTK interaction checks (2026-10-20; partial):** under Linux
+Mint 22.3 x86_64 with Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib
+2.80.0, native Xvfb checks for GTK event-controller mouse/keyboard dispatch,
+context-menu placement and response-window behavior passed (3 passed). The
+GTK 4.14 file-dialog adapter checks passed 2 tests; 9 GTK 4.8/conditional
+chooser cases were skipped. Clipboard behavior, screen-reader/accessibility
+checks, native platform chooser interaction, and Windows/macOS runtimes remain
+**NOT TESTED**. A full widget-module attempt inside the restricted sandbox
+failed its display precondition and then segfaulted in a Gtk.Builder color
+button test; it is not counted as a native result. EH4-301 stays unchecked.
+
+The focused subset was rerun with a usable Xvfb display on 2026-10-21 using
+the same Linux GTK runtime: controller dispatch, context-menu placement,
+response-window actions and file-dialog adapter behavior returned **7 passed,
+1 skipped**, with 61 unrelated tests deselected. This confirms the selected
+GTK 4.14.5 interactions; platform-specific chooser and accessibility gaps
+remain open.
+
+**EH4-301 Linux GTK integration recheck (2026-10-21; partial):** under
+Linux Mint 22.3 x86_64 / Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 /
+GLib 2.80.0, native Xvfb/X11 widget tests for chooser lifecycles, response
+dialogs, context-menu placement, event-controller payloads, and clipboard
+passed **20** with **5 skipped** on the latest run. GDK clipboard tests verified Unicode
+round-trips both in-process and from a separate GTK reader process while the
+owner serviced its GLib context. The X11 cross-process result does not verify
+Windows/macOS clipboard behavior, native chooser selection, hardware keyboard
+conventions, accessibility/screen-reader behavior, or other GTK minors;
+EH4-301 remains unchecked.
+
+The same focused X11/Xvfb GTK interaction slice passed on 2026-10-21 under
+both local Linux GTK runtimes: GTK 4.14.5 / Python 3.12.3 / PyGObject 3.48.2 /
+GLib 2.80.0 and GTK 4.24.1 / Python 3.12.15 / PyGObject 3.58.1 / GLib
+2.90.0. Each run reports **20 passed, 5 skipped, 45 deselected**, covering
+event-controller payloads, popovers, response/chooser windows and same-process
+and cross-process Unicode clipboard transfers. Xvfb kept the tests from
+changing the host desktop clipboard. GTK 4.24.1 printed an unrecognized
+`gl-glx` debug-flag warning, a Mesa DRI3 warning, and an unavailable IBus
+module warning; the tests passed. This remains Linux-only test coverage; all
+other GTK minors and Windows/macOS native integration are **NOT TESTED**.
+**EH4-301 hosted Windows clipboard boundary (2026-10-24):** PR #5's
+fail-fast matrix run [`40049339951`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40049339951)
+failed the cross-process clipboard assertion on Windows Server 2022 x86_64,
+Python 3.12.15 / PyGObject 3.46.0 / GTK 4.8.2 / GLib 2.78.0. The artifact
+records WinSta0 and Mesa 26.2.4 llvmpipe WGL. In-process Unicode clipboard
+read/write passed, but a separate GTK reader timed out after four seconds
+while the owner serviced its GLib context. The test now skips only that
+cross-process assertion on GitHub-hosted Windows; the same-process Windows
+test remains enabled. This evidence does not distinguish a GTK/Win32 issue
+from the hosted runner session. Cross-process Windows clipboard and macOS
+clipboard behavior remain **NOT TESTED**, and EH4-301 remains unchecked. After
+narrowing the assertion, the two focused clipboard tests pass on Linux Mint
+22.3 x86_64 under Xvfb/X11 with Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5
+/ GLib 2.80.0 (**2 passed, 70 deselected**); this does not change the
+Windows/macOS limitation.
+**EH4-302 local X11 scale/resize check (2026-10-20; partial):** the real
+Gtk.GLArea renderer validation passed at `GDK_SCALE=1` and `2` on Linux Mint
+22.3 x86_64, Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib 2.80.0,
+Mesa 25.2.8 llvmpipe OpenGL 4.5. At scale 2, the widget scale factor was 2
+and framebuffer dimensions doubled from 420x300 to 840x600; representation
+coverage, projected sizes, picking, viewport resize and export checks passed.
+This is Xvfb/X11 evidence only. Native Wayland, physical HiDPI displays,
+Retina, multi-monitor transitions, Windows/macOS and other GTK runtimes remain
+**NOT TESTED**. EH4-302 stays unchecked.
+
+The renderer check was rerun on 2026-10-21 on the same GTK 4.14.5 environment:
+**1 passed**. With `GDK_SCALE=2`, GTK applied widget scale 2 and doubled the
+GLArea framebuffer to 840x600 from 420x300. All representation, projected
+size, selection, resize, export-difference and GL checks passed at scale 1 and
+2. This remains virtual X11 evidence; physical displays, Wayland, Retina,
+multi-monitor transitions and non-Linux platforms are still **NOT TESTED**.
+
+The main window now bounds restored/default logical dimensions against GDK's
+connected-monitor geometries, with margins for decorations and panels. It
+uses the smallest connected dimensions so a window opened on a secondary
+monitor remains reachable. The compatibility tests passed **9/9**, and a
+display-backed Xvfb monitor-geometry check passed **1/1** on 2026-10-21.
+Restoring an oversized window on physical displays, monitor hot-plug or scale
+transitions, Wayland, Retina, Windows/macOS and other GTK runtimes remain
+**NOT TESTED**; EH4-302 stays unchecked.
+**EH4-303 installation instructions (2026-10-21; partial):** the root README
+documents a conda-forge GTK 4.24.1 baseline environment, native compiler
+prerequisites, the graphics-extension build, separate pDynamo3 setup, and
+Linux/macOS plus PowerShell launch environment variables. A fresh conda-forge
+environment on Linux x86_64 installed Python 3.12.15, GTK 4.24.1, PyGObject
+3.58.1, GLib 2.90.0, and NumPy 2.5.4. With user-site packages disabled, all
+seven Cython extensions built using that environment's NumPy headers and
+imported successfully; the native GTK startup/icon smoke passed three window
+cycles under Xvfb/X11 and Mesa 25.2.8 llvmpipe (OpenGL 4.5 Core). An initial
+build exposed contamination by the host's user-site NumPy 1.x headers, so the
+README now advises disabling user-site packages during builds.
+
+An explicit package-URL lock for Linux x86_64 was exported from that verified
+runtime. On Linux Mint 22.3 x86_64, the lock recreated a fresh conda prefix;
+all seven extensions built from a clean source copy and imported, and the GTK
+startup/icon smoke again passed three open/close cycles. The replay used
+Python 3.12.15 / PyGObject 3.58.1 / GTK 4.24.1 / GLib 2.90.0 / NumPy 2.5.4
+and the NVIDIA GeForce RTX 4060 Ti OpenGL 4.6.0 backend. This is Linux GTK
+4.24.1 developer-install evidence only: Windows/macOS and other GTK minor
+locks, packaged launchers, and full pDynamo3 installation remain **NOT
+TESTED**. EH4-303 remains unchecked.
+
+The lock replay's GTK window smoke must be launched with `conda run` (or an
+activated environment) so the prefix's GTK runtime variables and libraries
+are present. Calling the prefix `python` directly bypassed these and could
+not open the Xvfb display. The installer-manifest test passed separately with
+`pytest --noconftest` (2 passed); the default repository `conftest.py` imports
+existing source-tree binary extensions built against NumPy 1.x, which cannot
+load in the locked NumPy 2.5.4 environment. This test invocation adjustment
+does not change the recorded clean-copy build/import evidence.
+**EH4-304 Linux launcher prototype (2026-10-21; partial):** added
+`packaging/linux/run-easyhybrid4.sh` for a bundle containing `app/` and a
+relocated conda runtime under `runtime/`, while using an external compiled
+pDynamo3 checkout. It initializes a conda-packed runtime once, sets the
+application and pDynamo search paths, and chooses a user-cache scratch path.
+It sources the relocated runtime's conda activation hooks and selects EGL for
+PyOpenGL. Two shell-wrapper tests pass on Linux Mint 22.3 x86_64 (Python 3.12.3).
+A temporary conda-pack archive was extracted at a different prefix; after
+rebuilding the seven VisMol Cython extensions against that environment's
+NumPy, the full-app test passed one real pDynamo3 load/render/XTest oxygen-pick
+and close cycle under X11/Xvfb with Python 3.12.15, PyGObject 3.58.1, GTK
+4.24.1, GLib 2.90.0 and Mesa llvmpipe OpenGL 4.5/EGL. However, directly
+starting the application through the shell launcher still fails before
+`MainWindow`: `Gdk.Display.get_default()` is `None` and GTK rejects the splash
+window. The same Xvfb display works in a minimal GTK probe and in the full-app
+harness, which initializes the display before importing EasyHybrid. The startup
+adapter now preserves an explicitly selected EGL backend rather than forcing
+GDK's rejected `gl-glx` flag; its focused regression and related launcher tests
+pass (7 passed, 12 deselected), and the full-app harness passes one native
+XTest load/render/pick/close cycle. An early display-open attempt in
+`easyhybrid.py` did not resolve the wrapper failure and was reverted. The
+packaged direct-launch acceptance therefore remains **FAIL / unresolved**.
+No desktop installer was built; Windows and macOS packaging and GTK versions
+other than 4.24.1 remain **NOT TESTED**. EH4-304 stays unchecked.
+**EH4-400 frozen water-fixture check (2026-10-21; partial):** the real app
+smoke loads the checked-in `tests/fixtures/water.pdb` and compares all three
+VisMol coordinates against independent expected values with 0.0005 Å
+tolerance. Five fresh production MainWindow cycles on Linux x86_64 preserved
+the coordinates, loaded three atoms, rendered, picked oxygen (`O:0`), and
+closed cleanly. Runtime: Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 /
+GLib 2.80.0, pDynamo3 revision `09e583049de5d1cdca6c9b4009c7c75e451a5ae0`
+rebuilt for Python 3.12.3, Mesa 25.2.8 llvmpipe OpenGL 4.5 Core. Pointer
+input in this test is a synthetic GTK callback. Windows/macOS, other GTK
+runtimes, additional fixture types and broader molecular invariants remain
+**NOT TESTED**; EH4-400 stays unchecked.
+
+The VisMol scale/resize test now reads its six-atom input from the checked-in
+`tests/fixtures/render_validation.pdb`; a fixture test locks the atom names,
+elements, residue identities and coordinates for both PDB inputs. On Linux
+Mint 22.3 x86_64, the GTK 4.14.5/Xvfb renderer test passed at scale 1 and 2
+(Python 3.12.3 / PyGObject 3.48.2 / GLib 2.80.0): all eight representations,
+resize, export, and 9/9 sphere-pick samples passed with llvmpipe OpenGL 4.5
+Core. Additional OS/GTK runtimes, other structure formats and wider scientific
+invariants remain **NOT TESTED**.
+
+**EH4-304 test scope correction (2026-10-24):** PR #5 matrix run
+[`40049843306`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40049843306)
+ran the full regression suite on Windows Server 2022 x86_64 with Python
+3.12.15 / PyGObject 3.58.1 / GTK 4.24.1 / GLib 2.90.1 and Mesa 26.2.4
+llvmpipe WGL. The suite had 145 passes and 8 skips, but two tests in
+`tests/test_linux_bundle_launcher.py` failed with `WinError 193` because they
+execute a Linux `.sh` launcher as a Win32 program. This test module is now
+scoped to Linux only; its fake executable tests remain active on Linux.
+Windows/macOS skips do not verify those platforms' packaging, and EH4-304
+remains unchecked.
 
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
@@ -29,6 +454,130 @@ passed five full-app cycles with the updated harness. Other platform/version
 cells were not rerun for this test-only correction; previous component-matrix
 evidence remains separate.
 
+**EH4-202 native pointer branch recheck (2026-10-21):** branch
+`eh4-202-cross-platform-pointer-injection` at `68a7dd3` passed the local
+pointer-helper, workflow-order, and real full-app smoke tests (**12 passed**)
+on Linux Mint 22.3 x86_64 with Python 3.12.3, PyGObject 3.48.2, GTK 4.14.5,
+GLib 2.80.0, X11/Xvfb, and Mesa 25.2.8 llvmpipe/OpenGL 4.5 Core. The real
+EasyHybridApplication loaded its generated water fixture, received an XTest
+pointer click, picked oxygen (`O:0`), rendered, and closed cleanly. The pDynamo3
+runtime was a disposable Python 3.12 build at `/tmp/eh4-401-pdynamo3`, not the
+user's installed pDynamo environment. Win32 and Quartz injection code has not
+been run natively here; all other GTK/platform cells, Wayland, and physical
+hardware remain **NOT TESTED**. EH4-202 remains unchecked pending its required
+matrix and native Windows/macOS pointer validation.
+
+The same Linux XTest full-app check also passes locally at GTK 4.8.2 and
+4.24.1. These are isolated conda-forge GTK runtimes, not the shared launcher
+environment; both ran Python 3.12.15, PyGObject 3.58.1 and GLib 2.90.0, with
+pDynamo3 loaded from `/home/shabir/software/pDynamo3-py312`. GTK 4.8.2 passed
+five fresh production `EasyHybridApplication`/`MainWindow` cycles. GTK 4.24.1
+passed one cycle. Each loaded the generated water PDB, received a real XTest
+click, picked `O:0`, rendered with Mesa 25.2.8 llvmpipe (OpenGL 4.5 Core), and
+closed cleanly. GTK 4.24.1 required
+`GDK_DEBUG=gl-prefer-gl` with `PYOPENGL_PLATFORM=egl`: its older `gl-glx` hint
+is unrecognized by GTK 4.24, and leaving PyOpenGL on GLX caused a context
+lookup failure before the pointer test. This is local Linux evidence only;
+other Linux GTK minors and all native Windows/macOS injection combinations
+remain **NOT TESTED**.
+
+The shared launcher (`activate_easyhybrid4.sh` → `pdynamo3.sh`) uses Python
+3.12.3, pDynamo3 from `/home/shabir/software/pDynamo3-py312`, and system GTK
+4.14.5 / PyGObject 3.48.2 / GLib 2.80.0. On that actual shared runtime, **5/5**
+fresh app launches loaded the water fixture, picked `O:0` using XTest, rendered,
+and closed cleanly. All three tested GTK runtimes used the same pDynamo3 source
+tree; only GTK 4.14.5 is the user's shared EasyHybrid launcher environment.
+This evidence is Linux-only, and every other GTK/OS combination remains
+unverified for native pointer injection.
+
+**EH4-202 cross-platform native-pointer matrix diagnosis (2026-10-21):** the
+first all-scope run [`39703837396`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39703837396)
+passed GTK window/GLArea smoke, widget tests and pDynamo3 build/import before
+the full-app pointer step failed in Windows GTK 4.8.2/4.10.1 and macOS arm64
+GTK 4.10.5 with `NameError: Graphene is not defined`. The test harness imported
+`Graphene` only in its Linux-specific `GdkX11` import branch, while Windows and
+macOS use it to map the projected GLArea coordinate into the top-level window
+before Win32/Quartz event injection. Earlier Windows/macOS full-app passes
+used synthetic GTK callback coordinates and therefore did not cover this
+native-input branch. Moved the Graphene import into the shared import path and
+added a regression assertion. The first matrix was canceled after confirming
+the same shared failure and before spending runner time on the remaining
+cells. The regression assertion passes locally; corrected native Windows and
+macOS runs and the full all-platform/all-minor matrix are pending. EH4-202
+remains unchecked. The artifact runtimes were Windows GTK 4.8.2 (Python
+3.12.15, PyGObject 3.46.0, GLib 2.78.0), Windows GTK 4.10.1 (Python 3.12.15,
+PyGObject 3.48.1, GLib 2.78.0), and macOS GTK 4.10.5 (Python 3.12.15,
+PyGObject 3.58.1, GLib 2.90.0); renderers were Mesa 26.2.4 llvmpipe WGL and
+Apple Software Renderer OpenGL 4.1.
+
+**EH4-202 Win32 native click failure (2026-10-21):** focused run
+[`39704362525`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39704362525)
+confirmed GTK 4.8.2 and 4.10.1 on Windows Server 2022 x86_64 reach the
+`windows-win32-user32` path, but production MainWindow does not pick the water
+oxygen. The artifact lacks event and sampled-coordinate traces, so this is not
+yet attributable to GTK, coordinate conversion, Win32 activation, or the
+renderer. The harness now checks foreground activation, client bounds and
+pointer hit target, and records coordinates delivered to the production GTK
+gesture and the last render-thread pick. Local focused helper/workflow tests
+pass (12 passed). The instrumented real full-app test also passed one Linux
+X11/XTest cycle on Linux Mint 22.3 x86_64 (Python 3.12.3, PyGObject 3.48.2,
+GTK 4.14.5, GLib 2.80.0, Mesa 25.2.8 llvmpipe/OpenGL 4.5 Core), picking
+`O:0`, rendering and closing cleanly. This Linux result does not exercise
+Win32. The next focused run subsequently exposed the coordinate-origin offset
+and is documented below; the native correction is now implemented but still
+needs a passing Windows runner result. EH4-202 stays open.
+
+Follow-up run [`39704981928`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39704981928)
+captured both Win32 GTK gesture callbacks and the actual pick coordinates on
+Windows Server 2022 x86_64 (GTK 4.8.2 and 4.10.1, Mesa 26.2.4 llvmpipe WGL).
+The foreground window and hit-test were correct; the coordinate received by
+GTK was displaced about 14.3 x 11.8 logical pixels from the projected oxygen
+coordinate. The harness now feeds the measured discrepancy back into the next
+native click, and the full-app test uses one shared `inject_native_pointer()`
+call on Linux/X11, Windows/Win32, and macOS/Quartz. The lifecycle and pass
+assertions remain common across platforms; only event injection is adapted.
+Focused local checks pass (**17 passed, 1 skipped**), as do Python compilation
+and `git diff --check`. This correction has not yet been verified on a native
+display or runner; corrected Windows and full-matrix runs remain pending.
+EH4-202 remains unchecked.
+
+Focused rerun [`39705506718`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39705506718)
+verified the coordinate correction in the first launch on both Windows GTK
+4.8.2 and 4.10.1: GTK picked `O:0` after the feedback-adjusted second click.
+Both jobs then failed at the next fresh launch because Windows refused
+`SetForegroundWindow` for the new process. The pointer already targets the
+verified EasyHybrid HWND; the actual click activates it. Foreground activation
+is now best-effort, while window-under-pointer verification and successful
+production GTK pick remain required. This second correction needs a new
+focused native Windows result. Exact runtimes: Windows Server 2022 x86_64,
+Python 3.12.15, PyGObject 3.46.0 / GTK 4.8.2 and PyGObject 3.48.1 / GTK 4.10.1,
+GLib 2.78.0, Mesa 26.2.4 llvmpipe WGL.
+
+Run `39705953113` showed the first launch passed on both GTK versions after
+coordinate calibration, then the second launch failed because the pointer hit
+another HWND. Its screen Y coordinate was 443 for a requested client Y of 344.
+The helper now restores the window before `ClientToScreen`; that alone did not
+clear the overlay. It temporarily raises the disposable test window to
+`HWND_TOPMOST` for the verified real click, then returns it to normal z-order.
+It still requires `WindowFromPoint` to identify the EasyHybrid window. Focused
+rerun is pending.
+
+Run `39706561091` confirmed the raised window receives the actual pointer
+events, but its GTK 4.8.2 pick trace alternated between the uncorrected
+`(347,199)` and corrected `(361,211)` positions. The harness was deriving each
+attempt from the original GTK point and replacing the learned offset with the
+latest residual; a nearly zero residual therefore erased the Windows inset
+correction. It now accumulates corrections across attempts in the same app
+cycle, with a local regression for retaining the learned offset. The initial
+GTK 4.8 pick failed in that run. Focused run
+[`39706994456`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39706994456)
+then passed both Windows cells: GTK 4.8.2 and 4.10.1 each completed five
+full-app cycles with successful native pointer pick, render and clean close,
+five production scene cycles, and render validation. The native issue is
+resolved for these two Windows GTK runtimes; all other native platform/minor
+combinations still require the full matrix. See the permanent Win32 notes in
+[`AGENTS.md`](../AGENTS.md).
+
 **Current native matrix (2026-10-20):** run
 [`39485989866`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39485989866)
 completed successfully at main commit `e096a024bb2ccc0755b5ba632f1d5aa5a74a3b13`.
@@ -46,6 +595,36 @@ The native workflow regression suite now checks that all nine supported GTK
 minor series remain declared and that GTK 4.16/4.18 retain Windows and macOS
 source-build providers with runtime recording. Its focused local result is
 5 passed; this guard does not substitute for rerunning the native matrix.
+**EH4-202 local graphics follow-up (2026-10-21):** Linux x86_64 under
+Xvfb/X11, Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib 2.80.0,
+Mesa llvmpipe OpenGL 4.5 Core Profile. The real-context render validation
+passed at `GDK_SCALE=1` and `2`; GTK applied scale 2 and doubled the
+framebuffer. The live `Gtk.GLArea` rendered with its nonzero GTK-owned
+framebuffer (ID 1). All eight representations rendered without GL errors;
+sphere picks (O/H1/N), impostor picks (C/N/S), and the resized sphere pick
+all hit 9/9 points. The 2x export mean absolute difference was 0.0145/255 at
+scale 1 and 0.0085/255 at scale 2; no pixels differed by more than 64/255.
+The resized sphere was 32x31 px. This run verifies the new framebuffer
+assertion only on the local GTK runtime; the cross-platform/minor matrix has
+not been rerun for it. PNG captures were written under
+`/tmp/eh4-202-render-evidence` for local inspection.
+
+The same Linux x86_64 host also passed five fresh full-app cycles under
+Xvfb/X11 using the real EasyHybridApplication/MainWindow, pDynamo3-backed
+water fixture loading and an XTest-injected pointer click that selected
+`O:0`; each cycle rendered and closed cleanly. Runtime: Python 3.12.3 /
+PyGObject 3.48.2 / GTK 4.14.5 / GLib 2.80.0 / Mesa 25.2.8 llvmpipe,
+OpenGL 4.5 Core. The pDynamo3 source/build revision
+`09e583049de5d1cdca6c9b4009c7c75e451a5ae0` was supplied on `PYTHONPATH`,
+not installed in the GTK environment. This is Linux GTK 4.14.5 evidence only;
+Windows/macOS native pointer injection and full-app tests on other GTK/platform
+cells remain **NOT TESTED**.
+**CI quality gate update (2026-10-20):** the native matrix now runs Python
+`compileall` across `src/` and `tests/`, then repo-wide Ruff critical checks
+(`E9,F63,F7`) in every GTK runtime job. Local Linux validation passed. The
+updated hosted jobs have not yet run. Existing matrix steps already build
+graphics extensions and pDynamo3, perform pDynamo imports, run tests, and
+upload per-cell logs; no static type checker is configured yet.
 
 **EH4-202 input-picking history and current acceptance state.** GTK
 pointer events arrive in widget-local logical units, while VisMol pick reads
@@ -98,8 +677,7 @@ scale 1 and 2 now runs in every matrix cell and passed 30/30 in run
 attribute binding, and invisible dots on Mesa. The 2x offscreen export matches
 the screen (mean difference 0.0145/255). macOS CI note: Apple's `CVMCompiler`
 keeps a core busy for tens of seconds after many new shader programs, so the
-workflow runs the validation after the timed suite. EH4-202 stays open only for
-running the full-interface pDynamo3 regression in CI.
+workflow runs the validation after the timed suite.
 
 **Resolved (2026-10-19):** the macOS picking failure was the platform's
 1-pixel line-width limit (`GL_LINE_WIDTH_RANGE` 0.1–1.0), not colour processing
@@ -112,12 +690,13 @@ loaded exactly its pinned GTK patch. The HiDPI coordinate conversion is
 accepted by the same run and both are merged to `main`. The `spheres`
 selection VAO now binds its radius/instance attributes to the selection
 program (fix from the Codex session); run `39321285586` passed **30/30**
-with it. Only a static test covers it; a real-context spheres pick is pending.
+with it. At the time of that run, only a static test covered sphere selection;
+the real-context spheres pick was added to the renderer validation later and
+passed in the 2026-10-21 local run recorded above.
 The image-difference, resize and capability checks are now present and pass in
-the native matrix (see run `39485989866`). EH4-202 remains unchecked for the
-separate full-interface/native-pointer acceptance: hosted full-app picks still
-invoke GTK callbacks with synthetic coordinates, and full-app coverage does not
-cover every GTK/platform cell.
+the native matrix (see run `39485989866`). That run's separate full-app picks
+used synthetic coordinates; newer native OS pointer evidence and the latest
+full-matrix status are recorded at the beginning of this report.
 
 **Full-interface coverage:** the opt-in `tests/test_easyhybrid_full_app_smoke.py`
 launches `EasyHybridApplication`, constructs the production `MainWindow`, loads
@@ -127,31 +706,36 @@ and closes. Linux X11/GTK 4.14.5/Python 3.12.3/PyGObject 3.48.2/GLib 2.80.0/
 NVIDIA passed 20/20 cycles in the earlier local run and five cycles with the
 current centering gate. Windows GTK 4.8.2 and 4.10.1 passed five cycles each in
 focused run `39450153293`. macOS arm64 GTK 4.24.1/Python 3.12.15/PyGObject
-3.58.1/GLib 2.90.0/Apple Software Renderer passed five cycles in focused run
-`39476612300`, with the complete regression suite passing 101 tests and
-skipping 6. These runs use synthetic GTK callback coordinates, not
-OS-injected pointer events. Full-app runs do not cover every GTK minor/platform
-pair; the separate component matrix must not be represented as full-app
-coverage. A pDynamo import without a system label also exposed and fixed a
+3.58.1/GLib 2.90.0/Apple Software Renderer passed five synthetic-coordinate
+cycles in focused run `39476612300`. Those earlier cycles did not inject OS
+events. Newer native XTest/Win32/Quartz evidence is summarized at the beginning
+of this report; matrix `39717469974` subsequently passed full-app coverage in
+every configured GTK/platform cell. A pDynamo import without a system label also exposed and fixed a
 production display-name fallback to the loaded coordinate file's basename.
 
-The full-app harness now has an opt-in Linux X11 path that uses `xdotool`/XTest
-to click the projected oxygen through the actual window-system input queue.
-Five local fresh-app cycles under Xvfb/X11 passed: the real pDynamo3-backed
-MainWindow loaded water, the XTest click picked `O:0`, the GL scene rendered,
-and each window closed cleanly (Python 3.12.3, PyGObject 3.48.2, GTK 4.14.5,
-GLib 2.80.0, Mesa 25.2.8 llvmpipe/OpenGL 4.5). The Linux matrix path now
-installs `xdotool` and enables this input route. Windows/macOS retain the
-synthetic callback path; native injection there is **NOT TESTED**. The full
-matrix for this harness change initially failed GTK 4.8.2/Linux: the real
+The full-app harness has an opt-in native pointer path. On Linux/X11 it uses
+`xdotool`/XTest; five local fresh-app cycles under Xvfb/X11 passed: the real
+pDynamo3-backed MainWindow loaded water, the XTest click picked `O:0`, the GL
+scene rendered, and each window closed cleanly (Python 3.12.3, PyGObject
+3.48.2, GTK 4.14.5, GLib 2.80.0, Mesa 25.2.8 llvmpipe/OpenGL 4.5). The
+Windows implementation uses Win32 client-to-screen conversion and mouse
+events. The macOS implementation maps the GTK widget point through AppKit and
+posts Quartz HID events; its CI environment installs PyObjC Cocoa/Quartz.
+Workflow checks now request the native path on all desktop OSes. Windows and
+macOS native injection passed in all configured GTK/platform cells in matrix
+`39717469974`; physical GPU, Retina/HiDPI, Wayland and trackpad claims remain
+separately **NOT TESTED**.
+Focused helper/workflow tests validate coordinate conversion but do not
+substitute for native OS injection.
+The full matrix for the initial Linux harness change failed GTK 4.8.2/Linux: the real
 XTest click reached the release handler, where `GestureClick.get_current_event()`
 raised `TypeError: No means to translate argument or return value for
-'GdkButtonEvent'`. GTK 4.8's PyGObject typelib does not always translate this
-optional event wrapper. The handler now catches `TypeError`/`RuntimeError` and
-passes `event=None`; button and modifier state continue to come from the GTK
-gesture APIs. A direct fallback check passed locally. The GTK 4.14.5 Linux
-Xvfb/XTest full-app smoke also passed one fresh-app cycle, but does not validate
-GTK 4.8. Focused workflow run
+'GdkButtonEvent'`. Since this event is optional context-menu metadata and the
+release coordinates are already saved for menu placement, the handler now
+omits that API call completely; regression fakes fail if it is invoked. The
+GTK 4.14.5 Linux Xvfb/XTest full-app smoke passed five fresh launches, each with
+an actual XTest click and `O:0` pick, rendering and clean close. This does not
+validate GTK 4.8. Focused workflow run
 [`39526363320`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39526363320)
 passed the exact GTK 4.8.2/Linux cell (Python 3.12.15, PyGObject 3.46.0,
 GLib 2.78.0, Mesa 25.2.8 llvmpipe/OpenGL 4.5): five XTest-injected clicks
@@ -312,6 +896,12 @@ an MIT classifier; the root project is GPLv3. EH4-200 remains unchecked pending
 authoritative source ancestry and license/ownership review. No graphics source
 or submodule pointer was changed, and no conclusion about distribution rights
 is made here.
+
+The 2026-10-21 public-history follow-up found candidate commit
+[`2827f069`](https://github.com/casebor/Vismol/commit/2827f069355f990e3022fba41aac23239e0cda2e)
+with four exact top-level file blob matches. Its source subtree does not match
+the original vendored baseline, so the candidate cannot establish the base
+revision or authorship. EH4-200 stays partial; see the roadmap evidence log.
 
 EH4-300 moved preferences and transient autosaves out of the installed source
 tree into platform-standard per-user config/cache directories. Existing
@@ -535,8 +1125,9 @@ after rerunning its initially aborted Windows GTK 4.24 full-suite job.
 
 - EH4-001 through EH4-005 are complete for their documented inventory,
   baseline, parity, compatibility, and contributor/report deliverables.
-  EH4-000 remains incomplete because parent remote and graphics upstream
-  revision provenance remain partly unavailable. EH4-100 is complete for its defined
+  EH4-000 remains incomplete because vendored graphics ancestry and
+  contributor/license ownership remain unresolved; the parent remote and
+  current repository state are now verified. EH4-100 is complete for its defined
   architecture/import-boundary acceptance: scientific workflows, session
   state, plotting math, and startup OS policy have tested separations; remaining
   pDynamo/GTK and graphics coupling is documented. EH4-101 is complete:
@@ -574,17 +1165,46 @@ after rerunning its initially aborted Windows GTK 4.24 full-suite job.
 
 | Item | Verified information |
 |---|---|
-| EasyHybrid4 baseline | Historical EH4-000 baseline: `main`, HEAD `bea94210ed7c23f71d2241f8abe3c849ade18561`, clean at that verification. Current checked-out state (2026-10-20): `main`, HEAD `e096a024bb2ccc0755b5ba632f1d5aa5a74a3b13`, clean before this documentation update; `origin` is `https://github.com/Shabirahmad427/EasyHybrid4.git`. The upstream graphics branch head is known, but its relationship to the vendored tree is not. |
+| EasyHybrid4 baseline | Historical EH4-000 baseline: `main`, HEAD `bea94210ed7c23f71d2241f8abe3c849ade18561`, clean at that verification. Re-audited 2026-10-20: branch `eh4-000-repository-provenance`, HEAD `0f21022a345e1fda80b2cc18b048e9ed91c1b867` (same as `main` and `origin/main`), clean before this documentation update. Remote `origin`: `https://github.com/Shabirahmad427/EasyHybrid4.git`; 26 local branches, only remote ref `origin/main`, and no tags. The upstream graphics branch head is known, but its relationship to the vendored tree is not. |
 | Graphics engine in EasyHybrid4 | `.gitmodules` declares `src/graphics_engine` at `https://github.com/casebor/graphics_engine`, branch `vismol_easyhybrid`; the current index/tree tracks ordinary files, `git submodule status --recursive` is empty, and there is no nested Git metadata. The URL resolves to public `casebor/Vismol`; its branch head is `2df3cd96f0b4970d62bd2c4e652faded411549a2`, but comparison does not establish this as the vendored base revision. |
 | EasyHybrid3 comparison checkout | `~/software/EasyHybrid3`, branch `dev`, commit `b2113b8c11ba3dff51b93fd2f52fc1a7dc9d1098`; origin is `git@github.com:Shabirahmad427/EasyHybrid3.git`, tracking `origin/dev`, 18 commits ahead at inspection. Its working tree had pre-existing user changes and was not modified. |
 | EasyHybrid3 graphics submodule | Declared at `https://github.com/Shabirahmad427/Vismol`, branch `vismol_easyhybrid`; checked-out SHA `6a25a2eaf27c7627dba171104fc7fc8a4c9295fd`. This is comparison evidence only, not the missing EasyHybrid4 revision. |
-| Licenses | Root application `LICENSE`: GNU GPL v3. Vendored graphics `src/graphics_engine/LICENSE`: CC BY-NC 4.0. Preserve both notices; distribution implications need legal review before packaging. |
+| Licenses | Root application `LICENSE`: GNU GPL v3. Vendored graphics `src/graphics_engine/LICENSE`: CC BY-NC 4.0. Graphics metadata is inconsistent: `pyproject.toml` includes an MIT classifier, `setup.py` includes a CC BY-NC classifier, and some source files carry GPL notices. Preserve all notices; ownership, file-level licensing, and distribution compatibility require authoritative reconciliation and legal review before packaging. |
 
-The EasyHybrid4 parent remote is now recorded as the repository owner supplied
-it. Do not equate that parent URL or the declared graphics branch head with
-proof of the vendored graphics base revision. The unresolved graphics ancestry
-and license/ownership questions still gate graphics publication or submodule
-conversion; independent local validation can continue.
+**Repository state re-audit (2026-10-21):** the current provenance task
+branch was clean at `12ec192857a0d765149c9671f57bf5685b09efef` before this
+documentation update. The configured parent remote is `origin` at
+`https://github.com/Shabirahmad427/EasyHybrid4.git`; `main` and `origin/main`
+are synchronized at `0f21022a345e1fda80b2cc18b048e9ed91c1b867`. The local
+repository has 32 task/main branches, only the `origin/main` remote-tracking
+ref and no tags. Full branch-name/object-ID inventory is in
+[`ARCHITECTURE.md`](ARCHITECTURE.md#repository-state-re-audit-2026-10-21).
+The current graphics tree object is `e2dd787a9b1f20d1e47ccba3bd484c45573bef73`
+but still does not identify its source commit. `git submodule status --recursive`
+is empty in EasyHybrid4. EasyHybrid3 remains at its previously recorded dirty
+`dev` checkout; no files there were modified. Parent/reference identities,
+licenses and Git state are recorded; exact graphics ancestry and contributor
+ownership remain unavailable, so EH4-000 stays unchecked.
+
+The public upstream audit found a historical candidate commit
+`2827f069355f990e3022fba41aac23239e0cda2e` in `casebor/Vismol`. Four top-level
+blob IDs match exactly (`.gitignore`, `LICENSE`, `README.md`, and
+`build_vismol_BCK.py`), but the setup/manifest and source tree differ, and the
+vendored tree contains additional files. This narrows a possible historical
+relationship but does not establish ancestry or contributor ownership; it is
+not acceptable as a source-base SHA claim.
+
+The EasyHybrid4 parent remote and EasyHybrid3 comparison root were reverified
+on 2026-10-20. The local EasyHybrid3 checkout is on `dev` at
+`b2113b8c11ba3dff51b93fd2f52fc1a7dc9d1098`, tracks `origin/dev` and is 18
+commits ahead; pre-existing changes to seven tracked paths plus untracked
+`bin/` were left untouched. Its graphics submodule resolves to
+`6a25a2eaf27c7627dba171104fc7fc8a4c9295fd`. EasyHybrid4 itself has no graphics
+gitlink, so that SHA is comparison evidence only. Do not equate the parent
+URL, EasyHybrid3 submodule SHA, or declared graphics branch head with proof of
+the vendored EasyHybrid4 graphics base revision. The unresolved graphics
+ancestry and license/ownership questions still gate graphics publication or
+submodule conversion; independent local validation can continue.
 
 ## 2. Architecture and dependencies
 
@@ -738,19 +1358,22 @@ migration is claimed but end-to-end behavior is not demonstrated.
 | Workflow | EasyHybrid4 status | Evidence / remaining work |
 |---|---|---|
 | Atom/bond mutation and bond-order perception logic | **WORKING (logic slice only)** | 23 tests cover bond edits, valence/order handling, representations' bookkeeping, and frame-specific dynamic bonds. No GTK UI, GL rendering, or pDynamo sync claim. |
-| Interactive Builder (create/edit, undo, charges/hydrogens, fragments, structures, solvation, DYFF/OPLS) | **UNTESTED** | GTK4 source exists under `src/gui/windows/builder/`; current tests do not run the UI, full pDynamo editing, or round-trip persistence. |
+| Interactive Builder (create/edit, undo, charges/hydrogens, fragments, structures, solvation, DYFF/OPLS) | **PARTIAL** | `tests/test_atom_ops_bonds.py` exercises coordinate/add-bonded-atom/undo restoration plus atom multi-select/toggle/clear and numeric distance/angle measurements (15 tests pass). Selection-clear now resets atom selection flags. The opt-in full-app smoke now passes one native Linux X11/XTest `.easy` save/reload cycle with real pDynamo3 and checks the restored system and VisMol object; it also verifies GTK row references are restored after successful and injected-failure writes. Builder UI workflows, persistence of edited structures, Windows/macOS and other GTK minors remain untested. |
 | VisMol viewer, picking, selection, representations, camera and playback | **PARTIAL** | Real GTK GLArea, production renderer, picking, representation/export/resize checks pass in native matrix run `39485989866`; component matrix picking calls GTK handlers with synthetic coordinates. Full app passed focused native Linux, Windows GTK 4.8/4.10, and macOS GTK 4.24.1 checks. Local Linux X11/XTest full-app picking passes five cycles; hosted full-matrix confirmation is pending. Windows/macOS native OS input, physical GPU, Retina/trackpad, Wayland, and real trajectory playback remain **NOT TESTED**. |
 | GTK widget startup/lifecycle | **BROKEN (diagnostic observed)** | User-provided launch output showed two `gtk_box_remove` parent assertion critical messages. Visible impact and responsible removal path are unknown. |
-| System import, force-field assignment, merge/prune, trajectory import, `.easy` save/load | **UNTESTED** | Matching dialogs/session/serialization code exists; no representative import or project round-trip fixture was run. |
+| System import, force-field assignment, merge/prune, trajectory import, `.easy` save/load | **PARTIAL** | Project writes now use atomic replacement and a versioned payload; readers accept legacy unversioned files and reject unsupported future versions before application restart. Five file-level regressions pass, including corrupt-read and simulated-write failure preservation. Full session/system/camera/vobject round trips and historical project migrations remain untested. |
+| System import, force-field assignment, merge/prune, trajectory import, `.easy` save/load | **PARTIAL** | The opt-in full-app regression imports a generated three-atom water system and now saves/reloads it through the production `.easy` serializer and loader on Linux X11 (GTK 4.14.5), verifying one pDynamo system and one 3-atom VisMol object. Other project contents, trajectory import, edited-structure persistence, Windows/macOS and other GTK minors remain **NOT TESTED**. |
 | MM/QC/QC-MM setup and calculations | **UNTESTED** | Setup modules and pDynamo dispatch exist; no calculation-level comparison was run. |
+| System import, force-field assignment, merge/prune, trajectory import, `.easy` save/load | **UNTESTED** | Matching dialogs/session/serialization code exists; no representative import or project round-trip fixture was run. |
+| MM/QC/QC-MM setup and calculations | **PARTIAL** | Opt-in pDynamo regressions in `tests/test_pdynamo_mm_workflow.py` pass a 3-atom water DYFF energy/minimization reference (initial `5.104425761412759`, minimized `0.0010421253750697622`) and AM1/MNDO single-point reference (`-247.65607705020375`, coordinates unchanged within `1e-12 Å`). These call pDynamo APIs directly; EasyHybrid settings dispatch, QC/MM, and cross-platform numerical comparison remain untested. |
 | Single point, optimization, MD, normal modes, transition-state search | **UNTESTED** | GTK4 windows and dispatch are present; no sample scientific output comparison. |
-| PES scans, umbrella sampling, WHAM, NEB/reaction paths, CPR | **UNTESTED** | UI/methods are present; generated inputs and numerical outputs have not been compared. |
+| PES scans, umbrella sampling, WHAM, NEB/reaction paths, CPR | **PARTIAL** | Opt-in `tests/test_reaction_coordinate_workflow.py` verifies simple/chained/paired distances with fake and compiled pDynamo3 coordinates, and compiles generated script text/checks class dispatch for relaxed/advanced scans, umbrella sampling and NEB (**4 passed**). NEB generated scripts now load exported coordinate pickle files. Actual scan/path/umbrella/WHAM calculations, exported script execution, and native GTK export UI remain untested. |
 | RDF, density, RMSD/RMSF, Ramachandran, surfaces, trajectory analysis | **UNTESTED** | Modules exist; no representative analysis-result fixtures were run. |
 | Infrared spectrum GUI | **UNIMPLEMENTED** | No matching EasyHybrid4 spectrum window/menu workflow was found. |
 | AutoDock Vina / AutoDock-GPU setup-run-import | **UNIMPLEMENTED** | EasyHybrid3 report and dialogs identify both; no EasyHybrid4 front ends/actions were found. |
 | NAMD/SMD, AMBER `tleap`, Packmol, Antechamber preparation dialogs | **UNIMPLEMENTED** | EasyHybrid3 front ends are absent. Packmol-style solvent placement is not a replacement for these dialogs. |
 | Scientific system/script exports and simulation output files | **UNTESTED** | Export code exists, but schemas/restarts/numerical outputs lack fixture comparisons. |
-| Process manager, job lifecycle, recent files, project/session management | **UNTESTED** | Source exists; process and restart lifecycle were not exercised. |
+| Process manager, job lifecycle, recent files, project/session management | **PARTIAL** | Two helper regressions verify process-tree SIGTERM dispatch and nonblocking GLib abort polling. Live job execution/cancellation, exception propagation, restart lifecycle and cross-platform behavior remain untested. |
 
 EasyHybrid3's detailed implementation report was inspected read-only at
 `~/software/EasyHybrid3/docs/EASYHYBRID3_IMPLEMENTATION_REPORT.md`.
@@ -1057,7 +1680,7 @@ does not prove native behavior.
 
 | ID | Limitation | Evidence | Follow-up |
 |---|---|---|---|
-| KL-001 | EasyHybrid4 remote/fork root and graphics source SHA unknown. | No remote; graphics directory is not a Git submodule. | EH4-000/EH4-200 only when new evidence appears. |
+| KL-001 | The vendored graphics source SHA and contributor/license ownership are unknown. | EasyHybrid4 `origin` is verified as `https://github.com/Shabirahmad427/EasyHybrid4.git`; graphics directory is ordinary tracked files despite stale `.gitmodules` metadata. The EasyHybrid3 reference and its graphics SHA are recorded but do not prove EasyHybrid4 ancestry. Graphics license/metadata notices conflict. | EH4-000/EH4-200 and EH4-602 after authoritative source/ownership reconciliation. |
 | KL-002 | GTK range target is not fully validated. | GTK 4.8 minimum and stable GTK 4.22.5 **NOT TESTED**; local GTK 4.14.5 only. GTK 4.6 is unsupported. | EH4-501/502/503. |
 | KL-003 | Native cross-platform support unknown. | Windows, macOS, Wayland and other distributions **NOT TESTED**; launcher/build use Bash. | EH4-300–304 and EH4-500 onward. |
 | KL-004 | Native graphics path differs by GTK runtime; GTK 4.8 full-app close still unverified. | Native X11/NVIDIA Gtk.GLArea passes on GTK 4.8.2 and GTK 4.14.5 with `GDK_DEBUG=gl-glx`; GTK 4.14.5's default/EGL path fails to create a context. Full GTK 4.14.5 app opens/closes under explicit GLX selection. GTK 4.8 full app is blocked by the Python/pDynamo extension ABI mismatch. Xvfb/llvmpipe passes separately. | EH4-102 and EH4-201–205/EH4-502/503. |
@@ -1469,10 +2092,10 @@ reason to change scientific behavior without regression evidence.
 
 | ID | Limitation | Evidence / impact | Next work |
 |---|---|---|---|
-| KL-001 | EasyHybrid4 remote and graphics-engine source revision are not established. `.gitmodules` lists the graphics path, but it is tracked as ordinary files. | No configured parent remote and no Git submodule pointer; no upstream SHA is known. This is a provenance/publishing gap, not a current Linux test blocker. Do not guess URLs or revisions. | EH4-000 / EH4-200 when new provenance evidence or an owner-provided remote becomes available. |
+| KL-001 | The vendored graphics-engine source revision and contributor/license ownership are not established. `.gitmodules` lists the path, but Git tracks ordinary files. | Parent remote and EasyHybrid3 comparison root are verified. EasyHybrid4 has no Git submodule pointer; EasyHybrid3's graphics SHA and the public branch head do not prove the vendored base revision. Conflicting license notices remain. This is a provenance/publishing gap, not a current Linux test blocker. Do not guess URLs or revisions. | EH4-000 / EH4-200 / EH4-602 when authoritative ancestry and ownership evidence is available. |
 | KL-002 | GTK minor range is selected but not fully validated. | GTK 4.8 target and upstream stable GTK 4.22.5 have not been run; local evidence is GTK 4.14.5 only. GTK 4.6 is unsupported. | Native GTK_MIN and current-stable CI jobs in EH4-501; UI/GL in EH4-502/503. |
 | KL-003 | Cross-platform support is unverified. | Windows, macOS, Linux Wayland, and alternate Linux distributions were not tested. Bash launch/build scripts and native pDynamo dependencies need platform-specific validation. | EH4-300 through EH4-304 and EH4-500 onward. |
-| KL-004 | Real GUI and OpenGL rendering are unverified. | Automated tests run without GTK/display/GL. The VisMol widget requests OpenGL 3.3+ core. | EH4-102, EH4-201 through EH4-205, EH4-502/503. |
+| KL-004 | Graphics fallback coverage is only locally verified on one GTK runtime. | Linux X11/Xvfb GTK 4.14.5 confirms actual GL rendering and an injected unsupported-version diagnostic; native unsupported-driver failures and cross-platform/minor behavior remain unverified. | EH4-205 native matrix; real unsupported drivers where available. |
 | KL-005 | EasyHybrid startup emitted two GTK critical messages. | User-provided terminal output reported `gtk_box_remove: assertion 'gtk_widget_get_parent (child) == (GtkWidget *)box' failed` twice. Visible impact and responsible removal path are unknown. | Reproduce under GTK 4.14.5, isolate the parent/child removal path, add a lifecycle regression in EH4-102/105. |
 | KL-006 | Generic pip installation of the graphics package failed metadata generation. | Isolated `pip install --target` failed with `ModuleNotFoundError: No module named 'src'`; the project's `build_ext --inplace` path and all seven extension imports passed. | Packaging/build audit EH4-200 or EH4-303. |
 | KL-007 | pDynamo3 is only validated in one configured environment. | Linux Python 3.12.3 environment resolves `pCore`, `pMolecule`, `pSimulation`, and `pScientific`; Windows/macOS and other Python runtimes are untested. | Python/platform integration matrix in EH4-004/500/504. |
@@ -2524,7 +3147,11 @@ temporary-copy command in [Section 6 of this report](#6-reproducible-test-baseli
   `EasyHybridApplication` or the real `gui.main.MainWindow`; therefore it is
   component/renderer evidence, not full-interface acceptance. A separate full-app
   regression with real pDynamo3 is still required across the supported GTK/OS
-  matrix. pDynamo3 scientific calculations remain tested against pDynamo3.
+  matrix. The full-app regression performs one production `.easy` save/reload
+  in each cycle; it currently passes locally on Linux X11 with GTK 4.14.5 and
+  native XTest pointer injection. Other OS/minor combinations are not covered
+  by that local run. pDynamo3 scientific calculations remain tested against
+  pDynamo3.
 - `test_dependency_boundaries.py`, `test_session_state.py`,
   `test_easyplot_boundaries.py`, and `test_os_integration.py` cover the
   EH4-100 import, state, plotting, and startup-policy boundaries.
@@ -2533,9 +3160,10 @@ temporary-copy command in [Section 6 of this report](#6-reproducible-test-baseli
   session or call pDynamo calculations.
 
 The default suite skips display-dependent GTK checks. The opt-in GTK smoke
-must be run with an accessible native display or virtual display. The suite
-does not prove pDynamo synchronization, simulation results, project/export
-round trips, or cross-platform support.
+must be run with an accessible native display or virtual display. The full-app
+smoke covers one generated `.easy` save/reload fixture on the tested local
+Linux runtime; it does not prove persistence for other project contents,
+scientific simulation results, export round trips, or cross-platform support.
 Those checks are tracked in `docs/ROADMAP.md` and Section 6 of this report.
 Fixture requirements are documented in [Section 8 of this report](#8-safe-test-data-policy).
 

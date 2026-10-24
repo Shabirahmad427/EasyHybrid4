@@ -18,6 +18,18 @@ def test_full_application_smoke_runs_before_component_shader_cycles():
     assert all(full < scene for full, scene in zip(full_app_positions, component_positions))
 
 
+def test_graphics_extensions_build_before_widget_patterns_import_vismol():
+    workflow = (ROOT / ".github" / "workflows" / "native-gtk-matrix.yml").read_text()
+    build = "- name: Build graphics engine extensions"
+    widget_tests = "- name: Run GTK4 widget-pattern tests"
+
+    build_positions = [index for index in range(len(workflow)) if workflow.startswith(build, index)]
+    widget_positions = [index for index in range(len(workflow)) if workflow.startswith(widget_tests, index)]
+
+    assert len(build_positions) == len(widget_positions) == 4
+    assert all(compiled < tests for compiled, tests in zip(build_positions, widget_positions))
+
+
 def test_failed_macos_gtk424_cell_can_be_dispatched_alone():
     workflow = (ROOT / ".github" / "workflows" / "native-gtk-matrix.yml").read_text()
 
@@ -34,6 +46,16 @@ def test_failed_linux_gtk48_cell_can_be_dispatched_alone():
     assert "inputs.scope == 'linux-gtk48' && '[\"linux-x86_64\"]'" in workflow
     assert "inputs.scope == 'linux-gtk48' && '[\"4.8\"]'" in workflow
     assert workflow.count("inputs.scope != 'linux-gtk48'") == 3
+
+
+def test_failed_windows_gtk420_cell_can_be_dispatched_alone():
+    workflow = (ROOT / ".github" / "workflows" / "native-gtk-matrix.yml").read_text()
+
+    assert "- windows-gtk420" in workflow
+    assert "inputs.scope == 'windows-gtk420') && '[\"windows-x86_64\"]'" in workflow
+    assert "inputs.scope == 'windows-gtk420' && '[\"4.20\"]'" in workflow
+    assert workflow.count("inputs.scope == 'windows-gtk420'") == 3
+    assert workflow.count("inputs.scope != 'windows-gtk420'") == 3
 
 
 def test_full_app_timeout_reports_gtk_scene_progress():
@@ -69,3 +91,31 @@ def test_native_matrix_lists_every_supported_gtk_minor_and_records_runtime():
     assert "record_runtime.py conda-forge" in workflow
     assert "record_runtime.py 'msys2-source-${{ matrix.version }}'" in workflow
     assert "record_runtime.py 'source-${{ matrix.version }}'" in workflow
+
+
+def test_full_app_matrix_injects_native_pointer_on_all_desktop_oses():
+    workflow = (ROOT / ".github" / "workflows" / "native-gtk-matrix.yml").read_text()
+    smoke = (ROOT / "tests" / "test_easyhybrid_full_app_smoke.py").read_text()
+    pointer = (ROOT / "tests" / "native_pointer_input.py").read_text()
+
+    assert workflow.count('EASYHYBRID_FULL_APP_NATIVE_POINTER: "1"') == 4
+    assert workflow.count("pyobjc-framework-Cocoa pyobjc-framework-Quartz") == 2
+    assert '"linux": "linux-x11-xtest"' in smoke
+    assert '"win32": "windows-win32-user32"' in smoke
+    assert '"darwin": "macos-quartz-hid"' in smoke
+    assert 'return _click_linux_x11(window, x, y)' in pointer
+    assert 'return _click_windows(window, x, y)' in pointer
+    assert 'return _click_macos(window, x, y)' in pointer
+    assert 'if foreground != hwnd' not in pointer
+    assert 'win32_hit_belongs_to_target(' in pointer
+    assert 'root_owner=lambda candidate: user32.GetAncestor(candidate, 3)' in pointer
+    assert 'topmost = ctypes.c_void_p(-1)  # HWND_TOPMOST' in pointer
+    assert 'user32.SetWindowPos(hwnd, not_topmost' in pointer
+    assert 'confirmed_attempt = retry_until_native_hit_target(' in pointer
+    assert '"hit": hit_description' in pointer
+    assert '"class": class_buffer.value' in pointer
+    assert 'minimize_hosted_runner_console_blocker(' in pointer
+    assert '"hosted_runner_console_minimized": console_minimized' in pointer
+    assert pointer.index('user32.SetForegroundWindow(hwnd)', pointer.index('def prepare_target')) < pointer.index(
+        'user32.SetWindowPos(hwnd, topmost', pointer.index('def prepare_target')
+    )
