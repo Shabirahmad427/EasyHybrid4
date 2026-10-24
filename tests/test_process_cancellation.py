@@ -1,7 +1,17 @@
 """Focused tests for the process manager's nonblocking cancellation path."""
+import os
 from types import SimpleNamespace
 
-from gui.windows.setup import process_manager_window as process_manager
+import pytest
+
+if not os.environ.get("PDYNAMO3_HOME"):
+    pytest.skip(
+        "requires the pDynamo3 runtime imported by the process manager",
+        allow_module_level=True,
+    )
+pytest.importorskip("pBabel")
+
+from gui.windows.setup import process_manager_window as process_manager  # noqa: E402
 
 
 def test_terminate_process_tree_signals_worker_and_descendants(monkeypatch):

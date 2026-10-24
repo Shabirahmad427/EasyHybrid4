@@ -213,6 +213,18 @@ _FULL_APP_CYCLE = textwrap.dedent(
         system = next(iter(main.p_session.psystem.values()))
         print("EASYHYBRID_FULL_APP_SYSTEM_LABEL=%s" % system.label, flush=True)
         print("EASYHYBRID_FULL_APP_ATOMS=%d" % len(molecule.atoms), flush=True)
+        expected_coordinates = np.asarray(
+            ((0.000, 0.000, 0.000), (0.957, 0.000, 0.000), (-0.240, 0.927, 0.000)),
+            dtype=np.float64,
+        )
+        loaded_coordinates = np.asarray(molecule.frames[0], dtype=np.float64)
+        if loaded_coordinates.shape != expected_coordinates.shape or not np.allclose(
+            loaded_coordinates, expected_coordinates, rtol=0.0, atol=5.0e-4
+        ):
+            return fail(
+                "fixture coordinates changed during load: %r" % loaded_coordinates.tolist()
+            )
+        print("EASYHYBRID_FULL_APP_FIXTURE_COORDINATES_PRESERVED=True", flush=True)
         print("EASYHYBRID_FULL_APP_SCENE_DRAWS=%d" % state["scene_draws"], flush=True)
         print("EASYHYBRID_FULL_APP_GL_VERSION=%s" % state["gl_version"].decode("ascii", "replace"), flush=True)
         print("EASYHYBRID_FULL_APP_GL_RENDERER=%s" % state["gl_renderer"].decode("utf-8", "replace"), flush=True)
@@ -220,7 +232,8 @@ _FULL_APP_CYCLE = textwrap.dedent(
         # Exercise the actual .easy serializer and loader with a generated
         # filename. Corrupt the live camera after saving so reopening must
         # restore the serialized view, then require a real scene render.
-        session_path = os.path.join(os.path.dirname(fixture), "camera-roundtrip.easy")
+        # HOME is the per-cycle temporary directory; the fixture is tracked.
+        session_path = os.path.join(os.environ["HOME"], "camera-roundtrip.easy")
         live_tree_row = getattr(system, "tree_row", None)
         live_choice_row = getattr(system, "system_choice_row", None)
         main.p_session.save_easyhybrid_session(filename=session_path)
@@ -726,21 +739,6 @@ _FULL_APP_CYCLE = textwrap.dedent(
 )
 
 
-def _write_water_pdb(path):
-    lines = []
-    for serial, name, x, y, z, element in (
-        (1, "O", 0.000, 0.000, 0.000, "O"),
-        (2, "H1", 0.957, 0.000, 0.000, "H"),
-        (3, "H2", -0.240, 0.927, 0.000, "H"),
-    ):
-        lines.append(
-            "ATOM  %5d %-4s HOH A%4d    %8.3f%8.3f%8.3f%6.2f%6.2f          %2s  "
-            % (serial, name, 1, x, y, z, 1.0, 0.0, element)
-        )
-    lines.extend(("CONECT    1    2    3", "MASTER        0    0    0    0    0    0    0    3    0    1    0", "END"))
-    path.write_text("\n".join(lines) + "\n", encoding="ascii")
-
-
 def test_full_app_native_pointer_test_uses_one_shared_os_dispatcher():
     """Every native full-app cell shares the same click path and assertions."""
     assert "from gi.repository import Gdk, GLib, Graphene, Gtk" in _FULL_APP_CYCLE
@@ -793,8 +791,8 @@ def test_real_easyhybrid_application_mainwindow_load_render_pick_close():
         base_environment["HOME"] = str(home)
         if os.name == "nt":
             base_environment["USERPROFILE"] = str(home)
-        fixture = temp_root / "water.pdb"
-        _write_water_pdb(fixture)
+        fixture = Path(__file__).resolve().parent / "fixtures" / "water.pdb"
+        assert fixture.is_file(), "frozen water PDB fixture is missing"
 
         for cycle in range(1, cycles + 1):
             result = subprocess.run(
@@ -815,6 +813,7 @@ def test_real_easyhybrid_application_mainwindow_load_render_pick_close():
             assert "EASYHYBRID_FULL_APP_ATOM_SELECTION=True" in result.stdout
             assert "EASYHYBRID_FULL_APP_LABEL_REPRESENTATION=True" in result.stdout
             assert "EASYHYBRID_FULL_APP_SCENE_REPRESENTATION=True" in result.stdout
+            assert "EASYHYBRID_FULL_APP_FIXTURE_COORDINATES_PRESERVED=True" in result.stdout
             assert "EASYHYBRID_FULL_APP_CAMERA_SESSION_ROUND_TRIP=True" in result.stdout
             assert "EASYHYBRID_FULL_APP_SESSION_REOPEN_RENDER=True" in result.stdout
             if os.environ.get("EASYHYBRID_FULL_APP_NATIVE_POINTER") == "1":

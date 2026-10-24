@@ -338,6 +338,26 @@ XTest load/render/pick/close cycle. An early display-open attempt in
 packaged direct-launch acceptance therefore remains **FAIL / unresolved**.
 No desktop installer was built; Windows and macOS packaging and GTK versions
 other than 4.24.1 remain **NOT TESTED**. EH4-304 stays unchecked.
+**EH4-400 frozen water-fixture check (2026-10-21; partial):** the real app
+smoke loads the checked-in `tests/fixtures/water.pdb` and compares all three
+VisMol coordinates against independent expected values with 0.0005 Å
+tolerance. Five fresh production MainWindow cycles on Linux x86_64 preserved
+the coordinates, loaded three atoms, rendered, picked oxygen (`O:0`), and
+closed cleanly. Runtime: Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 /
+GLib 2.80.0, pDynamo3 revision `09e583049de5d1cdca6c9b4009c7c75e451a5ae0`
+rebuilt for Python 3.12.3, Mesa 25.2.8 llvmpipe OpenGL 4.5 Core. Pointer
+input in this test is a synthetic GTK callback. Windows/macOS, other GTK
+runtimes, additional fixture types and broader molecular invariants remain
+**NOT TESTED**; EH4-400 stays unchecked.
+
+The VisMol scale/resize test now reads its six-atom input from the checked-in
+`tests/fixtures/render_validation.pdb`; a fixture test locks the atom names,
+elements, residue identities and coordinates for both PDB inputs. On Linux
+Mint 22.3 x86_64, the GTK 4.14.5/Xvfb renderer test passed at scale 1 and 2
+(Python 3.12.3 / PyGObject 3.48.2 / GLib 2.80.0): all eight representations,
+resize, export, and 9/9 sphere-pick samples passed with llvmpipe OpenGL 4.5
+Core. Additional OS/GTK runtimes, other structure formats and wider scientific
+invariants remain **NOT TESTED**.
 
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
