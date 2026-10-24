@@ -360,6 +360,31 @@ and host/runtime details are in the uploaded artifacts and
 software-renderer evidence; it does not establish physical-GPU, Retina,
 trackpad, Wayland, or native OS input behavior.
 
+**EH4-202 local graphics follow-up (2026-10-21):** Linux x86_64 under
+Xvfb/X11, Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib 2.80.0,
+Mesa llvmpipe OpenGL 4.5 Core Profile. The real-context render validation
+passed at `GDK_SCALE=1` and `2`; GTK applied scale 2 and doubled the
+framebuffer. The live `Gtk.GLArea` rendered with its nonzero GTK-owned
+framebuffer (ID 1). All eight representations rendered without GL errors;
+sphere picks (O/H1/N), impostor picks (C/N/S), and the resized sphere pick
+all hit 9/9 points. The 2x export mean absolute difference was 0.0145/255 at
+scale 1 and 0.0085/255 at scale 2; no pixels differed by more than 64/255.
+The resized sphere was 32x31 px. This run verifies the new framebuffer
+assertion only on the local GTK runtime; the cross-platform/minor matrix has
+not been rerun for it. PNG captures were written under
+`/tmp/eh4-202-render-evidence` for local inspection.
+
+The same Linux x86_64 host also passed five fresh full-app cycles under
+Xvfb/X11 using the real EasyHybridApplication/MainWindow, pDynamo3-backed
+water fixture loading and an XTest-injected pointer click that selected
+`O:0`; each cycle rendered and closed cleanly. Runtime: Python 3.12.3 /
+PyGObject 3.48.2 / GTK 4.14.5 / GLib 2.80.0 / Mesa 25.2.8 llvmpipe,
+OpenGL 4.5 Core. The pDynamo3 source/build revision
+`09e583049de5d1cdca6c9b4009c7c75e451a5ae0` was supplied on `PYTHONPATH`,
+not installed in the GTK environment. This is Linux GTK 4.14.5 evidence only;
+Windows/macOS native pointer injection and full-app tests on other GTK/platform
+cells remain **NOT TESTED**.
+
 **EH4-202 input-picking history and current acceptance state.** GTK
 pointer events arrive in widget-local logical units, while VisMol pick reads
 use framebuffer pixels. `widget_to_framebuffer_coordinates()` now converts
@@ -411,8 +436,7 @@ scale 1 and 2 now runs in every matrix cell and passed 30/30 in run
 attribute binding, and invisible dots on Mesa. The 2x offscreen export matches
 the screen (mean difference 0.0145/255). macOS CI note: Apple's `CVMCompiler`
 keeps a core busy for tens of seconds after many new shader programs, so the
-workflow runs the validation after the timed suite. EH4-202 stays open only for
-running the full-interface pDynamo3 regression in CI.
+workflow runs the validation after the timed suite.
 
 **Resolved (2026-10-19):** the macOS picking failure was the platform's
 1-pixel line-width limit (`GL_LINE_WIDTH_RANGE` 0.1–1.0), not colour processing
@@ -425,7 +449,9 @@ loaded exactly its pinned GTK patch. The HiDPI coordinate conversion is
 accepted by the same run and both are merged to `main`. The `spheres`
 selection VAO now binds its radius/instance attributes to the selection
 program (fix from the Codex session); run `39321285586` passed **30/30**
-with it. Only a static test covers it; a real-context spheres pick is pending.
+with it. At the time of that run, only a static test covered sphere selection;
+the real-context spheres pick was added to the renderer validation later and
+passed in the 2026-10-21 local run recorded above.
 The image-difference, resize and capability checks are now present and pass in
 the native matrix (see run `39485989866`). That run's separate full-app picks
 used synthetic coordinates; newer native OS pointer evidence and the latest
