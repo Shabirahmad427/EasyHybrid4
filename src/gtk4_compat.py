@@ -56,8 +56,9 @@ def supports_scroll_unit(gtk=Gtk, gdk=Gdk):
 def scroll_controller_flags(gtk=Gtk, gdk=Gdk, *, use_surface_units=False):
     """Return portable scroll flags for the selected input semantics.
 
-    Surface-unit handling is only selected by a caller that knows it consumes
-    smooth surface deltas. Otherwise GTK emits discrete, wheel-like steps.
+    When the caller can distinguish event units, leave deltas continuous so
+    it can normalize wheel detents and surface pixels itself. Otherwise ask
+    GTK for discrete, wheel-like steps as a compatibility fallback.
     """
     flags = gtk.EventControllerScrollFlags.BOTH_AXES
     if not (use_surface_units and supports_scroll_unit(gtk, gdk)):
@@ -101,8 +102,59 @@ def widget_to_framebuffer_coordinates(
     )
 
 
+def monitor_geometry_sizes(display):
+    """Return each display monitor's logical width and height when available."""
+    try:
+        monitors = display.get_monitors()
+        sizes = []
+        for index in range(monitors.get_n_items()):
+            geometry = monitors.get_item(index).get_geometry()
+            if geometry.width > 0 and geometry.height > 0:
+                sizes.append((int(geometry.width), int(geometry.height)))
+        return sizes
+    except (AttributeError, TypeError, ValueError):
+        return []
+
+
+def clamp_window_size_to_monitors(
+    width, height, monitor_sizes, *, horizontal_margin=48, vertical_margin=96
+):
+    """Keep a restored logical window size within the available monitor bounds.
+
+    The margins leave room for window decorations and panels. When GTK cannot
+    report monitor geometry, preserve the saved size instead of guessing.
+    """
+    try:
+        width, height = int(width), int(height)
+        horizontal_margin = max(0, int(horizontal_margin))
+        vertical_margin = max(0, int(vertical_margin))
+        sizes = [
+            (int(monitor_width), int(monitor_height))
+            for monitor_width, monitor_height in monitor_sizes
+            if int(monitor_width) > 0 and int(monitor_height) > 0
+        ]
+    except (TypeError, ValueError):
+        return width, height
+    if not sizes:
+        return width, height
+    # Startup placement can be chosen by the window manager, so use the
+    # smallest connected monitor dimensions to keep the restored window
+    # reachable even when it opens on a secondary display.
+    max_width = min(size[0] for size in sizes)
+    max_height = min(size[1] for size in sizes)
+    return (
+        max(1, min(width, max(1, max_width - horizontal_margin))),
+        max(1, min(height, max(1, max_height - vertical_margin))),
+    )
+
+
 def scroll_delta_to_steps(delta, *, surface, remainder=0.0, pixels_per_step=30.0):
-    """Convert GTK scroll deltas to wheel steps, preserving partial deltas."""
+    """Convert deltas to steps; positive consistently means scroll down.
+
+    GDK reports positive wheel deltas in southward detents and positive
+    surface deltas in downward logical pixels. Preserve that direction while
+    scaling surface pixels and retaining partial steps.
+    """
     try:
         delta = float(delta)
         remainder = float(remainder)
@@ -114,7 +166,7 @@ def scroll_delta_to_steps(delta, *, surface, remainder=0.0, pixels_per_step=30.0
     if surface:
         if not math.isfinite(pixels_per_step) or pixels_per_step <= 0:
             raise ValueError("pixels_per_step must be finite and positive")
-        total = remainder - delta / pixels_per_step
+        total = remainder + delta / pixels_per_step
         steps = int(total)
         return steps, total - steps
     total = remainder + delta

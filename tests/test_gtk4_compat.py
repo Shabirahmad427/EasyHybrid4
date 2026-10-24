@@ -4,7 +4,9 @@ from enum import IntFlag
 from types import SimpleNamespace
 
 from src.gtk4_compat import (
+    clamp_window_size_to_monitors,
     get_scroll_unit,
+    monitor_geometry_sizes,
     scroll_controller_flags,
     set_gl_area_allowed_apis,
     set_picture_contain,
@@ -180,6 +182,38 @@ def test_widget_input_coordinates_follow_measured_framebuffer_scale():
         widget_width=480, widget_height=360,
         framebuffer_width=720, framebuffer_height=540,
     ) == (180.0, 120.0)
+
+
+def test_restored_window_size_is_clamped_to_reported_monitor_bounds():
+    class Monitor:
+        def __init__(self, width, height):
+            self.geometry = SimpleNamespace(width=width, height=height)
+
+        def get_geometry(self):
+            return self.geometry
+
+    class MonitorModel:
+        def __init__(self, monitors):
+            self.monitors = monitors
+
+        def get_n_items(self):
+            return len(self.monitors)
+
+        def get_item(self, index):
+            return self.monitors[index]
+
+    display = SimpleNamespace(
+        get_monitors=lambda: MonitorModel([Monitor(800, 600), Monitor(1920, 1080)])
+    )
+    sizes = monitor_geometry_sizes(display)
+    assert sizes == [(800, 600), (1920, 1080)]
+    assert clamp_window_size_to_monitors(2400, 1400, sizes) == (752, 504)
+    assert clamp_window_size_to_monitors(900, 700, [(800, 600)]) == (752, 504)
+    assert clamp_window_size_to_monitors(900, 700, []) == (900, 700)
+
+
+def test_monitor_geometry_probe_falls_back_when_display_api_is_unavailable():
+    assert monitor_geometry_sizes(object()) == []
 
 
 def test_widget_coordinates_remain_unchanged_before_allocations_exist():

@@ -14,6 +14,7 @@ on:
           - all
           - linux-gtk48
           - windows-legacy
+          - windows-gtk420
           - macos-diagnostic
           - macos-gtk424
           - windows
@@ -36,14 +37,14 @@ jobs:
       fail-fast: false
       max-parallel: 9
       matrix:
-        os: ${{ fromJSON(inputs.scope == 'linux-gtk48' && '["linux-x86_64"]' || (inputs.scope == 'windows-legacy' || inputs.scope == 'windows') && '["windows-x86_64"]' || (inputs.scope == 'macos-diagnostic' || inputs.scope == 'macos-gtk424') && '["macos-arm64"]' || '["linux-x86_64", "windows-x86_64", "macos-arm64"]') }}
-        gtk: ${{ fromJSON(inputs.scope == 'linux-gtk48' && '["4.8"]' || inputs.scope == 'windows-legacy' && '["4.8", "4.10"]' || inputs.scope == 'macos-gtk424' && '["4.24"]' || '["4.8", "4.10", "4.12", "4.14", "4.16", "4.18", "4.20", "4.22", "4.24"]') }}
+        os: ${{ fromJSON(inputs.scope == 'linux-gtk48' && '["linux-x86_64"]' || (inputs.scope == 'windows-legacy' || inputs.scope == 'windows' || inputs.scope == 'windows-gtk420') && '["windows-x86_64"]' || (inputs.scope == 'macos-diagnostic' || inputs.scope == 'macos-gtk424') && '["macos-arm64"]' || '["linux-x86_64", "windows-x86_64", "macos-arm64"]') }}
+        gtk: ${{ fromJSON(inputs.scope == 'linux-gtk48' && '["4.8"]' || inputs.scope == 'windows-legacy' && '["4.8", "4.10"]' || inputs.scope == 'windows-gtk420' && '["4.20"]' || inputs.scope == 'macos-gtk424' && '["4.24"]' || '["4.8", "4.10", "4.12", "4.14", "4.16", "4.18", "4.20", "4.22", "4.24"]') }}
         # conda-forge publishes no GTK 4.16/4.18 builds, and GTK 4.8/4.10 only
         # for osx-64. Those cells are covered by the distro, MSYS2 and
         # source-build jobs below; GTK 4.8/4.10 also run here on Intel macOS.
         # Focused Windows dispatches must not also add Intel macOS cells.
         include: >-
-          ${{ fromJSON((inputs.scope == 'linux-gtk48' || inputs.scope == 'windows' || inputs.scope == 'windows-legacy' || inputs.scope == 'macos-diagnostic' || inputs.scope == 'macos-gtk424') && '[]' || '[{"os": "macos-x86_64", "gtk": "4.8"}, {"os": "macos-x86_64", "gtk": "4.10"}]') }}
+          ${{ fromJSON((inputs.scope == 'linux-gtk48' || inputs.scope == 'windows' || inputs.scope == 'windows-legacy' || inputs.scope == 'windows-gtk420' || inputs.scope == 'macos-diagnostic' || inputs.scope == 'macos-gtk424') && '[]' || '[{"os": "macos-x86_64", "gtk": "4.8"}, {"os": "macos-x86_64", "gtk": "4.10"}]') }}
         exclude:
           - os: linux-x86_64
             gtk: "4.16"
@@ -170,6 +171,10 @@ jobs:
             micromamba run -n easyhybrid-gtk python tests/test_gtk_icon_theme_smoke.py 2>&1 | tee -a platform-results.txt
           fi
 
+      - name: Build graphics engine extensions
+        run: micromamba run -n easyhybrid-gtk python setup.py build_ext --inplace
+        working-directory: src/graphics_engine
+
       - name: Run GTK4 widget-pattern tests
         env:
           EASYHYBRID_REQUIRE_GTK_DISPLAY: "1"
@@ -195,10 +200,6 @@ jobs:
       - name: Show macOS native crash report
         if: failure() && runner.os == 'macOS'
         run: python3 .github/scripts/show_macos_crash_report.py
-
-      - name: Build graphics engine extensions
-        run: micromamba run -n easyhybrid-gtk python setup.py build_ext --inplace
-        working-directory: src/graphics_engine
 
       - name: Restore pDynamo3 build
         id: pdynamo3-cache
@@ -247,11 +248,14 @@ jobs:
         env:
           EASYHYBRID_RUN_FULL_APP_GRAPHICS: "1"
           EASYHYBRID_FULL_APP_CYCLES: "5"
-          EASYHYBRID_FULL_APP_NATIVE_POINTER: ${{ runner.os == 'Linux' && '1' || '0' }}
+          EASYHYBRID_FULL_APP_NATIVE_POINTER: "1"
           PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
         run: |
           set -o pipefail
           export PDYNAMO3_HOME="${{ github.workspace }}/pDynamo3"
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            micromamba run -n easyhybrid-gtk python -m pip install --disable-pip-version-check pyobjc-framework-Cocoa pyobjc-framework-Quartz
+          fi
           if [[ "$RUNNER_OS" == "Linux" ]]; then
             LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_easyhybrid_full_app_smoke.py 2>&1 | tee -a platform-results.txt
           elif [[ "$RUNNER_OS" == "Windows" ]]; then
@@ -321,7 +325,7 @@ jobs:
   # end-of-life and served from their archives; Debian 13 is current stable.
   gtk-linux-distro:
     name: GTK ${{ matrix.gtk }} / linux-x86_64 (${{ matrix.distro }})
-    if: inputs.scope != 'linux-gtk48' && inputs.scope != 'windows-legacy' && inputs.scope != 'macos-diagnostic' && inputs.scope != 'macos-gtk424' && inputs.scope != 'windows'
+    if: inputs.scope != 'linux-gtk48' && inputs.scope != 'windows-legacy' && inputs.scope != 'windows-gtk420' && inputs.scope != 'macos-diagnostic' && inputs.scope != 'macos-gtk424' && inputs.scope != 'windows'
     runs-on: ubuntu-24.04
     container: ${{ matrix.image }}
     timeout-minutes: 30
@@ -460,7 +464,7 @@ jobs:
         env:
           EASYHYBRID_RUN_FULL_APP_GRAPHICS: "1"
           EASYHYBRID_FULL_APP_CYCLES: "5"
-          EASYHYBRID_FULL_APP_NATIVE_POINTER: ${{ runner.os == 'Linux' && '1' || '0' }}
+          EASYHYBRID_FULL_APP_NATIVE_POINTER: "1"
           PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
         run: |
           set -o pipefail
@@ -504,7 +508,7 @@ jobs:
   # UCRT64 dependencies, then test with the same pinned Mesa renderer.
   gtk-windows-msys2:
     name: GTK ${{ matrix.gtk }} / windows-x86_64 (msys2 source ${{ matrix.version }})
-    if: inputs.scope != 'linux-gtk48' && inputs.scope != 'windows-legacy' && inputs.scope != 'macos-diagnostic' && inputs.scope != 'macos-gtk424'
+    if: inputs.scope != 'linux-gtk48' && inputs.scope != 'windows-legacy' && inputs.scope != 'windows-gtk420' && inputs.scope != 'macos-diagnostic' && inputs.scope != 'macos-gtk424'
     runs-on: windows-2022
     timeout-minutes: 75
     strategy:
@@ -600,6 +604,10 @@ jobs:
           set -o pipefail
           GALLIUM_DRIVER=llvmpipe python tests/test_gtk_icon_theme_smoke.py 2>&1 | tee -a platform-results.txt
 
+      - name: Build graphics engine extensions
+        run: python setup.py build_ext --inplace
+        working-directory: src/graphics_engine
+
       - name: Run GTK4 widget-pattern tests
         env:
           EASYHYBRID_REQUIRE_GTK_DISPLAY: "1"
@@ -607,10 +615,6 @@ jobs:
         run: |
           set -o pipefail
           GALLIUM_DRIVER=llvmpipe python -m pytest -q -p no:cacheprovider --noconftest -rs tests/test_gtk4_widget_patterns.py 2>&1 | tee -a platform-results.txt
-
-      - name: Build graphics engine extensions
-        run: python setup.py build_ext --inplace
-        working-directory: src/graphics_engine
 
       - name: Restore pDynamo3 build
         id: pdynamo3-cache
@@ -659,7 +663,7 @@ jobs:
         env:
           EASYHYBRID_RUN_FULL_APP_GRAPHICS: "1"
           EASYHYBRID_FULL_APP_CYCLES: "5"
-          EASYHYBRID_FULL_APP_NATIVE_POINTER: ${{ runner.os == 'Linux' && '1' || '0' }}
+          EASYHYBRID_FULL_APP_NATIVE_POINTER: "1"
           PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
         run: |
           set -o pipefail
@@ -728,7 +732,7 @@ jobs:
   # dependencies on the native arm64 runner.
   gtk-macos-source:
     name: GTK ${{ matrix.gtk }} / macos-arm64 (source ${{ matrix.version }})
-    if: inputs.scope != 'linux-gtk48' && inputs.scope != 'windows-legacy' && inputs.scope != 'windows' && inputs.scope != 'macos-gtk424'
+    if: inputs.scope != 'linux-gtk48' && inputs.scope != 'windows-legacy' && inputs.scope != 'windows' && inputs.scope != 'windows-gtk420' && inputs.scope != 'macos-gtk424'
     runs-on: macos-14
     timeout-minutes: 75
     strategy:
@@ -830,6 +834,10 @@ jobs:
           set -o pipefail
           micromamba run -n easyhybrid-gtk-src python tests/test_gtk_icon_theme_smoke.py 2>&1 | tee -a platform-results.txt
 
+      - name: Build graphics engine extensions
+        run: micromamba run -n easyhybrid-gtk-src python setup.py build_ext --inplace
+        working-directory: src/graphics_engine
+
       - name: Run GTK4 widget-pattern tests
         env:
           EASYHYBRID_REQUIRE_GTK_DISPLAY: "1"
@@ -837,10 +845,6 @@ jobs:
         run: |
           set -o pipefail
           micromamba run -n easyhybrid-gtk-src python -m pytest -q -p no:cacheprovider --noconftest -rs tests/test_gtk4_widget_patterns.py 2>&1 | tee -a platform-results.txt
-
-      - name: Build graphics engine extensions
-        run: micromamba run -n easyhybrid-gtk-src python setup.py build_ext --inplace
-        working-directory: src/graphics_engine
 
       - name: Restore pDynamo3 build
         id: pdynamo3-cache
@@ -889,11 +893,14 @@ jobs:
         env:
           EASYHYBRID_RUN_FULL_APP_GRAPHICS: "1"
           EASYHYBRID_FULL_APP_CYCLES: "5"
-          EASYHYBRID_FULL_APP_NATIVE_POINTER: ${{ runner.os == 'Linux' && '1' || '0' }}
+          EASYHYBRID_FULL_APP_NATIVE_POINTER: "1"
           PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
         run: |
           set -o pipefail
           export PDYNAMO3_HOME="${{ github.workspace }}/pDynamo3"
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            micromamba run -n easyhybrid-gtk-src python -m pip install --disable-pip-version-check pyobjc-framework-Cocoa pyobjc-framework-Quartz
+          fi
           micromamba run -n easyhybrid-gtk-src python -m pytest -q -s -p no:cacheprovider tests/test_easyhybrid_full_app_smoke.py 2>&1 | tee -a platform-results.txt
 
       - name: Run 5 EasyHybrid molecular scene pick and close cycles

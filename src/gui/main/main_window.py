@@ -43,6 +43,7 @@ from gui.gtk4_builder import connect_builder_signals, load_builder_file
 from gui import file_dialogs
 from gui.file_dialogs import choose_color
 from gui.model_rows import CoordinateChoiceRow, SystemChoiceRow
+from src.gtk4_compat import clamp_window_size_to_monitors, monitor_geometry_sizes
 
 
 from gui.widgets.custom_widgets  import VismolSelectionTypeBox
@@ -216,6 +217,11 @@ class MainWindow:
             saved_h = vm_session.vm_config.gl_parameters.get('main_window_height', 600)
         else:
             saved_w, saved_h = 1200, 600
+        saved_w, saved_h = clamp_window_size_to_monitors(
+            saved_w,
+            saved_h,
+            monitor_geometry_sizes(self.window.get_display()),
+        )
         # Stored to compute the initial position of paned_V further down in
         # this __init__ (see 'self.paned_V_position'), based on the same
         # window height restored here.
