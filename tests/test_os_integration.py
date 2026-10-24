@@ -187,17 +187,40 @@ def test_user_selected_opengl_platform_is_preserved():
     assert environment["GDK_DEBUG"] == "gl-prefer-gl"
 
 
-def test_gtk424_x11_uses_egl_without_removed_gdk_debug_flag():
-    # GTK 4.24.1 reports 'Unrecognized value "gl-glx"' for GDK_DEBUG.
-    environment = {"DISPLAY": ":99"}
+def test_gtk424_x11_pins_glx_with_gdk_disable_instead_of_removed_debug_flag():
+    # GTK 4.24.1 reports 'Unrecognized value "gl-glx"' for GDK_DEBUG and
+    # otherwise chooses EGL or GLX depending on the X11 system.
+    environment = {"DISPLAY": ":99", "GDK_DISABLE": "vulkan"}
+
+    configure_gl_context_environment(
+        platform="linux", environ=environment, runtime_version=(4, 24)
+    )
+
+    assert environment["PYOPENGL_PLATFORM"] == "glx"
+    assert environment["GDK_DISABLE"] == "vulkan:egl"
+    assert "gl-glx" not in environment.get("GDK_DEBUG", "").split(":")
+
+
+def test_gtk424_x11_keeps_user_selected_egl_enabled():
+    environment = {"DISPLAY": ":99", "PYOPENGL_PLATFORM": "egl"}
 
     configure_gl_context_environment(
         platform="linux", environ=environment, runtime_version=(4, 24)
     )
 
     assert environment["PYOPENGL_PLATFORM"] == "egl"
-    assert "gl-glx" not in environment.get("GDK_DEBUG", "").split(":")
+    assert "GDK_DISABLE" not in environment
 
+
+def test_user_selected_egl_platform_does_not_force_gdk_glx():
+    environment = {"DISPLAY": ":99", "PYOPENGL_PLATFORM": "egl"}
+
+    configure_gl_context_environment(
+        platform="linux", environ=environment, runtime_version=(4, 24)
+    )
+
+    assert environment["PYOPENGL_PLATFORM"] == "egl"
+    assert environment["GDK_DEBUG"] == "gl-prefer-gl"
 
 def test_user_paths_follow_platform_conventions_and_unicode(tmp_path):
     home = tmp_path / "Usuário Ω"

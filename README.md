@@ -162,6 +162,31 @@ GTK/OS provisioning used by native compatibility tests is maintained in
 Windows and macOS interactive installation has not yet been qualified as a
 release path.
 
+## Candidate distribution paths
+
+Distribution should follow each platform's native runtime model rather than
+trying to ship one identical archive everywhere:
+
+- **Linux:** provide a relocatable conda environment archive with a small
+  desktop-entry installer. The bundle launcher is
+  [`packaging/linux/run-easyhybrid4.sh`](packaging/linux/run-easyhybrid4.sh);
+  it expects `app/` and a conda-packed `runtime/` alongside it and uses an
+  external compiled pDynamo3 checkout. Keep system display and OpenGL drivers
+  outside the archive; verify GTK typelibs and graphics-driver discovery on
+  the target distribution.
+- **Windows:** provide a per-user installer/bootstrapper that creates or
+  updates a pinned micromamba environment and registers a Start-menu shortcut.
+  Keep the GTK DLL and typelib environment together, and do not rely on a
+  system-wide GTK installation.
+- **macOS:** provide a signed `.app` launcher that uses a managed arm64 conda
+  environment and resolves its GTK frameworks, typelibs and OpenGL runtime
+  from that environment. Intel macOS would require a separate x86_64 build.
+
+These are candidate designs only. No Linux archive, Windows installer, or
+macOS app bundle has yet been built, independently installed, launched, or
+qualified with a separately configured pDynamo3 installation. They are not
+release artifacts or platform support claims.
+
 ## Running EasyHybrid
 
 Once the graphics engine has been successfully compiled, you can launch EasyHybrid by running:

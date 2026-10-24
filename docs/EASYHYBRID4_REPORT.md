@@ -88,7 +88,6 @@ scales. The scale test reported `scale_applied=false` and widget scale factor
 1, so this does not establish Retina/HiDPI support. This focused result was
 superseded by matrix `39717469974`, which passed native pointer cycles in all
 configured macOS arm64 GTK minors and Intel macOS GTK 4.8/4.10.
-**Report date:** 2026-10-21
 
 **Purpose:** One consolidated source for repository, architecture, dependency,
 GTK/Python compatibility, parity, platform, testing, and known-limitation
@@ -294,6 +293,30 @@ not open the Xvfb display. The installer-manifest test passed separately with
 existing source-tree binary extensions built against NumPy 1.x, which cannot
 load in the locked NumPy 2.5.4 environment. This test invocation adjustment
 does not change the recorded clean-copy build/import evidence.
+**EH4-304 Linux launcher prototype (2026-10-21; partial):** added
+`packaging/linux/run-easyhybrid4.sh` for a bundle containing `app/` and a
+relocated conda runtime under `runtime/`, while using an external compiled
+pDynamo3 checkout. It initializes a conda-packed runtime once, sets the
+application and pDynamo search paths, and chooses a user-cache scratch path.
+It sources the relocated runtime's conda activation hooks and selects EGL for
+PyOpenGL. Two shell-wrapper tests pass on Linux Mint 22.3 x86_64 (Python 3.12.3).
+A temporary conda-pack archive was extracted at a different prefix; after
+rebuilding the seven VisMol Cython extensions against that environment's
+NumPy, the full-app test passed one real pDynamo3 load/render/XTest oxygen-pick
+and close cycle under X11/Xvfb with Python 3.12.15, PyGObject 3.58.1, GTK
+4.24.1, GLib 2.90.0 and Mesa llvmpipe OpenGL 4.5/EGL. However, directly
+starting the application through the shell launcher still fails before
+`MainWindow`: `Gdk.Display.get_default()` is `None` and GTK rejects the splash
+window. The same Xvfb display works in a minimal GTK probe and in the full-app
+harness, which initializes the display before importing EasyHybrid. The startup
+adapter now preserves an explicitly selected EGL backend rather than forcing
+GDK's rejected `gl-glx` flag; its focused regression and related launcher tests
+pass (7 passed, 12 deselected), and the full-app harness passes one native
+XTest load/render/pick/close cycle. An early display-open attempt in
+`easyhybrid.py` did not resolve the wrapper failure and was reverted. The
+packaged direct-launch acceptance therefore remains **FAIL / unresolved**.
+No desktop installer was built; Windows and macOS packaging and GTK versions
+other than 4.24.1 remain **NOT TESTED**. EH4-304 stays unchecked.
 
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
