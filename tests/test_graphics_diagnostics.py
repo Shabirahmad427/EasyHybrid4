@@ -175,3 +175,67 @@ def test_render_exception_is_reported_once_and_stops_scene_rendering(monkeypatch
     )
     assert "test shader failure" in details
     dialogs[0].destroy()
+
+
+def _realize_stub(widget_module, **attributes):
+    # Drive the production realize handler without a GL context; failures go
+    # through the real report path into a captured dialog call.
+    widget = SimpleNamespace(_graphics_failed=False, make_current=lambda: None, **attributes)
+    widget._show_graphics_failure = (
+        lambda phase, **kwargs: widget_module.VismolGTKWidget._show_graphics_failure(
+            widget, phase, **kwargs
+        )
+    )
+    return widget
+
+
+def test_glarea_context_error_enters_user_visible_fallback(monkeypatch):
+    import vismol.gui.vismol_gtkwidget as widget_module
+
+    shown = []
+    monkeypatch.setattr(
+        "gui.message_dialogs.show_message",
+        lambda *args, **kwargs: shown.append(kwargs),
+    )
+    error = SimpleNamespace(domain="gdk-gl-error-quark", code=2, message="context negotiation failed")
+    core_initialized = []
+    widget = _realize_stub(
+        widget_module,
+        get_error=lambda: error,
+        vm_glcore=SimpleNamespace(initialize=lambda: core_initialized.append(True)),
+    )
+
+    widget_module.VismolGTKWidget.initialize(widget, widget)
+
+    assert widget._graphics_failed is True
+    assert core_initialized == []
+    assert len(shown) == 1
+    assert "context negotiation failed" in shown[0]["details"]
+    assert "OpenGL context creation" in shown[0]["details"]
+
+
+def test_gl_core_initialization_exception_enters_user_visible_fallback(monkeypatch):
+    import vismol.gui.vismol_gtkwidget as widget_module
+
+    shown = []
+    monkeypatch.setattr(
+        "gui.message_dialogs.show_message",
+        lambda *args, **kwargs: shown.append(kwargs),
+    )
+    monkeypatch.setattr(widget_module, "glGetString", lambda _name: b"4.5 (Core Profile) Mesa")
+
+    def fail_initialization():
+        raise RuntimeError("shader compiler rejected GLSL")
+
+    widget = _realize_stub(
+        widget_module,
+        get_error=lambda: None,
+        vm_glcore=SimpleNamespace(initialize=fail_initialization),
+    )
+
+    widget_module.VismolGTKWidget.initialize(widget, widget)
+    widget_module.VismolGTKWidget.initialize(widget, widget)
+
+    assert widget._graphics_failed is True
+    assert len(shown) == 1
+    assert "shader compiler rejected GLSL" in shown[0]["details"]
