@@ -13,8 +13,8 @@ import pytest
 
 
 @pytest.mark.skipif(
-    not os.environ.get("PDYNAMO3_HOME") or not os.environ.get("PDYNAMO3_PARAMETERS"),
-    reason="requires a compiled pDynamo3 checkout and parameter directory",
+    not os.environ.get("PDYNAMO3_HOME"),
+    reason="requires a compiled pDynamo3 checkout",
 )
 def test_dyff_energy_and_minimization_preserve_water_system():
     pytest.importorskip("pBabel")
@@ -45,8 +45,8 @@ def test_dyff_energy_and_minimization_preserve_water_system():
 
 
 @pytest.mark.skipif(
-    not os.environ.get("PDYNAMO3_HOME") or not os.environ.get("PDYNAMO3_PARAMETERS"),
-    reason="requires a compiled pDynamo3 checkout and parameter directory",
+    not os.environ.get("PDYNAMO3_HOME"),
+    reason="requires a compiled pDynamo3 checkout",
 )
 def test_am1_single_point_preserves_water_geometry():
     pytest.importorskip("pBabel")
@@ -79,8 +79,8 @@ def test_am1_single_point_preserves_water_geometry():
 
 
 @pytest.mark.skipif(
-    not os.environ.get("PDYNAMO3_HOME") or not os.environ.get("PDYNAMO3_PARAMETERS"),
-    reason="requires a compiled pDynamo3 checkout and parameter directory",
+    not os.environ.get("PDYNAMO3_HOME"),
+    reason="requires a compiled pDynamo3 checkout",
 )
 def test_easyhybrid_am1_qmmm_setup_matches_pdynamo_reference(tmp_path, monkeypatch):
     """Exercise EasyHybrid's QC selection/model setup against pDynamo's API."""
