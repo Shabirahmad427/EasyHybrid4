@@ -696,20 +696,6 @@ _FULL_APP_CYCLE = textwrap.dedent(
             and getattr(picked, "symbol", None) == "O"
         )
 
-    def verified_pick_tick():
-        # Registered before app.run(): macOS GTK 4.24 serviced the pre-run
-        # 45 s watchdog while the 1 ms callback added inside the render
-        # waited (run 40044668172). Check the verified readback every second
-        # instead of costing ~45 s per cycle.
-        if state.get("completion_started") or state.get("closed"):
-            return GLib.SOURCE_REMOVE
-        main = getattr(app, "main_window", None)
-        if verified_pick_ready(main):
-            print("EASYHYBRID_FULL_APP_PICK_COMPLETED_AFTER_VERIFIED_TICK=True", flush=True)
-            safe_complete_pick(main)
-            return GLib.SOURCE_REMOVE
-        return GLib.SOURCE_CONTINUE
-
     def lifecycle_timeout():
         main = getattr(app, "main_window", None)
         if verified_pick_ready(main):
@@ -768,7 +754,6 @@ _FULL_APP_CYCLE = textwrap.dedent(
         )
 
     GLib.timeout_add_seconds(45, lifecycle_timeout)
-    GLib.timeout_add_seconds(1, verified_pick_tick)
     faulthandler.dump_traceback_later(15, repeat=True)
     status = app.run([sys.argv[0], fixture])
     faulthandler.cancel_dump_traceback_later()

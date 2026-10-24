@@ -152,13 +152,3 @@ def test_main_push_skips_matrix_only_for_tested_merges_or_markdown():
         assert "needs.plan.outputs.run == 'true'" in header
     # GitHub's own runner limits schedule the cells; no extra serial waves.
     assert "max-parallel" not in workflow
-
-
-def test_full_app_checks_verified_pick_from_a_pre_run_one_second_timer():
-    smoke = (ROOT / "tests" / "test_easyhybrid_full_app_smoke.py").read_text()
-
-    assert "GLib.timeout_add_seconds(1, verified_pick_tick)" in smoke
-    assert smoke.index("GLib.timeout_add_seconds(1, verified_pick_tick)") < smoke.index(
-        "status = app.run([sys.argv[0], fixture])"
-    )
-    assert "EASYHYBRID_FULL_APP_PICK_COMPLETED_AFTER_VERIFIED_TICK=True" in smoke
