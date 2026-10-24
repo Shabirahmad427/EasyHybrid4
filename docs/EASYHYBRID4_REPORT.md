@@ -1282,10 +1282,11 @@ migration is claimed but end-to-end behavior is not demonstrated.
 | Workflow | EasyHybrid4 status | Evidence / remaining work |
 |---|---|---|
 | Atom/bond mutation and bond-order perception logic | **WORKING (logic slice only)** | 23 tests cover bond edits, valence/order handling, representations' bookkeeping, and frame-specific dynamic bonds. No GTK UI, GL rendering, or pDynamo sync claim. |
-| Interactive Builder (create/edit, undo, charges/hydrogens, fragments, structures, solvation, DYFF/OPLS) | **UNTESTED** | GTK4 source exists under `src/gui/windows/builder/`; current tests do not run the UI, full pDynamo editing, or round-trip persistence. |
+| Interactive Builder (create/edit, undo, charges/hydrogens, fragments, structures, solvation, DYFF/OPLS) | **PARTIAL** | `tests/test_atom_ops_bonds.py` exercises coordinate/add-bonded-atom/undo restoration plus atom multi-select/toggle/clear and numeric distance/angle measurements (15 tests pass). Selection-clear now resets atom selection flags. The opt-in full-app smoke now passes one native Linux X11/XTest `.easy` save/reload cycle with real pDynamo3 and checks the restored system and VisMol object; it also verifies GTK row references are restored after successful and injected-failure writes. Builder UI workflows, persistence of edited structures, Windows/macOS and other GTK minors remain untested. |
 | VisMol viewer, picking, selection, representations, camera and playback | **PARTIAL** | Real GTK GLArea, production renderer, picking, representation/export/resize checks pass in native matrix run `39485989866`; component matrix picking calls GTK handlers with synthetic coordinates. Full app passed focused native Linux, Windows GTK 4.8/4.10, and macOS GTK 4.24.1 checks. Local Linux X11/XTest full-app picking passes five cycles; hosted full-matrix confirmation is pending. Windows/macOS native OS input, physical GPU, Retina/trackpad, Wayland, and real trajectory playback remain **NOT TESTED**. |
 | GTK widget startup/lifecycle | **BROKEN (diagnostic observed)** | User-provided launch output showed two `gtk_box_remove` parent assertion critical messages. Visible impact and responsible removal path are unknown. |
 | System import, force-field assignment, merge/prune, trajectory import, `.easy` save/load | **PARTIAL** | Project writes now use atomic replacement and a versioned payload; readers accept legacy unversioned files and reject unsupported future versions before application restart. Five file-level regressions pass, including corrupt-read and simulated-write failure preservation. Full session/system/camera/vobject round trips and historical project migrations remain untested. |
+| System import, force-field assignment, merge/prune, trajectory import, `.easy` save/load | **PARTIAL** | The opt-in full-app regression imports a generated three-atom water system and now saves/reloads it through the production `.easy` serializer and loader on Linux X11 (GTK 4.14.5), verifying one pDynamo system and one 3-atom VisMol object. Other project contents, trajectory import, edited-structure persistence, Windows/macOS and other GTK minors remain **NOT TESTED**. |
 | MM/QC/QC-MM setup and calculations | **UNTESTED** | Setup modules and pDynamo dispatch exist; no calculation-level comparison was run. |
 | System import, force-field assignment, merge/prune, trajectory import, `.easy` save/load | **UNTESTED** | Matching dialogs/session/serialization code exists; no representative import or project round-trip fixture was run. |
 | MM/QC/QC-MM setup and calculations | **PARTIAL** | Opt-in pDynamo regressions in `tests/test_pdynamo_mm_workflow.py` pass a 3-atom water DYFF energy/minimization reference (initial `5.104425761412759`, minimized `0.0010421253750697622`) and AM1/MNDO single-point reference (`-247.65607705020375`, coordinates unchanged within `1e-12 Å`). These call pDynamo APIs directly; EasyHybrid settings dispatch, QC/MM, and cross-platform numerical comparison remain untested. |
@@ -3070,7 +3071,11 @@ temporary-copy command in [Section 6 of this report](#6-reproducible-test-baseli
   `EasyHybridApplication` or the real `gui.main.MainWindow`; therefore it is
   component/renderer evidence, not full-interface acceptance. A separate full-app
   regression with real pDynamo3 is still required across the supported GTK/OS
-  matrix. pDynamo3 scientific calculations remain tested against pDynamo3.
+  matrix. The full-app regression performs one production `.easy` save/reload
+  in each cycle; it currently passes locally on Linux X11 with GTK 4.14.5 and
+  native XTest pointer injection. Other OS/minor combinations are not covered
+  by that local run. pDynamo3 scientific calculations remain tested against
+  pDynamo3.
 - `test_dependency_boundaries.py`, `test_session_state.py`,
   `test_easyplot_boundaries.py`, and `test_os_integration.py` cover the
   EH4-100 import, state, plotting, and startup-policy boundaries.
@@ -3079,9 +3084,10 @@ temporary-copy command in [Section 6 of this report](#6-reproducible-test-baseli
   session or call pDynamo calculations.
 
 The default suite skips display-dependent GTK checks. The opt-in GTK smoke
-must be run with an accessible native display or virtual display. The suite
-does not prove pDynamo synchronization, simulation results, project/export
-round trips, or cross-platform support.
+must be run with an accessible native display or virtual display. The full-app
+smoke covers one generated `.easy` save/reload fixture on the tested local
+Linux runtime; it does not prove persistence for other project contents,
+scientific simulation results, export round trips, or cross-platform support.
 Those checks are tracked in `docs/ROADMAP.md` and Section 6 of this report.
 Fixture requirements are documented in [Section 8 of this report](#8-safe-test-data-policy).
 

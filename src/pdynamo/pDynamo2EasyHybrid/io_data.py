@@ -76,6 +76,7 @@ from vismol.model.atom import Atom
 from logging import getLogger
 logger = getLogger(__name__)
 
+
 #---------------------------------------
 from pBabel                    import*                                     
 from pCore                     import*  

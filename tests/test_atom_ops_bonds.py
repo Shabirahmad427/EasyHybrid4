@@ -27,6 +27,8 @@ contexto completo):
 import os
 import sys
 
+import numpy as np
+
 _TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 _REPO_ROOT = os.path.dirname(_TESTS_DIR)
 for _p in (
@@ -37,11 +39,19 @@ for _p in (
         sys.path.insert(0, _p)
 
 from gui.windows.builder.atom_ops import (  # noqa: E402
+    add_atom,
+    move_atom,
+    push_undo_snapshot,
+    undo,
     set_bond_order,
     unset_bond,
     resolve_frame_arg,
     set_dynamic_bond_order,
     unset_dynamic_bond,
+)
+from vismol.core.vismol_selections import (  # noqa: E402
+    VismolPickingSelection,
+    VismolViewingSelection,
 )
 
 from conftest import pairs_in  # noqa: E402
@@ -236,3 +246,73 @@ def test_dynamic_bonds_do_not_touch_static_topology(make_vismol_object):
     assert set(vobj.bonds.keys()) == set(static_bonds_before.keys()), (
         "a topologia estatica (vismol_object.bonds) nao deveria mudar"
     )
+
+
+def test_builder_edit_undo_restores_atom_coordinates_charge_and_bonds(make_vismol_object):
+    """A logical Builder edit can be reversed without losing structure data."""
+    vobj = make_vismol_object(["O", "H"], [0, 1])
+    vobj.name = "water"
+    vobj.is_builder_only = True
+    vobj.e_id = None
+    vobj.manual_bonds = {(0, 1)}
+    vobj.manual_bond_orders = {(0, 1): 1}
+    vobj.manual_aromatic_bonds = set()
+    vobj.manual_atom_type_overrides = {}
+    vobj.dyff_parameter_edits = {}
+    vobj.atoms[0].formal_charge = -1
+    vobj.atoms[0].mm_charge = -0.8
+    vobj.frames[0, 0] = [1.0, 2.0, 3.0]
+    vobj.vm_session.atom_dic_id = {}
+    vobj.vm_session.atom_id_counter = 0
+
+    push_undo_snapshot(vobj)
+    move_atom(vobj, 0, 4.0, 5.0, 6.0, update_representation=False)
+    add_atom(vobj, "H", -1.0, 0.0, 0.0, name="H2", bonded_to=0)
+    assert len(vobj.atoms) == 3
+    assert undo(vobj) is True
+
+    assert len(vobj.atoms) == 2
+    assert tuple(vobj.frames[0, 0]) == (1.0, 2.0, 3.0)
+    assert vobj.atoms[0].formal_charge == -1
+    assert vobj.atoms[0].mm_charge == -0.8
+    assert set(vobj.bonds) == {(0, 1)}
+    assert undo(vobj) is False
+
+
+def test_atom_selection_accumulates_toggles_and_clears_atom_state(make_vismol_object):
+    vobj = make_vismol_object(["O", "H", "H"], [0, 1, 0, 2])
+    vm_session = vobj.vm_session
+    vm_session.vm_objects_dic = {"water": vobj}
+    vm_session.frame = 0
+    selection = VismolViewingSelection(vm_session)
+    selection.selection_mode = "atom"
+
+    selection.selection_function_viewing_set([vobj.atoms[0]])
+    selection.selection_function_viewing_set([vobj.atoms[1]])
+    assert selection.selected_atoms == {vobj.atoms[0], vobj.atoms[1]}
+    assert vobj.selected_atom_ids == {0, 1}
+
+    selection.selection_function_viewing_set([vobj.atoms[0]])
+    assert selection.selected_atoms == {vobj.atoms[1]}
+    assert vobj.atoms[0].selected is False
+    assert vobj.selected_atom_ids == {1}
+
+    selection.selection_function_viewing_set(None)
+    assert selection.selected_atoms == set()
+    assert vobj.selected_atom_ids == set()
+    assert vobj.atoms[1].selected is False
+
+
+def test_picking_measurement_distance_and_angle_values():
+    picking = VismolPickingSelection(vismol_session=None)
+
+    distance, midpoint = picking.get_dist(
+        np.array([0.0, 0.0, 0.0]), np.array([3.0, 4.0, 0.0])
+    )
+    assert distance == 5.0
+    assert midpoint == [1.5, 2.0, 0.0]
+
+    picking.xyz1 = np.array([1.0, 0.0, 0.0])
+    picking.xyz2 = np.array([0.0, 0.0, 0.0])
+    picking.xyz3 = np.array([0.0, 1.0, 0.0])
+    assert picking.get_angle_pk1_pk2_pk3() == 90.0

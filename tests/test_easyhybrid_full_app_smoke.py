@@ -82,6 +82,14 @@ _FULL_APP_CYCLE = textwrap.dedent(
             return fail("reopened .easy session left OpenGL error 0x%x" % gl_error)
         if len(main.p_session.psystem) != 1 or len(main.vm_session.vm_objects_dic) != 1:
             return fail("reopened .easy session did not restore its system and molecule")
+        restored_system = next(iter(main.p_session.psystem.values()))
+        restored_molecule = next(iter(main.vm_session.vm_objects_dic.values()))
+        restored_symbols = sorted(atom.symbol for atom in restored_molecule.atoms.values())
+        if restored_system.label != "water" or restored_symbols != ["H", "H", "O"]:
+            return fail(
+                "reopened .easy session changed fixture identity (system=%r atoms=%r)"
+                % (restored_system.label, restored_symbols)
+            )
         if not np.array_equal(core.model_mat, expected_camera["model_mat"]):
             return fail("reopened .easy session did not restore model matrix")
         if not np.array_equal(
