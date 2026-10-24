@@ -677,17 +677,16 @@ _FULL_APP_CYCLE = textwrap.dedent(
 
     GLib.timeout_add(50, safe_poll_app)
 
-    def lifecycle_timeout():
-        main = getattr(app, "main_window", None)
+    def verified_pick_ready(main):
+        # On macOS the native HID event can complete the actual GL readback
+        # while the next 50 ms lifecycle poll is delayed. The render wrapper
+        # records the completed pick; accept that verified production result.
         core = getattr(getattr(main, "vm_session", None), "vm_glcore", None)
         last_pick = state.get("last_pick_render") or {}
         picked = getattr(core, "atom_picked", None)
-        # On macOS the native HID event can complete the actual GL readback
-        # while the next 50 ms lifecycle poll is delayed. The render wrapper
-        # records the completed pick; accept that verified production result
-        # and close cleanly instead of turning poll cadence into a false fail.
-        if (
+        return (
             main is not None
+            and not state.get("completion_started")
             and state.get("pick_started")
             and state.get("pick_attempts", 0) > 0
             and last_pick.get("requested") is True
@@ -695,7 +694,11 @@ _FULL_APP_CYCLE = textwrap.dedent(
             and last_pick.get("picked_after") == "O"
             and not getattr(core, "picking", True)
             and getattr(picked, "symbol", None) == "O"
-        ):
+        )
+
+    def lifecycle_timeout():
+        main = getattr(app, "main_window", None)
+        if verified_pick_ready(main):
             print("EASYHYBRID_FULL_APP_PICK_COMPLETED_AFTER_POLL_TIMEOUT=True", flush=True)
             return safe_complete_pick(main)
 

@@ -136,3 +136,19 @@ def test_every_provider_runs_pdynamo_scientific_tests_without_a_display():
         assert build < science < full_app
     assert 'for name in ("DISPLAY", "WAYLAND_DISPLAY")' in runner
     assert '"skipped" in summary' in runner
+
+
+def test_main_push_skips_matrix_only_for_tested_merges_or_markdown():
+    workflow = (ROOT / ".github" / "workflows" / "native-gtk-matrix.yml").read_text()
+
+    assert "  plan:\n" in workflow
+    assert "git diff --quiet HEAD^2 HEAD" in workflow
+    assert "git diff --name-only HEAD^ HEAD | grep -qv '\\.md$'" in workflow
+    assert 'if [[ "${{ github.event_name }}" == "push" ]]' in workflow
+    for job in ("gtk-runtime:", "gtk-linux-distro:", "gtk-windows-msys2:", "gtk-macos-source:"):
+        start = workflow.index("\n  " + job)
+        header = workflow[start:workflow.index("runs-on:", start)]
+        assert "needs: plan" in header
+        assert "needs.plan.outputs.run == 'true'" in header
+    # GitHub's own runner limits schedule the cells; no extra serial waves.
+    assert "max-parallel" not in workflow
