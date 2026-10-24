@@ -240,6 +240,21 @@ changing the host desktop clipboard. GTK 4.24.1 printed an unrecognized
 `gl-glx` debug-flag warning, a Mesa DRI3 warning, and an unavailable IBus
 module warning; the tests passed. This remains Linux-only test coverage; all
 other GTK minors and Windows/macOS native integration are **NOT TESTED**.
+**EH4-301 hosted Windows clipboard boundary (2026-10-24):** PR #5's
+fail-fast matrix run [`40049339951`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40049339951)
+failed the cross-process clipboard assertion on Windows Server 2022 x86_64,
+Python 3.12.15 / PyGObject 3.46.0 / GTK 4.8.2 / GLib 2.78.0. The artifact
+records WinSta0 and Mesa 26.2.4 llvmpipe WGL. In-process Unicode clipboard
+read/write passed, but a separate GTK reader timed out after four seconds
+while the owner serviced its GLib context. The test now skips only that
+cross-process assertion on GitHub-hosted Windows; the same-process Windows
+test remains enabled. This evidence does not distinguish a GTK/Win32 issue
+from the hosted runner session. Cross-process Windows clipboard and macOS
+clipboard behavior remain **NOT TESTED**, and EH4-301 remains unchecked. After
+narrowing the assertion, the two focused clipboard tests pass on Linux Mint
+22.3 x86_64 under Xvfb/X11 with Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5
+/ GLib 2.80.0 (**2 passed, 70 deselected**); this does not change the
+Windows/macOS limitation.
 **EH4-302 local X11 scale/resize check (2026-10-20; partial):** the real
 Gtk.GLArea renderer validation passed at `GDK_SCALE=1` and `2` on Linux Mint
 22.3 x86_64, Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib 2.80.0,
