@@ -152,3 +152,44 @@ def test_main_push_skips_matrix_only_for_tested_merges_or_markdown():
         assert "needs.plan.outputs.run == 'true'" in header
     # GitHub's own runner limits schedule the cells; no extra serial waves.
     assert "max-parallel" not in workflow
+
+
+def test_compiler_cache_scope_runs_only_native_source_builders():
+    workflow = (ROOT / ".github" / "workflows" / "native-gtk-matrix.yml").read_text()
+    assert "- compiler-cache" in workflow
+
+    runtime = workflow.split("  gtk-runtime:", 1)[1].split("  gtk-linux-distro:", 1)[0]
+    distro = workflow.split("  gtk-linux-distro:", 1)[1].split("  gtk-windows-msys2:", 1)[0]
+    windows_source = workflow.split("  gtk-windows-msys2:", 1)[1].split("  gtk-macos-source:", 1)[0]
+    macos_source = workflow.split("  gtk-macos-source:", 1)[1]
+
+    assert "inputs.scope != 'compiler-cache'" in runtime.split("steps:", 1)[0]
+    assert "inputs.scope != 'compiler-cache'" in distro.split("steps:", 1)[0]
+    assert "inputs.scope != 'compiler-cache'" not in windows_source.split("steps:", 1)[0]
+    assert "inputs.scope != 'compiler-cache'" not in macos_source.split("steps:", 1)[0]
+
+
+def test_native_gtk_source_builders_cache_only_compiler_outputs():
+    workflow = (ROOT / ".github" / "workflows" / "native-gtk-matrix.yml").read_text()
+    windows_source = workflow.split("  gtk-windows-msys2:", 1)[1].split("  gtk-macos-source:", 1)[0]
+    macos_source = workflow.split("  gtk-macos-source:", 1)[1]
+
+    for section in (windows_source, macos_source):
+        assert "uses: actions/cache@v4" in section
+        assert "path: ${{ runner.temp }}/gtk-ccache" in section
+        assert "matrix.sha256" in section
+        assert "CCACHE_COMPILERCHECK: content" in section
+        assert "CCACHE_MAXSIZE: 1G" in section
+        assert "ccache --zero-stats" in section
+        assert "ccache --show-stats --verbose" in section
+        assert "GTK_CCACHE_RESTORED" in section
+        assert "meson setup gtk-build" in section
+        assert "meson compile -C gtk-build" in section
+        assert "meson install -C gtk-build" in section
+        assert "CC: ccache" not in section
+        assert "CXX: ccache" not in section
+
+    assert "mingw-w64-ucrt-x86_64-ccache" in windows_source
+    assert "ccache=4.13.6" in macos_source
+    assert "pacman -Q mingw-w64-ucrt-x86_64-gcc" in windows_source
+    assert "xcrun clang --version" in macos_source

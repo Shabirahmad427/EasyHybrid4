@@ -18,6 +18,7 @@ on:
           - macos-diagnostic
           - macos-gtk424
           - windows
+          - compiler-cache
 
 permissions:
   contents: read
@@ -62,7 +63,7 @@ jobs:
   gtk-runtime:
     name: GTK ${{ matrix.gtk }} / ${{ matrix.os }}
     needs: plan
-    if: needs.plan.outputs.run == 'true'
+    if: needs.plan.outputs.run == 'true' && inputs.scope != 'compiler-cache'
     runs-on: ${{ matrix.os == 'linux-x86_64' && 'ubuntu-24.04' || matrix.os == 'windows-x86_64' && 'windows-2022' || matrix.os == 'macos-x86_64' && 'macos-15-intel' || 'macos-14' }}
     timeout-minutes: 45
     strategy:
@@ -369,7 +370,7 @@ jobs:
   gtk-linux-distro:
     name: GTK ${{ matrix.gtk }} / linux-x86_64 (${{ matrix.distro }})
     needs: plan
-    if: needs.plan.outputs.run == 'true' && inputs.scope != 'linux-gtk48' && inputs.scope != 'windows-legacy' && inputs.scope != 'windows-gtk420' && inputs.scope != 'macos-diagnostic' && inputs.scope != 'macos-gtk424' && inputs.scope != 'windows'
+    if: needs.plan.outputs.run == 'true' && inputs.scope != 'linux-gtk48' && inputs.scope != 'windows-legacy' && inputs.scope != 'windows-gtk420' && inputs.scope != 'macos-diagnostic' && inputs.scope != 'macos-gtk424' && inputs.scope != 'windows' && inputs.scope != 'compiler-cache'
     runs-on: ubuntu-24.04
     container: ${{ matrix.image }}
     timeout-minutes: 30
@@ -564,6 +565,10 @@ jobs:
     needs: plan
     if: needs.plan.outputs.run == 'true' && inputs.scope != 'linux-gtk48' && inputs.scope != 'windows-legacy' && inputs.scope != 'windows-gtk420' && inputs.scope != 'macos-diagnostic' && inputs.scope != 'macos-gtk424'
     runs-on: windows-2022
+    env:
+      CCACHE_DIR: ${{ runner.temp }}/gtk-ccache
+      CCACHE_COMPILERCHECK: content
+      CCACHE_MAXSIZE: 1G
     timeout-minutes: 75
     strategy:
       fail-fast: false
@@ -591,6 +596,7 @@ jobs:
           update: true
           install: >-
             mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-ccache
             mingw-w64-ucrt-x86_64-meson
             mingw-w64-ucrt-x86_64-ninja
             mingw-w64-ucrt-x86_64-pkgconf
@@ -624,9 +630,26 @@ jobs:
             tar
             xz
 
+      - name: Fingerprint GTK compiler cache
+        id: gtk-compiler
+        run: |
+          compiler_version=$(pacman -Q mingw-w64-ucrt-x86_64-gcc | awk '{print $2}')
+          ccache_version=$(ccache --version | awk 'NR == 1 {print $3}')
+          echo "fingerprint=${compiler_version}-${ccache_version}" >> "$GITHUB_OUTPUT"
+
+      - name: Restore GTK compiler cache
+        id: gtk-ccache
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/gtk-ccache
+          key: gtk-ccache-msys2-${{ matrix.version }}-${{ matrix.sha256 }}-${{ steps.gtk-compiler.outputs.fingerprint }}
+
       - name: Build and install GTK ${{ matrix.version }} from source
         run: |
           set -eo pipefail
+          # Meson auto-detects ccache on PATH; setting CC/CXX disables that.
+          export CCACHE_DIR="$(cygpath -u "$RUNNER_TEMP")/gtk-ccache"
+          ccache --zero-stats
           if pacman -Q mingw-w64-ucrt-x86_64-gtk4 >/dev/null 2>&1; then
             echo "A packaged GTK4 is installed; refusing to mix it with the source build." >&2
             exit 1
@@ -640,6 +663,10 @@ jobs:
             --buildtype=release --wrap-mode=nofallback $args
           meson compile -C gtk-build
           meson install -C gtk-build
+          {
+            printf 'GTK_CCACHE_RESTORED=%s\n' '${{ steps.gtk-ccache.outputs.cache-hit }}'
+            ccache --show-stats --verbose
+          } > gtk-ccache-stats.txt
 
       - name: Install pinned Mesa WGL software renderer
         shell: pwsh
@@ -652,6 +679,7 @@ jobs:
           set -o pipefail
           printf 'GTK_REQUESTED=%s OS=windows-x86_64 PROVIDER=msys2-source-%s\n' '${{ matrix.gtk }}' '${{ matrix.version }}' > platform-results.txt
           python .github/scripts/record_runtime.py 'msys2-source-${{ matrix.version }}' '${{ matrix.version }}' | tee -a platform-results.txt
+          cat gtk-ccache-stats.txt >> platform-results.txt
 
       - name: Run native GTK window, Gio action, and real GLArea smoke
         run: |
@@ -795,6 +823,10 @@ jobs:
     needs: plan
     if: needs.plan.outputs.run == 'true' && inputs.scope != 'linux-gtk48' && inputs.scope != 'windows-legacy' && inputs.scope != 'windows' && inputs.scope != 'windows-gtk420' && inputs.scope != 'macos-gtk424'
     runs-on: macos-14
+    env:
+      CCACHE_DIR: ${{ runner.temp }}/gtk-ccache
+      CCACHE_COMPILERCHECK: content
+      CCACHE_MAXSIZE: 1G
     timeout-minutes: 75
     strategy:
       fail-fast: false
@@ -844,6 +876,7 @@ jobs:
             pytest
             meson
             ninja
+            ccache=4.13.6
             pkg-config
             gobject-introspection
             glib
@@ -867,6 +900,20 @@ jobs:
             adwaita-icon-theme
             hicolor-icon-theme
 
+      - name: Fingerprint GTK compiler cache
+        id: gtk-compiler
+        run: |
+          compiler_fingerprint=$(xcrun clang --version | head -n 1 | shasum -a 256 | cut -c1-16)
+          ccache_version=$(micromamba run -n easyhybrid-gtk-src ccache --version | awk 'NR == 1 {print $3}')
+          echo "fingerprint=${compiler_fingerprint}-${ccache_version}" >> "$GITHUB_OUTPUT"
+
+      - name: Restore GTK compiler cache
+        id: gtk-ccache
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/gtk-ccache
+          key: gtk-ccache-macos-${{ runner.arch }}-${{ matrix.version }}-${{ matrix.sha256 }}-${{ steps.gtk-compiler.outputs.fingerprint }}
+
       - name: Build and install GTK ${{ matrix.version }} from source
         run: |
           set -eo pipefail
@@ -874,7 +921,9 @@ jobs:
           curl -fsSL "https://download.gnome.org/sources/gtk/${minor}/gtk-${{ matrix.version }}.tar.xz" -o gtk.tar.xz
           echo "${{ matrix.sha256 }}  gtk.tar.xz" | shasum -a 256 -c -
           tar -xJf gtk.tar.xz
+          # Meson auto-detects ccache on PATH; setting CC/CXX disables that.
           micromamba run -n easyhybrid-gtk-src bash -eo pipefail -c '
+            ccache --zero-stats
             args=$(python .github/scripts/gtk_meson_options.py gtk-${{ matrix.version }})
             echo "MESON_ARGS=$args"
             export LDFLAGS="-Wl,-rpath,$CONDA_PREFIX/lib ${LDFLAGS:-}"
@@ -883,12 +932,17 @@ jobs:
             meson compile -C gtk-build
             meson install -C gtk-build
           '
+          {
+            printf 'GTK_CCACHE_RESTORED=%s\n' '${{ steps.gtk-ccache.outputs.cache-hit }}'
+            micromamba run -n easyhybrid-gtk-src ccache --show-stats --verbose
+          } > gtk-ccache-stats.txt
 
       - name: Record actual runtime and host
         run: |
           set -o pipefail
           printf 'GTK_REQUESTED=%s OS=macos-arm64 PROVIDER=source-%s\n' '${{ matrix.gtk }}' '${{ matrix.version }}' > platform-results.txt
           micromamba run -n easyhybrid-gtk-src python .github/scripts/record_runtime.py 'source-${{ matrix.version }}' '${{ matrix.version }}' | tee -a platform-results.txt
+          cat gtk-ccache-stats.txt >> platform-results.txt
 
       - name: Run native GTK window, Gio action, and real GLArea smoke
         run: |

@@ -23,11 +23,14 @@ Linux Xvfb with Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib 2.80.0.
 Cancellation, progress reporting, GUI responsiveness, and unexpected worker
 crash detection remain unverified.
 
-**Current roadmap pointer:** EH4-200 graphics-engine provenance audit. EH4-203
-still needs physical macOS trackpad review. EH4-204, EH4-205 and EH4-400–405
-passed their configured native matrix acceptance; domain-specific scientific
-and persistence criteria remain tracked separately. EH4-200 provenance,
-EH4-301 clipboard/accessibility, and packaging tasks remain open.
+**Current roadmap pointer:** EH4-500 CI compiler-cache timing is active on the
+preserved `eh4-500-ci-quality-gates` branch. PR #9's EH4-402 scientific
+coverage passed 26 headless tests with no skips in all 30 native matrix cells
+(`40112239125`) and is merged. The compiler-output cache is configured for the
+macOS GTK source builds and Windows MSYS2 GTK 4.16/4.18 builds; hosted cold/warm
+cache behavior and timing reduction remain **NOT TESTED** until the focused
+source-build run completes. EH4-200 provenance, EH4-203 physical trackpad
+review, EH4-301 clipboard/accessibility, and packaging tasks remain open.
 
 **EH4-405 batch PR #6 matrix status:** corrected head `341a7cc`, merged as
 `b676d00`, passed full matrix
@@ -1406,19 +1409,20 @@ and GL context negotiation, dialogs, fonts, scaling, and input semantics must
 be checked on every native OS. The macOS trackpad scroll-unit path has a
 GTK 4.8 feature check; real trackpad behavior is untested.
 
-### 5.2 CI architecture proposal
+### 5.2 Native CI architecture
 
-- Use native Linux, Windows and macOS GitHub-hosted runners for dependency
-  provisioning, imports, extension builds, and display-free tests.
-- Add GTK-minimum and current-stable Linux jobs with native GTK packages or
-  source builds and report the **loaded** GTK/GLib/PyGObject versions.
-- Use pairwise OS/GTK smoke coverage on pull requests; expand version/platform
-  coverage before release. GUI jobs need native displays; GL jobs must record
-  driver/context results and cannot be replaced by unit-test mocks.
-- Keep macOS Retina/trackpad and real-driver checks as dated manual reports
-  until reliable hardware-backed runners exist.
-- This architecture is a proposal, not an implemented workflow. Roadmap
-  EH4-500 through EH4-505 own CI implementation and native/manual checks.
+`.github/workflows/native-gtk-matrix.yml` uses native Linux, Windows and macOS
+GitHub-hosted runners for dependency provisioning, extension builds, display-
+free scientific tests, real GTK/GL checks and uploaded runtime evidence. PRs
+run the full supported GTK-version matrix. The plan job skips a `main` push
+when its tree is already covered by the merged PR, or when only Markdown
+changed; it does not skip code pushes. Compiler-output caching for the macOS
+GTK source builds and Windows MSYS2 GTK 4.16/4.18 builds is implemented on the
+EH4-500 branch but remains **NOT TESTED** until the cache-specific workflow
+dispatch and full matrix run. The cache excludes installed GTK prefixes.
+
+The workflow does not replace dated manual checks for macOS Retina/trackpad or
+physical GPUs; those remain separate native-hardware evidence.
 
 ## 6. Reproducible test baseline
 
