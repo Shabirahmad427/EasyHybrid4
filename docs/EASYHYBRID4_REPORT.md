@@ -335,6 +335,17 @@ packaged direct-launch acceptance therefore remains **FAIL / unresolved**.
 No desktop installer was built; Windows and macOS packaging and GTK versions
 other than 4.24.1 remain **NOT TESTED**. EH4-304 stays unchecked.
 
+**EH4-304 test scope correction (2026-10-24):** PR #5 matrix run
+[`40049843306`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40049843306)
+ran the full regression suite on Windows Server 2022 x86_64 with Python
+3.12.15 / PyGObject 3.58.1 / GTK 4.24.1 / GLib 2.90.1 and Mesa 26.2.4
+llvmpipe WGL. The suite had 145 passes and 8 skips, but two tests in
+`tests/test_linux_bundle_launcher.py` failed with `WinError 193` because they
+execute a Linux `.sh` launcher as a Win32 program. This test module is now
+scoped to Linux only; its fake executable tests remain active on Linux.
+Windows/macOS skips do not verify those platforms' packaging, and EH4-304
+remains unchecked.
+
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
 used GTK 4.24.1 / GLib 2.90.0 / PyGObject 3.58.1 / Python 3.12.15 on

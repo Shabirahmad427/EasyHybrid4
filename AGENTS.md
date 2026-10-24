@@ -145,3 +145,11 @@ session. Keep the same-process Windows check enabled, skip only this child
 process assertion on GitHub-hosted Windows, and report cross-process Windows
 clipboard as **NOT TESTED** until a native focused probe explains the timeout.
 Linux X11 results do not transfer to Windows or macOS.
+
+**Linux bundle launcher test scope (observed 2026-10-24):** PR #5 matrix run
+`40049843306` failed two `tests/test_linux_bundle_launcher.py` cases in the
+Windows GTK 4.24.1 full regression step. Both launched the Linux `.sh` fixture
+directly and raised `WinError 193`; the other 145 tests passed. The module now
+uses a module-level skip on non-Linux OSes. Keep those shell-launcher tests
+active on Linux, and do not treat their Windows/macOS skips as packaging
+acceptance for those platforms.
