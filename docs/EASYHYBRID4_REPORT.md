@@ -165,6 +165,187 @@ current context. Commit `611eac0` pins GLX with `GDK_DISABLE=egl` and passed
 5/5 locally on native NVIDIA X11 and Xvfb llvmpipe. All-platform/all-minor
 matrix run `40043447733` is pending.
 
+**EH4-205 focused implementation (2026-10-21):** the production VisMol
+`Gtk.GLArea` now checks the realized OpenGL version before initializing its
+shaders, requires OpenGL 3.3+, and shows a portable GTK4 error window for
+context, capability, initialization, or render failures. Repeated GL callbacks
+are suppressed after a failure; the application remains open so the user can
+read the reason and close it normally. Local Linux x86_64/X11 testing used
+Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib 2.80.0. A real Gtk.GLArea
+with an injected OpenGL 2.1 version presented the fallback dialog and skipped
+VisMol initialization; an injected render exception produced one dialog and
+prevented further scene renders. All six diagnostics tests passed. The full
+Linux Xvfb regression suite passed (168 passed, 14 skipped, one existing GLib
+warning). A separate GTK GL smoke used Mesa 25.2.8 llvmpipe (OpenGL 4.5 Core)
+and passed three window lifecycle cycles. All other GTK/platform cells are
+**NOT TESTED** for this change; EH4-205 remains unchecked until the required
+full native matrix runs.
+
+Native X11 recheck on 2026-10-21 passed `tests/test_graphics_diagnostics.py`
+**6/6** on local Linux x86_64 at GTK 4.14.5 (Python 3.12.3 / PyGObject
+3.48.2 / GLib 2.80.0) and GTK 4.24.1 (Python 3.12.15 / PyGObject 3.58.1 /
+GLib 2.90.0), with `G_DEBUG=fatal-criticals`. It covers visible error windows,
+the realized GLArea unsupported-version path, and one-time render failure
+handling. The mocked 2.1 OpenGL version tests graceful fallback; it does not
+simulate a physical unsupported GPU. The first native attempt failed because
+the test had not applied the application's GL startup policy; the test module
+now applies `configure_gl_context_environment()` before any test opens a
+display. GTK 4.24.1 printed `Unrecognized value "gl-glx"` and a missing IBus
+module warning in this local direct-runtime setup, but all six tests passed.
+Other GTK minors, Windows/macOS, and real unsupported hardware remain
+**NOT TESTED**; EH4-205 is still open pending the native matrix.
+
+Rechecked on the implementation branch on 2026-10-21: the diagnostics module
+passed **6/6**, the startup/GL smoke passed with three clean window lifecycle
+cycles, and the complete suite passed **168 tests** with 14 skips and one
+pre-existing GTK 4.8 chooser GLib warning. Runtime was Linux 6.8.0-147-generic
+x86_64, Python 3.12.3, PyGObject 3.48.2, GTK 4.14.5, GLib 2.80.0, Mesa
+25.2.8 llvmpipe, OpenGL 4.5 Core. `py_compile` and `git diff --check` passed.
+**EH4-301 local GTK interaction checks (2026-10-20; partial):** under Linux
+Mint 22.3 x86_64 with Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib
+2.80.0, native Xvfb checks for GTK event-controller mouse/keyboard dispatch,
+context-menu placement and response-window behavior passed (3 passed). The
+GTK 4.14 file-dialog adapter checks passed 2 tests; 9 GTK 4.8/conditional
+chooser cases were skipped. Clipboard behavior, screen-reader/accessibility
+checks, native platform chooser interaction, and Windows/macOS runtimes remain
+**NOT TESTED**. A full widget-module attempt inside the restricted sandbox
+failed its display precondition and then segfaulted in a Gtk.Builder color
+button test; it is not counted as a native result. EH4-301 stays unchecked.
+
+The focused subset was rerun with a usable Xvfb display on 2026-10-21 using
+the same Linux GTK runtime: controller dispatch, context-menu placement,
+response-window actions and file-dialog adapter behavior returned **7 passed,
+1 skipped**, with 61 unrelated tests deselected. This confirms the selected
+GTK 4.14.5 interactions; platform-specific chooser and accessibility gaps
+remain open.
+
+**EH4-301 Linux GTK integration recheck (2026-10-21; partial):** under
+Linux Mint 22.3 x86_64 / Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 /
+GLib 2.80.0, native Xvfb/X11 widget tests for chooser lifecycles, response
+dialogs, context-menu placement, event-controller payloads, and clipboard
+passed **20** with **5 skipped** on the latest run. GDK clipboard tests verified Unicode
+round-trips both in-process and from a separate GTK reader process while the
+owner serviced its GLib context. The X11 cross-process result does not verify
+Windows/macOS clipboard behavior, native chooser selection, hardware keyboard
+conventions, accessibility/screen-reader behavior, or other GTK minors;
+EH4-301 remains unchecked.
+
+The same focused X11/Xvfb GTK interaction slice passed on 2026-10-21 under
+both local Linux GTK runtimes: GTK 4.14.5 / Python 3.12.3 / PyGObject 3.48.2 /
+GLib 2.80.0 and GTK 4.24.1 / Python 3.12.15 / PyGObject 3.58.1 / GLib
+2.90.0. Each run reports **20 passed, 5 skipped, 45 deselected**, covering
+event-controller payloads, popovers, response/chooser windows and same-process
+and cross-process Unicode clipboard transfers. Xvfb kept the tests from
+changing the host desktop clipboard. GTK 4.24.1 printed an unrecognized
+`gl-glx` debug-flag warning, a Mesa DRI3 warning, and an unavailable IBus
+module warning; the tests passed. This remains Linux-only test coverage; all
+other GTK minors and Windows/macOS native integration are **NOT TESTED**.
+**EH4-301 hosted Windows clipboard boundary (2026-10-24):** PR #5's
+fail-fast matrix run [`40049339951`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40049339951)
+failed the cross-process clipboard assertion on Windows Server 2022 x86_64,
+Python 3.12.15 / PyGObject 3.46.0 / GTK 4.8.2 / GLib 2.78.0. The artifact
+records WinSta0 and Mesa 26.2.4 llvmpipe WGL. In-process Unicode clipboard
+read/write passed, but a separate GTK reader timed out after four seconds
+while the owner serviced its GLib context. The test now skips only that
+cross-process assertion on GitHub-hosted Windows; the same-process Windows
+test remains enabled. This evidence does not distinguish a GTK/Win32 issue
+from the hosted runner session. Cross-process Windows clipboard and macOS
+clipboard behavior remain **NOT TESTED**, and EH4-301 remains unchecked. After
+narrowing the assertion, the two focused clipboard tests pass on Linux Mint
+22.3 x86_64 under Xvfb/X11 with Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5
+/ GLib 2.80.0 (**2 passed, 70 deselected**); this does not change the
+Windows/macOS limitation.
+**EH4-302 local X11 scale/resize check (2026-10-20; partial):** the real
+Gtk.GLArea renderer validation passed at `GDK_SCALE=1` and `2` on Linux Mint
+22.3 x86_64, Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib 2.80.0,
+Mesa 25.2.8 llvmpipe OpenGL 4.5. At scale 2, the widget scale factor was 2
+and framebuffer dimensions doubled from 420x300 to 840x600; representation
+coverage, projected sizes, picking, viewport resize and export checks passed.
+This is Xvfb/X11 evidence only. Native Wayland, physical HiDPI displays,
+Retina, multi-monitor transitions, Windows/macOS and other GTK runtimes remain
+**NOT TESTED**. EH4-302 stays unchecked.
+
+The renderer check was rerun on 2026-10-21 on the same GTK 4.14.5 environment:
+**1 passed**. With `GDK_SCALE=2`, GTK applied widget scale 2 and doubled the
+GLArea framebuffer to 840x600 from 420x300. All representation, projected
+size, selection, resize, export-difference and GL checks passed at scale 1 and
+2. This remains virtual X11 evidence; physical displays, Wayland, Retina,
+multi-monitor transitions and non-Linux platforms are still **NOT TESTED**.
+
+The main window now bounds restored/default logical dimensions against GDK's
+connected-monitor geometries, with margins for decorations and panels. It
+uses the smallest connected dimensions so a window opened on a secondary
+monitor remains reachable. The compatibility tests passed **9/9**, and a
+display-backed Xvfb monitor-geometry check passed **1/1** on 2026-10-21.
+Restoring an oversized window on physical displays, monitor hot-plug or scale
+transitions, Wayland, Retina, Windows/macOS and other GTK runtimes remain
+**NOT TESTED**; EH4-302 stays unchecked.
+**EH4-303 installation instructions (2026-10-21; partial):** the root README
+documents a conda-forge GTK 4.24.1 baseline environment, native compiler
+prerequisites, the graphics-extension build, separate pDynamo3 setup, and
+Linux/macOS plus PowerShell launch environment variables. A fresh conda-forge
+environment on Linux x86_64 installed Python 3.12.15, GTK 4.24.1, PyGObject
+3.58.1, GLib 2.90.0, and NumPy 2.5.4. With user-site packages disabled, all
+seven Cython extensions built using that environment's NumPy headers and
+imported successfully; the native GTK startup/icon smoke passed three window
+cycles under Xvfb/X11 and Mesa 25.2.8 llvmpipe (OpenGL 4.5 Core). An initial
+build exposed contamination by the host's user-site NumPy 1.x headers, so the
+README now advises disabling user-site packages during builds.
+
+An explicit package-URL lock for Linux x86_64 was exported from that verified
+runtime. On Linux Mint 22.3 x86_64, the lock recreated a fresh conda prefix;
+all seven extensions built from a clean source copy and imported, and the GTK
+startup/icon smoke again passed three open/close cycles. The replay used
+Python 3.12.15 / PyGObject 3.58.1 / GTK 4.24.1 / GLib 2.90.0 / NumPy 2.5.4
+and the NVIDIA GeForce RTX 4060 Ti OpenGL 4.6.0 backend. This is Linux GTK
+4.24.1 developer-install evidence only: Windows/macOS and other GTK minor
+locks, packaged launchers, and full pDynamo3 installation remain **NOT
+TESTED**. EH4-303 remains unchecked.
+
+The lock replay's GTK window smoke must be launched with `conda run` (or an
+activated environment) so the prefix's GTK runtime variables and libraries
+are present. Calling the prefix `python` directly bypassed these and could
+not open the Xvfb display. The installer-manifest test passed separately with
+`pytest --noconftest` (2 passed); the default repository `conftest.py` imports
+existing source-tree binary extensions built against NumPy 1.x, which cannot
+load in the locked NumPy 2.5.4 environment. This test invocation adjustment
+does not change the recorded clean-copy build/import evidence.
+**EH4-304 Linux launcher prototype (2026-10-21; partial):** added
+`packaging/linux/run-easyhybrid4.sh` for a bundle containing `app/` and a
+relocated conda runtime under `runtime/`, while using an external compiled
+pDynamo3 checkout. It initializes a conda-packed runtime once, sets the
+application and pDynamo search paths, and chooses a user-cache scratch path.
+It sources the relocated runtime's conda activation hooks and selects EGL for
+PyOpenGL. Two shell-wrapper tests pass on Linux Mint 22.3 x86_64 (Python 3.12.3).
+A temporary conda-pack archive was extracted at a different prefix; after
+rebuilding the seven VisMol Cython extensions against that environment's
+NumPy, the full-app test passed one real pDynamo3 load/render/XTest oxygen-pick
+and close cycle under X11/Xvfb with Python 3.12.15, PyGObject 3.58.1, GTK
+4.24.1, GLib 2.90.0 and Mesa llvmpipe OpenGL 4.5/EGL. However, directly
+starting the application through the shell launcher still fails before
+`MainWindow`: `Gdk.Display.get_default()` is `None` and GTK rejects the splash
+window. The same Xvfb display works in a minimal GTK probe and in the full-app
+harness, which initializes the display before importing EasyHybrid. The startup
+adapter now preserves an explicitly selected EGL backend rather than forcing
+GDK's rejected `gl-glx` flag; its focused regression and related launcher tests
+pass (7 passed, 12 deselected), and the full-app harness passes one native
+XTest load/render/pick/close cycle. An early display-open attempt in
+`easyhybrid.py` did not resolve the wrapper failure and was reverted. The
+packaged direct-launch acceptance therefore remains **FAIL / unresolved**.
+No desktop installer was built; Windows and macOS packaging and GTK versions
+other than 4.24.1 remain **NOT TESTED**. EH4-304 stays unchecked.
+
+**EH4-304 test scope correction (2026-10-24):** PR #5 matrix run
+[`40049843306`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40049843306)
+ran the full regression suite on Windows Server 2022 x86_64 with Python
+3.12.15 / PyGObject 3.58.1 / GTK 4.24.1 / GLib 2.90.1 and Mesa 26.2.4
+llvmpipe WGL. The suite had 145 passes and 8 skips, but two tests in
+`tests/test_linux_bundle_launcher.py` failed with `WinError 193` because they
+execute a Linux `.sh` launcher as a Win32 program. This test module is now
+scoped to Linux only; its fake executable tests remain active on Linux.
+Windows/macOS skips do not verify those platforms' packaging, and EH4-304
+remains unchecked.
+
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
 used GTK 4.24.1 / GLib 2.90.0 / PyGObject 3.58.1 / Python 3.12.15 on
@@ -325,6 +506,31 @@ and host/runtime details are in the uploaded artifacts and
 software-renderer evidence; it does not establish physical-GPU, Retina,
 trackpad, Wayland, or native OS input behavior.
 
+**EH4-202 local graphics follow-up (2026-10-21):** Linux x86_64 under
+Xvfb/X11, Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib 2.80.0,
+Mesa llvmpipe OpenGL 4.5 Core Profile. The real-context render validation
+passed at `GDK_SCALE=1` and `2`; GTK applied scale 2 and doubled the
+framebuffer. The live `Gtk.GLArea` rendered with its nonzero GTK-owned
+framebuffer (ID 1). All eight representations rendered without GL errors;
+sphere picks (O/H1/N), impostor picks (C/N/S), and the resized sphere pick
+all hit 9/9 points. The 2x export mean absolute difference was 0.0145/255 at
+scale 1 and 0.0085/255 at scale 2; no pixels differed by more than 64/255.
+The resized sphere was 32x31 px. This run verifies the new framebuffer
+assertion only on the local GTK runtime; the cross-platform/minor matrix has
+not been rerun for it. PNG captures were written under
+`/tmp/eh4-202-render-evidence` for local inspection.
+
+The same Linux x86_64 host also passed five fresh full-app cycles under
+Xvfb/X11 using the real EasyHybridApplication/MainWindow, pDynamo3-backed
+water fixture loading and an XTest-injected pointer click that selected
+`O:0`; each cycle rendered and closed cleanly. Runtime: Python 3.12.3 /
+PyGObject 3.48.2 / GTK 4.14.5 / GLib 2.80.0 / Mesa 25.2.8 llvmpipe,
+OpenGL 4.5 Core. The pDynamo3 source/build revision
+`09e583049de5d1cdca6c9b4009c7c75e451a5ae0` was supplied on `PYTHONPATH`,
+not installed in the GTK environment. This is Linux GTK 4.14.5 evidence only;
+Windows/macOS native pointer injection and full-app tests on other GTK/platform
+cells remain **NOT TESTED**.
+
 **EH4-202 input-picking history and current acceptance state.** GTK
 pointer events arrive in widget-local logical units, while VisMol pick reads
 use framebuffer pixels. `widget_to_framebuffer_coordinates()` now converts
@@ -376,8 +582,7 @@ scale 1 and 2 now runs in every matrix cell and passed 30/30 in run
 attribute binding, and invisible dots on Mesa. The 2x offscreen export matches
 the screen (mean difference 0.0145/255). macOS CI note: Apple's `CVMCompiler`
 keeps a core busy for tens of seconds after many new shader programs, so the
-workflow runs the validation after the timed suite. EH4-202 stays open only for
-running the full-interface pDynamo3 regression in CI.
+workflow runs the validation after the timed suite.
 
 **Resolved (2026-10-19):** the macOS picking failure was the platform's
 1-pixel line-width limit (`GL_LINE_WIDTH_RANGE` 0.1–1.0), not colour processing
@@ -390,7 +595,9 @@ loaded exactly its pinned GTK patch. The HiDPI coordinate conversion is
 accepted by the same run and both are merged to `main`. The `spheres`
 selection VAO now binds its radius/instance attributes to the selection
 program (fix from the Codex session); run `39321285586` passed **30/30**
-with it. Only a static test covers it; a real-context spheres pick is pending.
+with it. At the time of that run, only a static test covered sphere selection;
+the real-context spheres pick was added to the renderer validation later and
+passed in the 2026-10-21 local run recorded above.
 The image-difference, resize and capability checks are now present and pass in
 the native matrix (see run `39485989866`). That run's separate full-app picks
 used synthetic coordinates; newer native OS pointer evidence and the latest
@@ -594,6 +801,12 @@ an MIT classifier; the root project is GPLv3. EH4-200 remains unchecked pending
 authoritative source ancestry and license/ownership review. No graphics source
 or submodule pointer was changed, and no conclusion about distribution rights
 is made here.
+
+The 2026-10-21 public-history follow-up found candidate commit
+[`2827f069`](https://github.com/casebor/Vismol/commit/2827f069355f990e3022fba41aac23239e0cda2e)
+with four exact top-level file blob matches. Its source subtree does not match
+the original vendored baseline, so the candidate cannot establish the base
+revision or authorship. EH4-200 stays partial; see the roadmap evidence log.
 
 EH4-300 moved preferences and transient autosaves out of the installed source
 tree into platform-standard per-user config/cache directories. Existing
@@ -817,8 +1030,9 @@ after rerunning its initially aborted Windows GTK 4.24 full-suite job.
 
 - EH4-001 through EH4-005 are complete for their documented inventory,
   baseline, parity, compatibility, and contributor/report deliverables.
-  EH4-000 remains incomplete because parent remote and graphics upstream
-  revision provenance remain partly unavailable. EH4-100 is complete for its defined
+  EH4-000 remains incomplete because vendored graphics ancestry and
+  contributor/license ownership remain unresolved; the parent remote and
+  current repository state are now verified. EH4-100 is complete for its defined
   architecture/import-boundary acceptance: scientific workflows, session
   state, plotting math, and startup OS policy have tested separations; remaining
   pDynamo/GTK and graphics coupling is documented. EH4-101 is complete:
@@ -856,17 +1070,46 @@ after rerunning its initially aborted Windows GTK 4.24 full-suite job.
 
 | Item | Verified information |
 |---|---|
-| EasyHybrid4 baseline | Historical EH4-000 baseline: `main`, HEAD `bea94210ed7c23f71d2241f8abe3c849ade18561`, clean at that verification. Current checked-out state (2026-10-20): `main`, HEAD `e096a024bb2ccc0755b5ba632f1d5aa5a74a3b13`, clean before this documentation update; `origin` is `https://github.com/Shabirahmad427/EasyHybrid4.git`. The upstream graphics branch head is known, but its relationship to the vendored tree is not. |
+| EasyHybrid4 baseline | Historical EH4-000 baseline: `main`, HEAD `bea94210ed7c23f71d2241f8abe3c849ade18561`, clean at that verification. Re-audited 2026-10-20: branch `eh4-000-repository-provenance`, HEAD `0f21022a345e1fda80b2cc18b048e9ed91c1b867` (same as `main` and `origin/main`), clean before this documentation update. Remote `origin`: `https://github.com/Shabirahmad427/EasyHybrid4.git`; 26 local branches, only remote ref `origin/main`, and no tags. The upstream graphics branch head is known, but its relationship to the vendored tree is not. |
 | Graphics engine in EasyHybrid4 | `.gitmodules` declares `src/graphics_engine` at `https://github.com/casebor/graphics_engine`, branch `vismol_easyhybrid`; the current index/tree tracks ordinary files, `git submodule status --recursive` is empty, and there is no nested Git metadata. The URL resolves to public `casebor/Vismol`; its branch head is `2df3cd96f0b4970d62bd2c4e652faded411549a2`, but comparison does not establish this as the vendored base revision. |
 | EasyHybrid3 comparison checkout | `~/software/EasyHybrid3`, branch `dev`, commit `b2113b8c11ba3dff51b93fd2f52fc1a7dc9d1098`; origin is `git@github.com:Shabirahmad427/EasyHybrid3.git`, tracking `origin/dev`, 18 commits ahead at inspection. Its working tree had pre-existing user changes and was not modified. |
 | EasyHybrid3 graphics submodule | Declared at `https://github.com/Shabirahmad427/Vismol`, branch `vismol_easyhybrid`; checked-out SHA `6a25a2eaf27c7627dba171104fc7fc8a4c9295fd`. This is comparison evidence only, not the missing EasyHybrid4 revision. |
-| Licenses | Root application `LICENSE`: GNU GPL v3. Vendored graphics `src/graphics_engine/LICENSE`: CC BY-NC 4.0. Preserve both notices; distribution implications need legal review before packaging. |
+| Licenses | Root application `LICENSE`: GNU GPL v3. Vendored graphics `src/graphics_engine/LICENSE`: CC BY-NC 4.0. Graphics metadata is inconsistent: `pyproject.toml` includes an MIT classifier, `setup.py` includes a CC BY-NC classifier, and some source files carry GPL notices. Preserve all notices; ownership, file-level licensing, and distribution compatibility require authoritative reconciliation and legal review before packaging. |
 
-The EasyHybrid4 parent remote is now recorded as the repository owner supplied
-it. Do not equate that parent URL or the declared graphics branch head with
-proof of the vendored graphics base revision. The unresolved graphics ancestry
-and license/ownership questions still gate graphics publication or submodule
-conversion; independent local validation can continue.
+**Repository state re-audit (2026-10-21):** the current provenance task
+branch was clean at `12ec192857a0d765149c9671f57bf5685b09efef` before this
+documentation update. The configured parent remote is `origin` at
+`https://github.com/Shabirahmad427/EasyHybrid4.git`; `main` and `origin/main`
+are synchronized at `0f21022a345e1fda80b2cc18b048e9ed91c1b867`. The local
+repository has 32 task/main branches, only the `origin/main` remote-tracking
+ref and no tags. Full branch-name/object-ID inventory is in
+[`ARCHITECTURE.md`](ARCHITECTURE.md#repository-state-re-audit-2026-10-21).
+The current graphics tree object is `e2dd787a9b1f20d1e47ccba3bd484c45573bef73`
+but still does not identify its source commit. `git submodule status --recursive`
+is empty in EasyHybrid4. EasyHybrid3 remains at its previously recorded dirty
+`dev` checkout; no files there were modified. Parent/reference identities,
+licenses and Git state are recorded; exact graphics ancestry and contributor
+ownership remain unavailable, so EH4-000 stays unchecked.
+
+The public upstream audit found a historical candidate commit
+`2827f069355f990e3022fba41aac23239e0cda2e` in `casebor/Vismol`. Four top-level
+blob IDs match exactly (`.gitignore`, `LICENSE`, `README.md`, and
+`build_vismol_BCK.py`), but the setup/manifest and source tree differ, and the
+vendored tree contains additional files. This narrows a possible historical
+relationship but does not establish ancestry or contributor ownership; it is
+not acceptable as a source-base SHA claim.
+
+The EasyHybrid4 parent remote and EasyHybrid3 comparison root were reverified
+on 2026-10-20. The local EasyHybrid3 checkout is on `dev` at
+`b2113b8c11ba3dff51b93fd2f52fc1a7dc9d1098`, tracks `origin/dev` and is 18
+commits ahead; pre-existing changes to seven tracked paths plus untracked
+`bin/` were left untouched. Its graphics submodule resolves to
+`6a25a2eaf27c7627dba171104fc7fc8a4c9295fd`. EasyHybrid4 itself has no graphics
+gitlink, so that SHA is comparison evidence only. Do not equate the parent
+URL, EasyHybrid3 submodule SHA, or declared graphics branch head with proof of
+the vendored EasyHybrid4 graphics base revision. The unresolved graphics
+ancestry and license/ownership questions still gate graphics publication or
+submodule conversion; independent local validation can continue.
 
 ## 2. Architecture and dependencies
 
@@ -1339,7 +1582,7 @@ does not prove native behavior.
 
 | ID | Limitation | Evidence | Follow-up |
 |---|---|---|---|
-| KL-001 | EasyHybrid4 remote/fork root and graphics source SHA unknown. | No remote; graphics directory is not a Git submodule. | EH4-000/EH4-200 only when new evidence appears. |
+| KL-001 | The vendored graphics source SHA and contributor/license ownership are unknown. | EasyHybrid4 `origin` is verified as `https://github.com/Shabirahmad427/EasyHybrid4.git`; graphics directory is ordinary tracked files despite stale `.gitmodules` metadata. The EasyHybrid3 reference and its graphics SHA are recorded but do not prove EasyHybrid4 ancestry. Graphics license/metadata notices conflict. | EH4-000/EH4-200 and EH4-602 after authoritative source/ownership reconciliation. |
 | KL-002 | GTK range target is not fully validated. | GTK 4.8 minimum and stable GTK 4.22.5 **NOT TESTED**; local GTK 4.14.5 only. GTK 4.6 is unsupported. | EH4-501/502/503. |
 | KL-003 | Native cross-platform support unknown. | Windows, macOS, Wayland and other distributions **NOT TESTED**; launcher/build use Bash. | EH4-300–304 and EH4-500 onward. |
 | KL-004 | Native graphics path differs by GTK runtime; GTK 4.8 full-app close still unverified. | Native X11/NVIDIA Gtk.GLArea passes on GTK 4.8.2 and GTK 4.14.5 with `GDK_DEBUG=gl-glx`; GTK 4.14.5's default/EGL path fails to create a context. Full GTK 4.14.5 app opens/closes under explicit GLX selection. GTK 4.8 full app is blocked by the Python/pDynamo extension ABI mismatch. Xvfb/llvmpipe passes separately. | EH4-102 and EH4-201–205/EH4-502/503. |
@@ -1751,10 +1994,10 @@ reason to change scientific behavior without regression evidence.
 
 | ID | Limitation | Evidence / impact | Next work |
 |---|---|---|---|
-| KL-001 | EasyHybrid4 remote and graphics-engine source revision are not established. `.gitmodules` lists the graphics path, but it is tracked as ordinary files. | No configured parent remote and no Git submodule pointer; no upstream SHA is known. This is a provenance/publishing gap, not a current Linux test blocker. Do not guess URLs or revisions. | EH4-000 / EH4-200 when new provenance evidence or an owner-provided remote becomes available. |
+| KL-001 | The vendored graphics-engine source revision and contributor/license ownership are not established. `.gitmodules` lists the path, but Git tracks ordinary files. | Parent remote and EasyHybrid3 comparison root are verified. EasyHybrid4 has no Git submodule pointer; EasyHybrid3's graphics SHA and the public branch head do not prove the vendored base revision. Conflicting license notices remain. This is a provenance/publishing gap, not a current Linux test blocker. Do not guess URLs or revisions. | EH4-000 / EH4-200 / EH4-602 when authoritative ancestry and ownership evidence is available. |
 | KL-002 | GTK minor range is selected but not fully validated. | GTK 4.8 target and upstream stable GTK 4.22.5 have not been run; local evidence is GTK 4.14.5 only. GTK 4.6 is unsupported. | Native GTK_MIN and current-stable CI jobs in EH4-501; UI/GL in EH4-502/503. |
 | KL-003 | Cross-platform support is unverified. | Windows, macOS, Linux Wayland, and alternate Linux distributions were not tested. Bash launch/build scripts and native pDynamo dependencies need platform-specific validation. | EH4-300 through EH4-304 and EH4-500 onward. |
-| KL-004 | Real GUI and OpenGL rendering are unverified. | Automated tests run without GTK/display/GL. The VisMol widget requests OpenGL 3.3+ core. | EH4-102, EH4-201 through EH4-205, EH4-502/503. |
+| KL-004 | Graphics fallback coverage is only locally verified on one GTK runtime. | Linux X11/Xvfb GTK 4.14.5 confirms actual GL rendering and an injected unsupported-version diagnostic; native unsupported-driver failures and cross-platform/minor behavior remain unverified. | EH4-205 native matrix; real unsupported drivers where available. |
 | KL-005 | EasyHybrid startup emitted two GTK critical messages. | User-provided terminal output reported `gtk_box_remove: assertion 'gtk_widget_get_parent (child) == (GtkWidget *)box' failed` twice. Visible impact and responsible removal path are unknown. | Reproduce under GTK 4.14.5, isolate the parent/child removal path, add a lifecycle regression in EH4-102/105. |
 | KL-006 | Generic pip installation of the graphics package failed metadata generation. | Isolated `pip install --target` failed with `ModuleNotFoundError: No module named 'src'`; the project's `build_ext --inplace` path and all seven extension imports passed. | Packaging/build audit EH4-200 or EH4-303. |
 | KL-007 | pDynamo3 is only validated in one configured environment. | Linux Python 3.12.3 environment resolves `pCore`, `pMolecule`, `pSimulation`, and `pScientific`; Windows/macOS and other Python runtimes are untested. | Python/platform integration matrix in EH4-004/500/504. |

@@ -29,6 +29,7 @@ from gi.repository import Gtk, Gdk
 from src.gtk4_compat import texture_from_pixbuf
 from gui import file_dialogs
 from gui.response_dialog import ResponseDialog
+from vismol.gui.graphics_diagnostics import parse_gl_version, report_graphics_failure
 from src.gtk4_compat import (
     GTK_INVALID_LIST_POSITION,
     apply_legacy_win32_wgl_workaround,
@@ -165,6 +166,7 @@ class VismolGTKWidget(_WidgetBase):
         )
         self.vm_session = vismol_session
         self.vm_glcore = VismolGLCore(self, vismol_session, width, height)
+        self._graphics_failed = False
         self.glmenu_bg = None
         self.glmenu_sele = None
         self.glmenu_obj = None
@@ -184,21 +186,49 @@ class VismolGTKWidget(_WidgetBase):
         # guarantee it is current merely because the realize signal fired.
         # Make it current before any PyOpenGL calls; otherwise older GTK4
         # runtimes can emit a render callback with no current GL context.
-        self.make_current()
-        if self.get_error() != None:
-            # Report GLArea context errors visibly instead of failing
-            # without an explanation.
-            error = self.get_error()
-            print("FATAL: OpenGL context could not be created -- EasyHybrid cannot start.")
-            print("  args:   ", error.args if error is not None else None)
-            print("  code:   ", error.code if error is not None else None)
-            print("  domain: ", error.domain if error is not None else None)
-            print("  message:", error.message if error is not None else None)
-            print("The GTK4 GLArea could not negotiate an OpenGL 3.3+ core context "
-                  "with this system's graphics driver.")
-            self.quit()
+        if self._graphics_failed:
             return
-        self.vm_glcore.initialize()
+        try:
+            self.make_current()
+            error = self.get_error()
+            if error is not None:
+                detail = "domain=%s code=%s message=%s" % (
+                    getattr(error, "domain", "unknown"),
+                    getattr(error, "code", "unknown"),
+                    getattr(error, "message", str(error)),
+                )
+                self._show_graphics_failure("OpenGL context creation", context_error=detail)
+                return
+
+            version_value = glGetString(GL_VERSION)
+            version_text = (
+                version_value.decode("ascii", "replace")
+                if isinstance(version_value, bytes)
+                else str(version_value or "")
+            )
+            version = parse_gl_version(version_text)
+            if version is None or version < (3, 3):
+                self._show_graphics_failure(
+                    "OpenGL capability check", gl_version=version_text or None
+                )
+                return
+
+            self.vm_glcore.initialize()
+        except Exception as error:
+            logger.exception("VisMol OpenGL initialization failed")
+            self._show_graphics_failure(
+                "OpenGL initialization", exception="%s: %s" % (type(error).__name__, error)
+            )
+
+    def _show_graphics_failure(self, phase, *, gl_version=None, context_error=None, exception=None):
+        """Stop GL callbacks and show a portable GTK4 diagnostic to the user."""
+        report_graphics_failure(
+            self,
+            phase,
+            gl_version=gl_version,
+            context_error=context_error,
+            exception=exception,
+        )
     
     def reshape(self, widget, width, height):
         """ Resizing function, takes the widht and height of the widget
@@ -209,15 +239,31 @@ class VismolGTKWidget(_WidgetBase):
             width -- Actual width of the window
             height -- Actual height of the window
         """
-        self.vm_glcore.resize_window(width, height)
+        if not self._graphics_failed:
+            try:
+                self.vm_glcore.resize_window(width, height)
+            except Exception as error:
+                logger.exception("VisMol OpenGL resize failed")
+                self._show_graphics_failure(
+                    "OpenGL resize", exception="%s: %s" % (type(error).__name__, error)
+                )
         self.queue_draw()
     
     def render(self, area, context):
         """ This is the function that will be called everytime the window
             needs to be re-drawed.
         """
-        self.vm_glcore.render()
-        return True
+        if self._graphics_failed:
+            return True
+        try:
+            self.vm_glcore.render()
+            return True
+        except Exception as error:
+            logger.exception("VisMol OpenGL render failed")
+            self._show_graphics_failure(
+                "OpenGL rendering", exception="%s: %s" % (type(error).__name__, error)
+            )
+            return True
 
     def mouse_pressed(self, widget, event):
         """ Function doc """

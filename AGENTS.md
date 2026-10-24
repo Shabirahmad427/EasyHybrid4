@@ -132,3 +132,24 @@ patch versions and OS runtime details are tabulated in
 artifacts. EH4-202's configured native-context acceptance is complete. Linux
 Wayland, physical GPUs, physical Retina/HiDPI and trackpads remain separately
 **NOT TESTED**.
+
+**Hosted Windows cross-process clipboard (observed 2026-10-24):** PR #5 matrix
+run `40049339951` failed `test_native_clipboard_text_is_available_to_another_process`
+in the GTK 4.8.2 Windows Server 2022 x86_64 cell (Python 3.12.15,
+PyGObject 3.46.0, GLib 2.78.0, WinSta0, Mesa 26.2.4 llvmpipe WGL). The
+same-process Unicode clipboard check passed; the child GTK reader's async
+read timed out after four seconds while the owner continued servicing GLib.
+This is the first native Windows cross-process clipboard evidence and does
+not establish whether the cause is GTK/Win32 behavior or the hosted test
+session. Keep the same-process Windows check enabled, skip only this child
+process assertion on GitHub-hosted Windows, and report cross-process Windows
+clipboard as **NOT TESTED** until a native focused probe explains the timeout.
+Linux X11 results do not transfer to Windows or macOS.
+
+**Linux bundle launcher test scope (observed 2026-10-24):** PR #5 matrix run
+`40049843306` failed two `tests/test_linux_bundle_launcher.py` cases in the
+Windows GTK 4.24.1 full regression step. Both launched the Linux `.sh` fixture
+directly and raised `WinError 193`; the other 145 tests passed. The module now
+uses a module-level skip on non-Linux OSes. Keep those shell-launcher tests
+active on Linux, and do not treat their Windows/macOS skips as packaging
+acceptance for those platforms.

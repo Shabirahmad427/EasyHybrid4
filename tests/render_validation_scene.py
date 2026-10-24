@@ -295,6 +295,12 @@ def run_steps():
     for name in REPRESENTATIONS:
         activate_only(name)
         shot = yield from capture(name)
+        if name == REPRESENTATIONS[0]:
+            # Gtk.GLArea renders into its own framebuffer. Rendering or
+            # reading framebuffer 0 can appear to work on some drivers while
+            # bypassing the widget's actual render target.
+            check("gtk_glarea_framebuffer_bound", shot["framebuffer"] != 0,
+                  shot["framebuffer"])
         mask = foreground(shot["image"], background)
         save_image(name, shot["image"])
         coverage[name] = float(mask.mean())

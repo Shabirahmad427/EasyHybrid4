@@ -212,6 +212,16 @@ def test_gtk424_x11_keeps_user_selected_egl_enabled():
     assert "GDK_DISABLE" not in environment
 
 
+def test_user_selected_egl_platform_does_not_force_gdk_glx():
+    environment = {"DISPLAY": ":99", "PYOPENGL_PLATFORM": "egl"}
+
+    configure_gl_context_environment(
+        platform="linux", environ=environment, runtime_version=(4, 24)
+    )
+
+    assert environment["PYOPENGL_PLATFORM"] == "egl"
+    assert environment["GDK_DEBUG"] == "gl-prefer-gl"
+
 def test_user_paths_follow_platform_conventions_and_unicode(tmp_path):
     home = tmp_path / "Usuário Ω"
     linux_env = {"XDG_CONFIG_HOME": str(tmp_path / "configé"),
