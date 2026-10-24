@@ -2,7 +2,7 @@
 
 **Report date:** 2026-10-22
 
-**Current roadmap pointer:** EH4-204. EH4-203's automated matrix passed in
+**Current roadmap pointer:** EH4-205 (EH4-204 complete). EH4-203's automated matrix passed in
 `39801594903`; actual macOS trackpad review remains pending. EH4-204 is in
 progress on `eh4-204-molecular-selection-workflow`.
 
@@ -162,8 +162,13 @@ it and require restored camera matrices plus a rendered scene. This passed
 rejects `GDK_DEBUG=gl-glx` and selects EGL or GLX per X11 system (EGL on
 native NVIDIA, GLX in the CI conda Xvfb cell); a PyOpenGL mismatch leaves no
 current context. Commit `611eac0` pins GLX with `GDK_DISABLE=egl` and passed
-5/5 locally on native NVIDIA X11 and Xvfb llvmpipe. All-platform/all-minor
-matrix run `40043447733` is pending.
+5/5 locally on native NVIDIA X11 and Xvfb llvmpipe. **Completed 2026-10-24:** full native matrix
+[`40045300452`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40045300452)
+on `c88af29` passed 30/30 cells; every runtime artifact records five real-app
+native-pointer cycles with `.easy` reopen render and clean close. macOS GTK
+4.24 needed a 90 s per-cycle budget because cycles complete through the 45 s
+verified-readback watchdog. EH4-204 is complete; physical GPU, Retina/HiDPI,
+trackpad and Wayland remain **NOT TESTED**.
 
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
