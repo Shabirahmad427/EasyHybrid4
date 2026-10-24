@@ -159,9 +159,11 @@ unit coverage but are not yet exercised by the full-app scenario.
 the real-app fixture save a `.easy` session, corrupt the live camera, reopen
 it and require restored camera matrices plus a rendered scene. This passed
 5/5 native-pointer cycles on Linux X11 GTK 4.24.1 (NVIDIA, EGL). GTK 4.24.1
-rejects `GDK_DEBUG=gl-glx` and its X11 GLArea context is EGL, so forcing
-PyOpenGL GLX left no current context. Startup now defaults to EGL there.
-The all-platform/all-minor matrix run `40042467519` is pending.
+rejects `GDK_DEBUG=gl-glx` and selects EGL or GLX per X11 system (EGL on
+native NVIDIA, GLX in the CI conda Xvfb cell); a PyOpenGL mismatch leaves no
+current context. Commit `611eac0` pins GLX with `GDK_DISABLE=egl` and passed
+5/5 locally on native NVIDIA X11 and Xvfb llvmpipe. All-platform/all-minor
+matrix run `40043447733` is pending.
 
 **EH4-205 focused implementation (2026-10-21):** the production VisMol
 `Gtk.GLArea` now checks the realized OpenGL version before initializing its
