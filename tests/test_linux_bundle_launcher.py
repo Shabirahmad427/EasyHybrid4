@@ -57,6 +57,9 @@ def test_linux_bundle_launcher_sets_runtime_and_external_pdynamo_paths(tmp_path)
     )
     conda_unpack.chmod(0o755)
     environment = os.environ.copy()
+    # Other test modules apply the GL startup policy to this process; check
+    # the launcher's own default rather than an inherited choice.
+    environment.pop("PYOPENGL_PLATFORM", None)
     environment.update(
         {
             "PDYNAMO3_HOME": str(pdynamo),
