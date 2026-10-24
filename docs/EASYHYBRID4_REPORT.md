@@ -3154,6 +3154,16 @@ temporary-copy command in [Section 6 of this report](#6-reproducible-test-baseli
 - `conftest.py` builds a minimal fake VisMol session and deterministic atoms,
   connectivity, and zero-coordinate frames. It does not construct a GTK or GL
   session or call pDynamo calculations.
+- `test_pdynamo_mm_workflow.py` is opt-in and requires a compiled pDynamo3
+  checkout plus its parameter directory. It checks the bundled DYFF water
+  energy/minimization and AM1 water single-point baselines, then exercises
+  EasyHybrid's production MNDO QC/MM model setup on pDynamo's water dimer.
+  That case checks the QC atom selection, charge/multiplicity, AM1 method,
+  nonbonded model, unchanged single-point coordinates, reference energy and
+  analytic/numerical gradients. Local Linux x86_64 evidence is **3 passed** at
+  Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib 2.80.0 with pDynamo3
+  revision `09e583049de5d1cdca6c9b4009c7c75e451a5ae0`; the new QC/MM check is
+  not yet validated by the native Windows/macOS GTK matrix.
 
 The default suite skips display-dependent GTK checks. The opt-in GTK smoke
 must be run with an accessible native display or virtual display. The full-app
