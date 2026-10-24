@@ -28,6 +28,14 @@ still needs physical macOS trackpad review. EH4-204 and EH4-205 passed their
 configured full native acceptance; EH4-200 provenance, EH4-301 clipboard and
 accessibility, and packaging tasks remain open.
 
+**EH4-405 batch PR #6 matrix status:** first full run
+[`40052058048`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40052058048)
+stopped on Windows GTK 4.8.2 and 4.10.1 full-app test harness failures before
+EasyHybrid launched. The expanded embedded Python program exceeded the Windows
+`CreateProcess` command limit (`WinError 206`). The harness now writes the
+program to a temporary `.py` file; its focused regression passed locally. A
+new full native matrix on the corrected PR head is required before merge.
+
 **Latest native full-matrix status (2026-10-24): PASS, 30/30 cells.** Run
 [`40050468870`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40050468870)
 passed the Linux x86_64, Windows x86_64 and macOS arm64 GTK 4.8–4.24 cells,

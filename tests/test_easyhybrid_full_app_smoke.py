@@ -769,38 +769,73 @@ def _run_full_app_cycle(fixture, environment, cycle, timeout=90):
     save/reopen/render that left too little of a 60 s budget (run
     40044668172: cycle 4 printed CLOSED=True, then hit the limit).
     """
-    process = subprocess.Popen(
-        [sys.executable, "-c", _FULL_APP_CYCLE, str(fixture)],
-        cwd=Path(__file__).resolve().parents[1],
-        env=environment,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-    )
+    with tempfile.NamedTemporaryFile(
+        mode="w", encoding="utf-8", suffix=".py", prefix="easyhybrid-full-app-",
+        delete=False,
+    ) as script_file:
+        script_file.write(_FULL_APP_CYCLE)
+        script_path = Path(script_file.name)
     try:
-        stdout, stderr = process.communicate(timeout=timeout)
-    except subprocess.TimeoutExpired:
-        native_stack = ""
-        if sys.platform == "darwin":
-            # faulthandler only shows Python frames; a main loop blocked in
-            # GTK, GSK or the GL driver needs the native call graph.
-            sampled = subprocess.run(
-                ["sample", str(process.pid), "3", "-mayDie"],
-                capture_output=True,
-                text=True,
-                timeout=30,
-                check=False,
-            )
-            # The call graph precedes the long binary-image list.
-            report = sampled.stdout.split("Binary Images:")[0]
-            native_stack = report[:16000] + sampled.stderr[-2000:]
-        process.kill()
-        stdout, stderr = process.communicate()
-        pytest.fail(
-            "full-app cycle %d exceeded %d s\n--- stdout ---\n%s\n--- stderr ---\n%s"
-            "\n--- native stack ---\n%s" % (cycle, timeout, stdout, stderr, native_stack)
+        process = subprocess.Popen(
+            [sys.executable, str(script_path), str(fixture)],
+            cwd=Path(__file__).resolve().parents[1],
+            env=environment,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
         )
-    return subprocess.CompletedProcess(process.args, process.returncode, stdout, stderr)
+        try:
+            stdout, stderr = process.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            native_stack = ""
+            if sys.platform == "darwin":
+                # faulthandler only shows Python frames; a main loop blocked in
+                # GTK, GSK or the GL driver needs the native call graph.
+                sampled = subprocess.run(
+                    ["sample", str(process.pid), "3", "-mayDie"],
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                    check=False,
+                )
+                # The call graph precedes the long binary-image list.
+                report = sampled.stdout.split("Binary Images:")[0]
+                native_stack = report[:16000] + sampled.stderr[-2000:]
+            process.kill()
+            stdout, stderr = process.communicate()
+            pytest.fail(
+                "full-app cycle %d exceeded %d s\n--- stdout ---\n%s\n--- stderr ---\n%s"
+                "\n--- native stack ---\n%s" % (cycle, timeout, stdout, stderr, native_stack)
+            )
+        return subprocess.CompletedProcess(process.args, process.returncode, stdout, stderr)
+    finally:
+        script_path.unlink(missing_ok=True)
+
+
+def test_full_app_cycle_uses_a_script_file_for_the_child_process(monkeypatch, tmp_path):
+    """Keep the Windows CreateProcess command line below its length limit."""
+    calls = {}
+
+    class FinishedProcess:
+        args = None
+        returncode = 0
+
+        def communicate(self, timeout):
+            return "ok", ""
+
+    def fake_popen(args, **kwargs):
+        calls["args"] = args
+        calls["script"] = Path(args[1]).read_text(encoding="utf-8")
+        calls["script_path"] = Path(args[1])
+        return FinishedProcess()
+
+    monkeypatch.setattr(subprocess, "Popen", fake_popen)
+    result = _run_full_app_cycle(tmp_path / "water.pdb", {}, 1)
+
+    assert result.returncode == 0
+    assert calls["args"][1] != "-c"
+    assert calls["script"] == _FULL_APP_CYCLE
+    assert not calls["script_path"].exists()
 
 
 @pytest.mark.skipif(
