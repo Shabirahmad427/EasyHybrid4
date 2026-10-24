@@ -777,7 +777,14 @@ def _run_full_app_cycle(fixture, environment, cycle, timeout=90):
         script_path = Path(script_file.name)
     try:
         process = subprocess.Popen(
-            [sys.executable, str(script_path), str(fixture)],
+            [
+                sys.executable,
+                "-c",
+                "import runpy, sys; script = sys.argv[1]; "
+                "sys.argv = sys.argv[1:]; runpy.run_path(script, run_name='__main__')",
+                str(script_path),
+                str(fixture),
+            ],
             cwd=Path(__file__).resolve().parents[1],
             env=environment,
             stdout=subprocess.PIPE,
@@ -825,15 +832,16 @@ def test_full_app_cycle_uses_a_script_file_for_the_child_process(monkeypatch, tm
 
     def fake_popen(args, **kwargs):
         calls["args"] = args
-        calls["script"] = Path(args[1]).read_text(encoding="utf-8")
-        calls["script_path"] = Path(args[1])
+        calls["script"] = Path(args[3]).read_text(encoding="utf-8")
+        calls["script_path"] = Path(args[3])
         return FinishedProcess()
 
     monkeypatch.setattr(subprocess, "Popen", fake_popen)
     result = _run_full_app_cycle(tmp_path / "water.pdb", {}, 1)
 
     assert result.returncode == 0
-    assert calls["args"][1] != "-c"
+    assert calls["args"][1] == "-c"
+    assert len(calls["args"][2]) < 120
     assert calls["script"] == _FULL_APP_CYCLE
     assert not calls["script_path"].exists()
 
