@@ -29,13 +29,44 @@ env:
   PDYNAMO3_REF: 6b28dd8958e1a705fcdca130f4ab862a8af8de82
 
 jobs:
+  plan:
+    # A merge to main re-tests code its PR matrix already passed. Skip the
+    # matrix when the merge commit's tree equals its PR-head parent, or when
+    # a push changes only Markdown. PRs and manual dispatches always run.
+    name: Plan native matrix
+    runs-on: ubuntu-24.04
+    outputs:
+      run: ${{ steps.decide.outputs.run }}
+    steps:
+      - uses: actions/checkout@v5
+        if: github.event_name == 'push'
+        with:
+          fetch-depth: 2
+      - id: decide
+        run: |
+          run=true
+          if [[ "${{ github.event_name }}" == "push" ]] \
+            && git rev-parse -q --verify HEAD^2 >/dev/null \
+            && git diff --quiet HEAD^2 HEAD; then
+            echo "Merge tree equals tested PR head $(git rev-parse --short HEAD^2); skipping duplicate matrix."
+            run=false
+          elif [[ "${{ github.event_name }}" == "push" ]] \
+            && git rev-parse -q --verify HEAD^ >/dev/null \
+            && ! git diff --name-only HEAD^ HEAD | grep -qv '\.md$'; then
+            # No test reads Markdown; a docs-only push cannot change results.
+            echo "Push changes only Markdown files; skipping matrix."
+            run=false
+          fi
+          echo "run=$run" >> "$GITHUB_OUTPUT"
+
   gtk-runtime:
     name: GTK ${{ matrix.gtk }} / ${{ matrix.os }}
+    needs: plan
+    if: needs.plan.outputs.run == 'true'
     runs-on: ${{ matrix.os == 'linux-x86_64' && 'ubuntu-24.04' || matrix.os == 'windows-x86_64' && 'windows-2022' || matrix.os == 'macos-x86_64' && 'macos-15-intel' || 'macos-14' }}
     timeout-minutes: 45
     strategy:
       fail-fast: false
-      max-parallel: 9
       matrix:
         os: ${{ fromJSON(inputs.scope == 'linux-gtk48' && '["linux-x86_64"]' || (inputs.scope == 'windows-legacy' || inputs.scope == 'windows' || inputs.scope == 'windows-gtk420') && '["windows-x86_64"]' || (inputs.scope == 'macos-diagnostic' || inputs.scope == 'macos-gtk424') && '["macos-arm64"]' || '["linux-x86_64", "windows-x86_64", "macos-arm64"]') }}
         gtk: ${{ fromJSON(inputs.scope == 'linux-gtk48' && '["4.8"]' || inputs.scope == 'windows-legacy' && '["4.8", "4.10"]' || inputs.scope == 'windows-gtk420' && '["4.20"]' || inputs.scope == 'macos-gtk424' && '["4.24"]' || '["4.8", "4.10", "4.12", "4.14", "4.16", "4.18", "4.20", "4.22", "4.24"]') }}
@@ -337,7 +368,8 @@ jobs:
   # end-of-life and served from their archives; Debian 13 is current stable.
   gtk-linux-distro:
     name: GTK ${{ matrix.gtk }} / linux-x86_64 (${{ matrix.distro }})
-    if: inputs.scope != 'linux-gtk48' && inputs.scope != 'windows-legacy' && inputs.scope != 'windows-gtk420' && inputs.scope != 'macos-diagnostic' && inputs.scope != 'macos-gtk424' && inputs.scope != 'windows'
+    needs: plan
+    if: needs.plan.outputs.run == 'true' && inputs.scope != 'linux-gtk48' && inputs.scope != 'windows-legacy' && inputs.scope != 'windows-gtk420' && inputs.scope != 'macos-diagnostic' && inputs.scope != 'macos-gtk424' && inputs.scope != 'windows'
     runs-on: ubuntu-24.04
     container: ${{ matrix.image }}
     timeout-minutes: 30
@@ -529,7 +561,8 @@ jobs:
   # UCRT64 dependencies, then test with the same pinned Mesa renderer.
   gtk-windows-msys2:
     name: GTK ${{ matrix.gtk }} / windows-x86_64 (msys2 source ${{ matrix.version }})
-    if: inputs.scope != 'linux-gtk48' && inputs.scope != 'windows-legacy' && inputs.scope != 'windows-gtk420' && inputs.scope != 'macos-diagnostic' && inputs.scope != 'macos-gtk424'
+    needs: plan
+    if: needs.plan.outputs.run == 'true' && inputs.scope != 'linux-gtk48' && inputs.scope != 'windows-legacy' && inputs.scope != 'windows-gtk420' && inputs.scope != 'macos-diagnostic' && inputs.scope != 'macos-gtk424'
     runs-on: windows-2022
     timeout-minutes: 75
     strategy:
@@ -759,7 +792,8 @@ jobs:
   # dependencies on the native arm64 runner.
   gtk-macos-source:
     name: GTK ${{ matrix.gtk }} / macos-arm64 (source ${{ matrix.version }})
-    if: inputs.scope != 'linux-gtk48' && inputs.scope != 'windows-legacy' && inputs.scope != 'windows' && inputs.scope != 'windows-gtk420' && inputs.scope != 'macos-gtk424'
+    needs: plan
+    if: needs.plan.outputs.run == 'true' && inputs.scope != 'linux-gtk48' && inputs.scope != 'windows-legacy' && inputs.scope != 'windows' && inputs.scope != 'windows-gtk420' && inputs.scope != 'macos-gtk424'
     runs-on: macos-14
     timeout-minutes: 75
     strategy:
