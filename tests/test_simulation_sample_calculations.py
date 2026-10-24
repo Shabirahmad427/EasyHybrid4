@@ -103,3 +103,163 @@ def test_exported_relaxed_surface_scan_runs_and_follows_its_restraint(tmp_path):
         assert distance == pytest.approx(logged_distances[step], abs=1.0e-6)
     # Stretching the hydrogen bond beyond its 1.76 Å minimum raises the energy.
     assert energies[0] < energies[1] < energies[2]
+
+
+def test_exported_umbrella_sampling_feeds_wham_a_finite_pmf(tmp_path):
+    import glob
+    import math
+
+    from gui.windows.setup.windows_and_dialogs.dialogs.export_dialogs import (
+        build_simulation_script,
+    )
+
+    system_pickle = _water_dimer_pickle(tmp_path)
+    targets = (1.80, 1.85, 1.90)
+    md = {
+        "integrator": "Langevin", "steps_eq": 200, "steps_dc": 1000, "timeStep": 0.001,
+        "temperatureStart": 300.0, "collisionFrequency": 25.0, "seed": 314159,
+        "logFrequency": 100000, "trajectory_frequency": 100,
+        "trajectory_frequency_dc_ptRes": 1, "trajectory_frequency_dc_ptGeo": 100,
+    }
+    parameters = {
+        "simulation_type": "Umbrella_Sampling",
+        "folder": str(tmp_path),
+        "traj_folder_name": "hbond_us",
+        "RC1": {
+            "rc_type": "simple_distance",
+            "ATOMS": [ACCEPTOR, DONOR_H],
+            "ATOM_NAMES": ["O", "H"],
+            "nsteps": len(targets),
+            "dminimum": targets[0],
+            "dincre": targets[1] - targets[0],
+            # sigma = sqrt(kT/k) ~ 0.05 Å at 300 K: adjacent windows overlap.
+            "force_constant": 1000.0,
+        },
+        "RC2": None,
+        "input_type": 0,  # serial windows
+        "MD_parm": md,
+        "OPT_parm": {"optimizer": "ConjugatedGradient", "maximumIterations": 300,
+                     "rmsGradientTolerance": 0.05},
+        "NmaxThreads": 1,
+        "maximumIterations": 300,
+        "rmsGradientTolerance": 0.05,
+        "logFrequency": 100000,
+    }
+    script = tmp_path / "exported_umbrella.py"
+    script.write_text(
+        build_simulation_script(parameters, str(system_pickle), str(ROOT / "src")),
+        encoding="utf-8",
+    )
+    environment = dict(os.environ)
+    environment.setdefault("PDYNAMO3_SCRATCH", str(tmp_path))
+    result = subprocess.run(
+        [sys.executable, str(script)], cwd=tmp_path, env=environment,
+        capture_output=True, text=True, timeout=300, check=False,
+    )
+    assert result.returncode == 0, result.stdout[-3000:] + result.stderr[-3000:]
+
+    from pCore import Unpickle
+
+    run = tmp_path / "hbond_us"
+    for window, target in enumerate(targets):
+        frames = run / "data_collection_traj" / "window{}.ptGeo".format(window)
+        # 1000 data-collection steps saved every 100 steps, plus the start.
+        assert len(list(frames.glob("frame*"))) == 11
+        assert (run / "data_collection" / "window{}.ptRes".format(window) / "block0.pkl").is_file()
+        optimized = Unpickle(str(run / "optmization.ptGeo" / "frame{}.pkl".format(window)))
+        assert optimized.Distance(ACCEPTOR, DONOR_H) == pytest.approx(target, abs=0.05)
+
+    # EasyHybrid's WHAM on exactly these windows, as the WHAM window would run it.
+    from pdynamo.p_methods.wham import WHAMAnalysis
+
+    ok, results = WHAMAnalysis().run({
+        "folder": str(tmp_path), "logfile": "wham", "system": None,
+        "file_names": sorted(glob.glob(str(run / "data_collection" / "window*.ptRes"))),
+        "bins": [20], "logFrequency": 1000, "maximumIterations": 2000,
+        "rmsGradientTolerance": 1.0e-3, "temperature": 300.0, "type": 0,
+    })
+    assert ok, results
+    rows = [
+        [float(value) for value in line.split()]
+        for line in open(results["pmf"]) if line.strip()
+    ]
+    assert len(rows) == 20
+    # Overlapping windows leave no unsampled (infinite) bin.
+    assert all(math.isfinite(pmf) for _, pmf in rows)
+    assert rows[0][0] < targets[0] and rows[-1][0] > targets[-1]
+    assert min(pmf for _, pmf in rows) == pytest.approx(0.0, abs=1.0e-6)
+
+
+def _minimized_endpoints(tmp_path, stretched_distance):
+    from pCore import Pickle, Unpickle
+    from pMolecule import RestraintDistance, RestraintEnergyModel, RestraintModel
+    from pSimulation import ConjugateGradientMinimize_SystemGeometry
+
+    system = Unpickle(str(_water_dimer_pickle(tmp_path)))
+    minimize = lambda: ConjugateGradientMinimize_SystemGeometry(  # noqa: E731
+        system, logFrequency=100000, maximumIterations=500, rmsGradientTolerance=0.01
+    )
+    minimize()
+    reactant = tmp_path / "reactant.pkl"
+    Pickle(str(reactant), system.coordinates3)
+    restraints = RestraintModel()
+    system.DefineRestraintModel(restraints)
+    restraints["hbond"] = RestraintDistance.WithOptions(
+        energyModel=RestraintEnergyModel.Harmonic(stretched_distance, 4000.0),
+        point1=ACCEPTOR, point2=DONOR_H,
+    )
+    minimize()
+    system.DefineRestraintModel(None)
+    product = tmp_path / "product.pkl"
+    Pickle(str(product), system.coordinates3)
+    return reactant, product
+
+
+def test_exported_nudged_elastic_band_builds_a_continuous_path(tmp_path):
+    from gui.windows.setup.windows_and_dialogs.dialogs.export_dialogs import (
+        build_simulation_script,
+    )
+
+    reactant, product = _minimized_endpoints(tmp_path, 2.20)
+    images = 5
+    # chain_of_states_opt_window.py defaults, with fewer images/iterations.
+    parameters = {
+        "simulation_type": "Nudged_Elastic_Band",
+        "number_of_structures": images, "logFrequency": 100000,
+        "maximumIterations": 200, "rmsGradientTolerance": 0.1,
+        "trajectory_name": "hbond_neb", "folder": str(tmp_path),
+        "external_coords": False,
+        "reac_coordinates": str(reactant), "prod_coordinates": str(product),
+        "fixedTerminalImages": True, "forceOneSingleImageOptimization": False,
+        "forceSingleImageOptimizations": False,
+        "forceSplineRedistributionCheckPerIteration": False,
+        "freezeRMSGradientTolerance": 0.0, "optimizer": None, "poolFactory": None,
+        "rmsGradientToleranceScale": 0.25, "splineRedistributionTolerance": 1.5,
+        "springForceConstant": 500.0, "useSplineRedistribution": False,
+    }
+    script = tmp_path / "exported_neb.py"
+    script.write_text(
+        build_simulation_script(parameters, str(_water_dimer_pickle(tmp_path)), str(ROOT / "src")),
+        encoding="utf-8",
+    )
+    environment = dict(os.environ)
+    environment.setdefault("PDYNAMO3_SCRATCH", str(tmp_path))
+    result = subprocess.run(
+        [sys.executable, str(script)], cwd=tmp_path, env=environment,
+        capture_output=True, text=True, timeout=300, check=False,
+    )
+    assert result.returncode == 0, result.stdout[-3000:] + result.stderr[-3000:]
+
+    from pCore import Unpickle
+
+    path = tmp_path / "hbond_neb.ptGeo"
+    frames = sorted(path.glob("frame*.pkl"), key=lambda f: int(f.stem[5:]))
+    assert len(frames) == images
+    coordinates = [Unpickle(str(frame)) for frame in frames]
+    distances = [c.Distance(ACCEPTOR, DONOR_H) for c in coordinates]
+    # Fixed terminal images keep the supplied endpoints.
+    assert distances[0] == pytest.approx(Unpickle(str(reactant)).Distance(ACCEPTOR, DONOR_H), abs=1.0e-6)
+    assert distances[-1] == pytest.approx(Unpickle(str(product)).Distance(ACCEPTOR, DONOR_H), abs=1.0e-6)
+    assert distances[-1] == pytest.approx(2.20, abs=0.03)
+    # The optimized path stretches the hydrogen bond step by step.
+    assert all(a < b for a, b in zip(distances, distances[1:])), distances
