@@ -70,6 +70,29 @@ def test_full_app_timeout_reports_gtk_scene_progress():
     assert 'state["pick_attempts"] = state.get("pick_attempts", 0) + 1' in smoke
 
 
+def test_native_matrix_lists_every_supported_gtk_minor_and_records_runtime():
+    workflow = (ROOT / ".github" / "workflows" / "native-gtk-matrix.yml").read_text()
+    supported_minors = ("4.8", "4.10", "4.12", "4.14", "4.16", "4.18", "4.20", "4.22", "4.24")
+
+    matrix_line = next(line for line in workflow.splitlines() if line.lstrip().startswith("gtk:"))
+    for minor in supported_minors:
+        assert f'"{minor}"' in matrix_line
+
+    # GTK 4.16/4.18 lack conda-forge packages and must remain covered by
+    # native distro/source builds, including Windows and Apple Silicon.
+    assert 'gtk: "4.16"' in workflow
+    assert 'gtk: "4.18"' in workflow
+    assert "gtk-windows-msys2:" in workflow
+    assert "gtk-macos-source:" in workflow
+
+    # Every provider must record the loaded runtime before its smoke/tests.
+    assert workflow.count(".github/scripts/record_runtime.py") >= 4
+    assert "Record actual runtime and host" in workflow
+    assert "record_runtime.py conda-forge" in workflow
+    assert "record_runtime.py 'msys2-source-${{ matrix.version }}'" in workflow
+    assert "record_runtime.py 'source-${{ matrix.version }}'" in workflow
+
+
 def test_full_app_matrix_injects_native_pointer_on_all_desktop_oses():
     workflow = (ROOT / ".github" / "workflows" / "native-gtk-matrix.yml").read_text()
     smoke = (ROOT / "tests" / "test_easyhybrid_full_app_smoke.py").read_text()
