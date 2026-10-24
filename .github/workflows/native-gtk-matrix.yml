@@ -147,8 +147,14 @@ jobs:
             Select-Object -Last 1).Trim()
           & .github/scripts/install_mesa_wgl.ps1 -PythonExe $pythonExe
 
-      - name: Install graphics scene Python dependencies without changing GTK
-        run: micromamba run -n easyhybrid-gtk python -m pip install --disable-pip-version-check numpy cython pillow freetype-py pyyaml setuptools
+      - name: Install graphics scene and development Python dependencies without changing GTK
+        run: micromamba run -n easyhybrid-gtk python -m pip install --disable-pip-version-check numpy cython pillow freetype-py pyyaml setuptools -r requirements-dev.txt
+
+      - name: Compile Python sources and run critical Ruff checks
+        run: |
+          set -o pipefail
+          micromamba run -n easyhybrid-gtk python -m compileall -q src tests
+          micromamba run -n easyhybrid-gtk ruff check --no-cache --select E9,F63,F7 src tests
 
       - name: Install full-application dependencies
         # The full EasyHybrid application (with pDynamo3) imports SciPy and

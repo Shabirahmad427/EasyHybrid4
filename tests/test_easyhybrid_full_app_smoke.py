@@ -82,6 +82,14 @@ _FULL_APP_CYCLE = textwrap.dedent(
             return fail("reopened .easy session left OpenGL error 0x%x" % gl_error)
         if len(main.p_session.psystem) != 1 or len(main.vm_session.vm_objects_dic) != 1:
             return fail("reopened .easy session did not restore its system and molecule")
+        restored_system = next(iter(main.p_session.psystem.values()))
+        restored_molecule = next(iter(main.vm_session.vm_objects_dic.values()))
+        restored_symbols = sorted(atom.symbol for atom in restored_molecule.atoms.values())
+        if restored_system.label != "water" or restored_symbols != ["H", "H", "O"]:
+            return fail(
+                "reopened .easy session changed fixture identity (system=%r atoms=%r)"
+                % (restored_system.label, restored_symbols)
+            )
         if not np.array_equal(core.model_mat, expected_camera["model_mat"]):
             return fail("reopened .easy session did not restore model matrix")
         if not np.array_equal(
@@ -213,6 +221,18 @@ _FULL_APP_CYCLE = textwrap.dedent(
         system = next(iter(main.p_session.psystem.values()))
         print("EASYHYBRID_FULL_APP_SYSTEM_LABEL=%s" % system.label, flush=True)
         print("EASYHYBRID_FULL_APP_ATOMS=%d" % len(molecule.atoms), flush=True)
+        expected_coordinates = np.asarray(
+            ((0.000, 0.000, 0.000), (0.957, 0.000, 0.000), (-0.240, 0.927, 0.000)),
+            dtype=np.float64,
+        )
+        loaded_coordinates = np.asarray(molecule.frames[0], dtype=np.float64)
+        if loaded_coordinates.shape != expected_coordinates.shape or not np.allclose(
+            loaded_coordinates, expected_coordinates, rtol=0.0, atol=5.0e-4
+        ):
+            return fail(
+                "fixture coordinates changed during load: %r" % loaded_coordinates.tolist()
+            )
+        print("EASYHYBRID_FULL_APP_FIXTURE_COORDINATES_PRESERVED=True", flush=True)
         print("EASYHYBRID_FULL_APP_SCENE_DRAWS=%d" % state["scene_draws"], flush=True)
         print("EASYHYBRID_FULL_APP_GL_VERSION=%s" % state["gl_version"].decode("ascii", "replace"), flush=True)
         print("EASYHYBRID_FULL_APP_GL_RENDERER=%s" % state["gl_renderer"].decode("utf-8", "replace"), flush=True)
@@ -220,7 +240,8 @@ _FULL_APP_CYCLE = textwrap.dedent(
         # Exercise the actual .easy serializer and loader with a generated
         # filename. Corrupt the live camera after saving so reopening must
         # restore the serialized view, then require a real scene render.
-        session_path = os.path.join(os.path.dirname(fixture), "camera-roundtrip.easy")
+        # HOME is the per-cycle temporary directory; the fixture is tracked.
+        session_path = os.path.join(os.environ["HOME"], "camera-roundtrip.easy")
         live_tree_row = getattr(system, "tree_row", None)
         live_choice_row = getattr(system, "system_choice_row", None)
         print("EASYHYBRID_FULL_APP_SESSION_SAVE_STARTED=True", flush=True)
@@ -728,21 +749,6 @@ _FULL_APP_CYCLE = textwrap.dedent(
 )
 
 
-def _write_water_pdb(path):
-    lines = []
-    for serial, name, x, y, z, element in (
-        (1, "O", 0.000, 0.000, 0.000, "O"),
-        (2, "H1", 0.957, 0.000, 0.000, "H"),
-        (3, "H2", -0.240, 0.927, 0.000, "H"),
-    ):
-        lines.append(
-            "ATOM  %5d %-4s HOH A%4d    %8.3f%8.3f%8.3f%6.2f%6.2f          %2s  "
-            % (serial, name, 1, x, y, z, 1.0, 0.0, element)
-        )
-    lines.extend(("CONECT    1    2    3", "MASTER        0    0    0    0    0    0    0    3    0    1    0", "END"))
-    path.write_text("\n".join(lines) + "\n", encoding="ascii")
-
-
 def test_full_app_native_pointer_test_uses_one_shared_os_dispatcher():
     """Every native full-app cell shares the same click path and assertions."""
     assert "from gi.repository import Gdk, GLib, Graphene, Gtk" in _FULL_APP_CYCLE
@@ -763,38 +769,73 @@ def _run_full_app_cycle(fixture, environment, cycle, timeout=90):
     save/reopen/render that left too little of a 60 s budget (run
     40044668172: cycle 4 printed CLOSED=True, then hit the limit).
     """
-    process = subprocess.Popen(
-        [sys.executable, "-c", _FULL_APP_CYCLE, str(fixture)],
-        cwd=Path(__file__).resolve().parents[1],
-        env=environment,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-    )
+    with tempfile.NamedTemporaryFile(
+        mode="w", encoding="utf-8", suffix=".py", prefix="easyhybrid-full-app-",
+        delete=False,
+    ) as script_file:
+        script_file.write(_FULL_APP_CYCLE)
+        script_path = Path(script_file.name)
     try:
-        stdout, stderr = process.communicate(timeout=timeout)
-    except subprocess.TimeoutExpired:
-        native_stack = ""
-        if sys.platform == "darwin":
-            # faulthandler only shows Python frames; a main loop blocked in
-            # GTK, GSK or the GL driver needs the native call graph.
-            sampled = subprocess.run(
-                ["sample", str(process.pid), "3", "-mayDie"],
-                capture_output=True,
-                text=True,
-                timeout=30,
-                check=False,
-            )
-            # The call graph precedes the long binary-image list.
-            report = sampled.stdout.split("Binary Images:")[0]
-            native_stack = report[:16000] + sampled.stderr[-2000:]
-        process.kill()
-        stdout, stderr = process.communicate()
-        pytest.fail(
-            "full-app cycle %d exceeded %d s\n--- stdout ---\n%s\n--- stderr ---\n%s"
-            "\n--- native stack ---\n%s" % (cycle, timeout, stdout, stderr, native_stack)
+        process = subprocess.Popen(
+            [sys.executable, str(script_path), str(fixture)],
+            cwd=Path(__file__).resolve().parents[1],
+            env=environment,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
         )
-    return subprocess.CompletedProcess(process.args, process.returncode, stdout, stderr)
+        try:
+            stdout, stderr = process.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            native_stack = ""
+            if sys.platform == "darwin":
+                # faulthandler only shows Python frames; a main loop blocked in
+                # GTK, GSK or the GL driver needs the native call graph.
+                sampled = subprocess.run(
+                    ["sample", str(process.pid), "3", "-mayDie"],
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                    check=False,
+                )
+                # The call graph precedes the long binary-image list.
+                report = sampled.stdout.split("Binary Images:")[0]
+                native_stack = report[:16000] + sampled.stderr[-2000:]
+            process.kill()
+            stdout, stderr = process.communicate()
+            pytest.fail(
+                "full-app cycle %d exceeded %d s\n--- stdout ---\n%s\n--- stderr ---\n%s"
+                "\n--- native stack ---\n%s" % (cycle, timeout, stdout, stderr, native_stack)
+            )
+        return subprocess.CompletedProcess(process.args, process.returncode, stdout, stderr)
+    finally:
+        script_path.unlink(missing_ok=True)
+
+
+def test_full_app_cycle_uses_a_script_file_for_the_child_process(monkeypatch, tmp_path):
+    """Keep the Windows CreateProcess command line below its length limit."""
+    calls = {}
+
+    class FinishedProcess:
+        args = None
+        returncode = 0
+
+        def communicate(self, timeout):
+            return "ok", ""
+
+    def fake_popen(args, **kwargs):
+        calls["args"] = args
+        calls["script"] = Path(args[1]).read_text(encoding="utf-8")
+        calls["script_path"] = Path(args[1])
+        return FinishedProcess()
+
+    monkeypatch.setattr(subprocess, "Popen", fake_popen)
+    result = _run_full_app_cycle(tmp_path / "water.pdb", {}, 1)
+
+    assert result.returncode == 0
+    assert calls["args"][1] != "-c"
+    assert calls["script"] == _FULL_APP_CYCLE
+    assert not calls["script_path"].exists()
 
 
 @pytest.mark.skipif(
@@ -837,8 +878,8 @@ def test_real_easyhybrid_application_mainwindow_load_render_pick_close():
         base_environment["HOME"] = str(home)
         if os.name == "nt":
             base_environment["USERPROFILE"] = str(home)
-        fixture = temp_root / "water.pdb"
-        _write_water_pdb(fixture)
+        fixture = Path(__file__).resolve().parent / "fixtures" / "water.pdb"
+        assert fixture.is_file(), "frozen water PDB fixture is missing"
 
         for cycle in range(1, cycles + 1):
             result = _run_full_app_cycle(fixture, base_environment, cycle)
@@ -851,6 +892,7 @@ def test_real_easyhybrid_application_mainwindow_load_render_pick_close():
             assert "EASYHYBRID_FULL_APP_ATOM_SELECTION=True" in result.stdout
             assert "EASYHYBRID_FULL_APP_LABEL_REPRESENTATION=True" in result.stdout
             assert "EASYHYBRID_FULL_APP_SCENE_REPRESENTATION=True" in result.stdout
+            assert "EASYHYBRID_FULL_APP_FIXTURE_COORDINATES_PRESERVED=True" in result.stdout
             assert "EASYHYBRID_FULL_APP_CAMERA_SESSION_ROUND_TRIP=True" in result.stdout
             assert "EASYHYBRID_FULL_APP_SESSION_REOPEN_RENDER=True" in result.stdout
             if os.environ.get("EASYHYBRID_FULL_APP_NATIVE_POINTER") == "1":

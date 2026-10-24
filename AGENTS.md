@@ -153,3 +153,14 @@ directly and raised `WinError 193`; the other 145 tests passed. The module now
 uses a module-level skip on non-Linux OSes. Keep those shell-launcher tests
 active on Linux, and do not treat their Windows/macOS skips as packaging
 acceptance for those platforms.
+
+**Windows full-app harness command length (observed 2026-10-24):** PR #6
+matrix run `40052058048` failed the full-app lifecycle test on Windows GTK
+4.8.2 and 4.10.1 before EasyHybrid launched. The harness passed its full
+embedded Python program through `python -c`; Windows `CreateProcess` rejected
+the command with `WinError 206` (filename or extension too long). The same
+trace appeared in every completed Windows GTK artifact before fail-fast
+cancellation. `_run_full_app_cycle()` now writes that program to a temporary
+`.py` file and executes the short path-based command. Its focused regression
+passed locally; rerun the full matrix before merge. This was a test harness
+limit, not a GTK runtime or application failure.
