@@ -88,7 +88,6 @@ scales. The scale test reported `scale_applied=false` and widget scale factor
 1, so this does not establish Retina/HiDPI support. This focused result was
 superseded by matrix `39717469974`, which passed native pointer cycles in all
 configured macOS arm64 GTK minors and Intel macOS GTK 4.8/4.10.
-**Report date:** 2026-10-21
 
 **Purpose:** One consolidated source for repository, architecture, dependency,
 GTK/Python compatibility, parity, platform, testing, and known-limitation
