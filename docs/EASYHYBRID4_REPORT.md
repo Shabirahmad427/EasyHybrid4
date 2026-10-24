@@ -1370,9 +1370,9 @@ migration is claimed but end-to-end behavior is not demonstrated.
 | GTK widget startup/lifecycle | **BROKEN (diagnostic observed)** | User-provided launch output showed two `gtk_box_remove` parent assertion critical messages. Visible impact and responsible removal path are unknown. |
 | System import, force-field assignment, merge/prune, trajectory import, `.easy` save/load | **PARTIAL** | Project writes now use atomic replacement and a versioned payload; readers accept legacy unversioned files and reject unsupported future versions before application restart. Five file-level regressions pass, including corrupt-read and simulated-write failure preservation. Full session/system/camera/vobject round trips and historical project migrations remain untested. |
 | System import, force-field assignment, merge/prune, trajectory import, `.easy` save/load | **PARTIAL** | The opt-in full-app regression imports a generated three-atom water system and now saves/reloads it through the production `.easy` serializer and loader on Linux X11 (GTK 4.14.5), verifying one pDynamo system and one 3-atom VisMol object. Other project contents, trajectory import, edited-structure persistence, Windows/macOS and other GTK minors remain **NOT TESTED**. |
-| MM/QC/QC-MM setup and calculations | **UNTESTED** | Setup modules and pDynamo dispatch exist; no calculation-level comparison was run. |
+| MM/QC/QC-MM setup and calculations | **PARTIAL** | The opt-in scientific suite now checks DYFF energy/minimization, AM1 single-point energy and the production EasyHybrid MNDO/QC-MM setup against pDynamo's water-dimer reference. Cross-platform numerical comparison and broader systems/engines remain untested. |
 | System import, force-field assignment, merge/prune, trajectory import, `.easy` save/load | **UNTESTED** | Matching dialogs/session/serialization code exists; no representative import or project round-trip fixture was run. |
-| MM/QC/QC-MM setup and calculations | **PARTIAL** | Opt-in pDynamo regressions in `tests/test_pdynamo_mm_workflow.py` pass a 3-atom water DYFF energy/minimization reference (initial `5.104425761412759`, minimized `0.0010421253750697622`) and AM1/MNDO single-point reference (`-247.65607705020375`, coordinates unchanged within `1e-12 Å`). These call pDynamo APIs directly; EasyHybrid settings dispatch, QC/MM, and cross-platform numerical comparison remain untested. |
+| MM/QC/QC-MM setup and calculations | **PARTIAL** | `tests/test_pdynamo_mm_workflow.py` covers the 3-atom water DYFF energy/minimization reference (initial `5.104425761412759`, minimized `0.0010421253750697622`), AM1/MNDO single-point reference (`-247.65607705020375`, coordinates unchanged within `1e-12 Å`), and EasyHybrid's production MNDO/QC-MM setup on a water dimer (energy `-258.5075262422 kJ/mol`, 3 selected QC atoms, neutral singlet, `NBModelCutOff`, gradient deviation <=`1e-3`). The local headless scientific runner passed **26 tests** with pDynamo3. Cross-platform numerical comparison and broader systems/engines remain **NOT TESTED**. |
 | Single point, optimization, MD, normal modes, transition-state search | **UNTESTED** | GTK4 windows and dispatch are present; no sample scientific output comparison. |
 | PES scans, umbrella sampling, WHAM, NEB/reaction paths, CPR | **PARTIAL** | Opt-in `tests/test_reaction_coordinate_workflow.py` verifies simple/chained/paired distances with fake and compiled pDynamo3 coordinates, and compiles generated script text/checks class dispatch for relaxed/advanced scans, umbrella sampling and NEB (**4 passed**). NEB generated scripts now load exported coordinate pickle files. Actual scan/path/umbrella/WHAM calculations, exported script execution, and native GTK export UI remain untested. |
 | RDF, density, RMSD/RMSF, Ramachandran, surfaces, trajectory analysis | **UNTESTED** | Modules exist; no representative analysis-result fixtures were run. |
@@ -3173,8 +3173,12 @@ temporary-copy command in [Section 6 of this report](#6-reproducible-test-baseli
   nonbonded model, unchanged single-point coordinates, reference energy and
   analytic/numerical gradients. Local Linux x86_64 evidence is **3 passed** at
   Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib 2.80.0 with pDynamo3
-  revision `09e583049de5d1cdca6c9b4009c7c75e451a5ae0`; the new QC/MM check is
-  not yet validated by the native Windows/macOS GTK matrix.
+  revision `09e583049de5d1cdca6c9b4009c7c75e451a5ae0`; Claude independently
+  replayed the focused checks against CI-pinned pDynamo3
+  `6b28dd8958e1a705fcdca130f4ab862a8af8de82`. The merged headless runner
+  (`.github/scripts/run_scientific_tests.py`) passed **26 tests in 1.24 s**
+  locally with display variables removed. This task's own 30-cell matrix is
+  still pending.
 
 The default suite skips display-dependent GTK checks. The opt-in GTK smoke
 must be run with an accessible native display or virtual display. The full-app
