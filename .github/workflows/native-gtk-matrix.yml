@@ -566,7 +566,6 @@ jobs:
     if: needs.plan.outputs.run == 'true' && inputs.scope != 'linux-gtk48' && inputs.scope != 'windows-legacy' && inputs.scope != 'windows-gtk420' && inputs.scope != 'macos-diagnostic' && inputs.scope != 'macos-gtk424'
     runs-on: windows-2022
     env:
-      CCACHE_DIR: ${{ runner.temp }}/gtk-ccache
       CCACHE_COMPILERCHECK: content
       CCACHE_MAXSIZE: 1G
     timeout-minutes: 75
@@ -824,7 +823,6 @@ jobs:
     if: needs.plan.outputs.run == 'true' && inputs.scope != 'linux-gtk48' && inputs.scope != 'windows-legacy' && inputs.scope != 'windows' && inputs.scope != 'windows-gtk420' && inputs.scope != 'macos-gtk424'
     runs-on: macos-14
     env:
-      CCACHE_DIR: ${{ runner.temp }}/gtk-ccache
       CCACHE_COMPILERCHECK: content
       CCACHE_MAXSIZE: 1G
     timeout-minutes: 75
@@ -917,6 +915,7 @@ jobs:
       - name: Build and install GTK ${{ matrix.version }} from source
         run: |
           set -eo pipefail
+          export CCACHE_DIR="$RUNNER_TEMP/gtk-ccache"
           minor='${{ matrix.gtk }}'
           curl -fsSL "https://download.gnome.org/sources/gtk/${minor}/gtk-${{ matrix.version }}.tar.xz" -o gtk.tar.xz
           echo "${{ matrix.sha256 }}  gtk.tar.xz" | shasum -a 256 -c -

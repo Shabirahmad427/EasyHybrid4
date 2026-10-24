@@ -24,13 +24,20 @@ Cancellation, progress reporting, GUI responsiveness, and unexpected worker
 crash detection remain unverified.
 
 **Current roadmap pointer:** EH4-500 CI compiler-cache timing is active on the
-preserved `eh4-500-ci-quality-gates` branch. PR #9's EH4-402 scientific
+preserved `eh4-500-ci-quality-gates` branch. PR #11's EH4-403 exported relaxed
+scan calculation passed the native matrix (`40123557334`, 30/30) and is merged.
+PR #9's EH4-402 scientific
 coverage passed 26 headless tests with no skips in all 30 native matrix cells
 (`40112239125`) and is merged. The compiler-output cache is configured for the
 macOS GTK source builds and Windows MSYS2 GTK 4.16/4.18 builds; hosted cold/warm
-cache behavior and timing reduction remain **NOT TESTED** until the focused
-source-build run completes. EH4-200 provenance, EH4-203 physical trackpad
-review, EH4-301 clipboard/accessibility, and packaging tasks remain open.
+cache behavior and timing reduction remain **NOT TESTED**. The first EH4-500
+workflow attempt (`40123686791`) was rejected before jobs started because
+`runner.temp` was referenced in job-level `env`; `CCACHE_DIR` now comes from
+`$RUNNER_TEMP` inside the macOS build step, matching the Windows step. Focused
+workflow regressions pass locally; hosted source-build checks and the full
+EH4-500 matrix are still pending. EH4-200 provenance, EH4-203 physical
+trackpad review, EH4-301 clipboard/accessibility, and packaging tasks remain
+open.
 
 **EH4-405 batch PR #6 matrix status:** corrected head `341a7cc`, merged as
 `b676d00`, passed full matrix

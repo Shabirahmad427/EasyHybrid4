@@ -188,6 +188,11 @@ def test_native_gtk_source_builders_cache_only_compiler_outputs():
         assert "meson install -C gtk-build" in section
         assert "CC: ccache" not in section
         assert "CXX: ccache" not in section
+        job_env = section.split("    env:\n", 1)[1].split("    timeout-minutes:", 1)[0]
+        assert "runner.temp" not in job_env
+
+    assert 'export CCACHE_DIR="$(cygpath -u "$RUNNER_TEMP")/gtk-ccache"' in windows_source
+    assert 'export CCACHE_DIR="$RUNNER_TEMP/gtk-ccache"' in macos_source
 
     assert "mingw-w64-ucrt-x86_64-ccache" in windows_source
     assert "ccache=4.13.6" in macos_source
