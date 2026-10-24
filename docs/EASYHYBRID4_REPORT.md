@@ -88,6 +88,7 @@ scales. The scale test reported `scale_applied=false` and widget scale factor
 1, so this does not establish Retina/HiDPI support. This focused result was
 superseded by matrix `39717469974`, which passed native pointer cycles in all
 configured macOS arm64 GTK minors and Intel macOS GTK 4.8/4.10.
+**Report date:** 2026-10-21
 
 **Purpose:** One consolidated source for repository, architecture, dependency,
 GTK/Python compatibility, parity, platform, testing, and known-limitation
@@ -199,6 +200,45 @@ cycles, and the complete suite passed **168 tests** with 14 skips and one
 pre-existing GTK 4.8 chooser GLib warning. Runtime was Linux 6.8.0-147-generic
 x86_64, Python 3.12.3, PyGObject 3.48.2, GTK 4.14.5, GLib 2.80.0, Mesa
 25.2.8 llvmpipe, OpenGL 4.5 Core. `py_compile` and `git diff --check` passed.
+**EH4-301 local GTK interaction checks (2026-10-20; partial):** under Linux
+Mint 22.3 x86_64 with Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib
+2.80.0, native Xvfb checks for GTK event-controller mouse/keyboard dispatch,
+context-menu placement and response-window behavior passed (3 passed). The
+GTK 4.14 file-dialog adapter checks passed 2 tests; 9 GTK 4.8/conditional
+chooser cases were skipped. Clipboard behavior, screen-reader/accessibility
+checks, native platform chooser interaction, and Windows/macOS runtimes remain
+**NOT TESTED**. A full widget-module attempt inside the restricted sandbox
+failed its display precondition and then segfaulted in a Gtk.Builder color
+button test; it is not counted as a native result. EH4-301 stays unchecked.
+
+The focused subset was rerun with a usable Xvfb display on 2026-10-21 using
+the same Linux GTK runtime: controller dispatch, context-menu placement,
+response-window actions and file-dialog adapter behavior returned **7 passed,
+1 skipped**, with 61 unrelated tests deselected. This confirms the selected
+GTK 4.14.5 interactions; platform-specific chooser and accessibility gaps
+remain open.
+
+**EH4-301 Linux GTK integration recheck (2026-10-21; partial):** under
+Linux Mint 22.3 x86_64 / Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 /
+GLib 2.80.0, native Xvfb/X11 widget tests for chooser lifecycles, response
+dialogs, context-menu placement, event-controller payloads, and clipboard
+passed **20** with **5 skipped** on the latest run. GDK clipboard tests verified Unicode
+round-trips both in-process and from a separate GTK reader process while the
+owner serviced its GLib context. The X11 cross-process result does not verify
+Windows/macOS clipboard behavior, native chooser selection, hardware keyboard
+conventions, accessibility/screen-reader behavior, or other GTK minors;
+EH4-301 remains unchecked.
+
+The same focused X11/Xvfb GTK interaction slice passed on 2026-10-21 under
+both local Linux GTK runtimes: GTK 4.14.5 / Python 3.12.3 / PyGObject 3.48.2 /
+GLib 2.80.0 and GTK 4.24.1 / Python 3.12.15 / PyGObject 3.58.1 / GLib
+2.90.0. Each run reports **20 passed, 5 skipped, 45 deselected**, covering
+event-controller payloads, popovers, response/chooser windows and same-process
+and cross-process Unicode clipboard transfers. Xvfb kept the tests from
+changing the host desktop clipboard. GTK 4.24.1 printed an unrecognized
+`gl-glx` debug-flag warning, a Mesa DRI3 warning, and an unavailable IBus
+module warning; the tests passed. This remains Linux-only test coverage; all
+other GTK minors and Windows/macOS native integration are **NOT TESTED**.
 
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
