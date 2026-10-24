@@ -444,34 +444,22 @@ class pSimulations:
 
         sim_type = parameters['simulation_type']
         cls = simulation_classes.get(sim_type)
-
-        if not cls:
-            # Unknown simulation type → exit silently
-            return
-
-        # Instantiate simulation class
-        self.target_process = cls()
-        
-
-        
-        # Special flags for specific simulation types
-        if sim_type == 'Energy_Single_Point':
-            parameters['energy'] = True
-            parameters['new_vobject'] = False
-        elif sim_type == 'Energy_Refinement':
-            parameters['new_vobject'] = False
-
-        # Avoid passing queue object to child processes inside parameters
-        parameters['queue'] = None
-        
-        #backup_parameters = parameters
-        #backup_parameters = copy.deepcopy(parameters)
-        #backup_parameters['system'] = None
-        #backup_parameters['step_counter'] = parameters['system'].e_step_counter
-
-        #self.target_process.run(parameters)
-        
         try:
+            if cls is None:
+                raise ValueError("Unknown simulation type: {}".format(sim_type))
+
+            # Instantiate simulation class only after validating dispatch.
+            self.target_process = cls()
+
+            # Special flags for specific simulation types
+            if sim_type == 'Energy_Single_Point':
+                parameters['energy'] = True
+                parameters['new_vobject'] = False
+            elif sim_type == 'Energy_Refinement':
+                parameters['new_vobject'] = False
+
+            # Avoid passing queue object to child processes inside parameters
+            parameters['queue'] = None
             self.target_process.run(parameters)
             results = {
                 'new_vobject': parameters.get('new_vobject', True),
@@ -498,7 +486,9 @@ class pSimulations:
                 'e_id': parameters['system'].e_id,
                 'simulation_type': sim_type,
                 'logfile': parameters['logfile'],
-                'error': exc,
+                # Send a plain string: arbitrary exception instances are not
+                # guaranteed to be pickleable by multiprocessing.Queue.
+                'error': '{}: {}'.format(type(exc).__name__, exc),
                 #'backup_parameters': backup_parameters,
                 'step_counter':parameters['system'].e_step_counter
             }

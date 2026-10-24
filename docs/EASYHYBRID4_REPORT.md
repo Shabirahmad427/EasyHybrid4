@@ -1,25 +1,55 @@
 # EasyHybrid4 Development and Compatibility Report
 
-**Report date:** 2026-10-22
+**Report date:** 2026-10-24
 
-**Current roadmap pointer:** EH4-204. EH4-203's automated matrix passed in
-`39801594903`; actual macOS trackpad review remains pending. EH4-204 is in
-progress on `eh4-204-molecular-selection-workflow`.
+**Project persistence (partial, EH4-404):** EasyHybrid `.easy` payloads now
+write format version 1; payloads without a version key are treated as legacy
+version 0. The loader validates the deserialized mapping, systems list and
+system entries, and rejects unsupported future versions before restarting
+the active application. Linux Xvfb/pDynamo tests pass 7 cases for legacy and
+current payloads, malformed schemas and truncated pickle files. This does not
+yet verify a full UI session round-trip, older historical project fixtures,
+autosave recovery or Windows/macOS/other GTK runtimes. Python pickle files
+remain trusted local project data; schema checks do not make untrusted pickle
+loading safe.
 
-**Latest native full-matrix status (2026-10-22): PASS, 30/30 cells.** Run
-[`39801594903`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39801594903)
-passed the complete Linux x86_64, Windows x86_64 and macOS arm64 GTK 4.8–4.24
-matrix, plus Intel macOS GTK 4.8/4.10. Runtime artifacts confirm exact GTK,
-GLib, Python, PyGObject, OS/architecture and renderer versions. Each cell
-passed five full `EasyHybridApplication`/`MainWindow` cycles with real
-pDynamo3 fixture loading, native OS pointer input (Linux XTest, Windows
-Win32, macOS Quartz), oxygen `O:0` picked, a completed render and clean close.
-Each cell also passed five production menu/VisMol scene cycles and its
-regression/render checks. Two GTK 4.8 macOS job records initially appeared in
-progress despite the successful workflow summary; GitHub later reported all
-30 jobs completed successfully with no failures. The matrix uses hosted
-software renderers. Physical GPUs, Wayland, Retina/HiDPI and trackpad behavior
-remain separately **NOT TESTED**. See the matrix evidence entry in
+**Simulation worker errors (partial, EH4-405):** an unsupported simulation
+type previously put `RUNNING` on the multiprocessing queue and returned without
+an error, leaving the process-manager row active indefinitely. The child now
+reports it through the normal `ERROR` message path. Exception details are
+serialized as strings so exceptions that cannot be pickled do not silently
+break queue delivery. A direct worker queue regression passes locally under
+Linux Xvfb with Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib 2.80.0.
+Cancellation, progress reporting, GUI responsiveness, and unexpected worker
+crash detection remain unverified.
+
+**Current roadmap pointer:** EH4-200 graphics-engine provenance audit. EH4-203
+still needs physical macOS trackpad review. EH4-204 and EH4-205 passed their
+configured full native acceptance; EH4-200 provenance, EH4-301 clipboard and
+accessibility, and packaging tasks remain open.
+
+**EH4-405 batch PR #6 matrix status:** first run
+[`40052058048`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40052058048)
+stopped on Windows `CreateProcess` command length (`WinError 206`) before app
+startup. Follow-up run
+[`40101418631`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40101418631)
+then found the temporary script launch changed `sys.path[0]`, preventing
+`src` imports. The harness now uses a short `runpy` bootstrap to retain the
+working-directory import path; its focused regression passed locally. A full
+native matrix on the latest corrected PR head is required before merge.
+
+**Latest native full-matrix status (2026-10-24): PASS, 30/30 cells.** Run
+[`40050468870`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40050468870)
+passed the Linux x86_64, Windows x86_64 and macOS arm64 GTK 4.8–4.24 cells,
+plus Intel macOS GTK 4.8/4.10. Runtime artifacts confirm exact GTK, GLib,
+Python, PyGObject, OS/architecture and renderer versions. Each cell passed
+five full `EasyHybridApplication`/`MainWindow` cycles with generated pDynamo3
+fixture loading, native OS pointer input (Linux XTest, Windows Win32, macOS
+Quartz), oxygen `O:0` picked, render and clean close. Each also passed five
+production menu/VisMol scene cycles, the complete regression suite and
+render validation. The matrix uses hosted software renderers. Cross-process
+Windows/macOS clipboard, physical GPUs, Wayland, Retina/HiDPI and trackpad
+behavior remain separately **NOT TESTED**. See the matrix evidence entry in
 [`ROADMAP.md`](ROADMAP.md) and detailed versions in
 [`GTK4_COMPATIBILITY.md`](GTK4_COMPATIBILITY.md).
 
@@ -165,6 +195,20 @@ current context. Commit `611eac0` pins GLX with `GDK_DISABLE=egl` and passed
 5/5 locally on native NVIDIA X11 and Xvfb llvmpipe. All-platform/all-minor
 matrix run `40043447733` is pending.
 
+**EH4-204 native acceptance (2026-10-24; complete):** final-head matrix
+[`40045300452`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40045300452)
+passed **30/30** cells, and focused macOS GTK 4.24 artifact run
+`40045322982` passed. Every cell completed five full-app cycles with native
+OS-pointer selection, atom/residue behavior, labels, measurements,
+representation changes, `.easy` camera save/reopen, render and clean close;
+each passed five production menu/VisMol cycles and rendering/export/picking
+validation. All 30 artifacts record `EASYHYBRID_FULL_APP_CAMERA_SESSION_ROUND_TRIP=True`.
+GTK patches covered Linux 4.8.2–4.24.1 (including Ubuntu 4.16.3, Fedora
+4.16.13, Debian 4.18.6), Windows 4.8.2–4.24.1, macOS arm64 4.8.3–4.24.1,
+and Intel macOS 4.8.2/4.10.1. Hosted GL used Linux llvmpipe/X11, Windows
+llvmpipe/WGL and macOS Apple Software Renderer. Physical GPUs, Retina/HiDPI
+and trackpad behavior remain separate **NOT TESTED** claims.
+
 **EH4-205 focused implementation (2026-10-21):** the production VisMol
 `Gtk.GLArea` now checks the realized OpenGL version before initializing its
 shaders, requires OpenGL 3.3+, and shows a portable GTK4 error window for
@@ -194,6 +238,21 @@ display. GTK 4.24.1 printed `Unrecognized value "gl-glx"` and a missing IBus
 module warning in this local direct-runtime setup, but all six tests passed.
 Other GTK minors, Windows/macOS, and real unsupported hardware remain
 **NOT TESTED**; EH4-205 is still open pending the native matrix.
+
+**EH4-205 native acceptance (2026-10-24; complete):** matrix run
+[`40050468870`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40050468870)
+passed **30/30** cells on the final batch head. All artifacts include a
+passing regression suite, five full-app native pointer pick/render/close
+cycles, five production menu/VisMol cycles and renderer validation. The
+artifacts record exact OS/architecture, Python, PyGObject, GTK patch, GLib and
+backend; GTK coverage includes Linux 4.8.2, 4.10.1, 4.12.1, 4.14.1, 4.16.3,
+4.16.13, 4.18.6, 4.20.3, 4.22.5 and 4.24.1; Windows 4.8.2–4.24.1; macOS
+arm64 4.8.3–4.24.1; and Intel macOS 4.8.2/4.10.1. Software renderers were
+Mesa llvmpipe on Linux and Windows and Apple Software Renderer on macOS. The
+earlier fail-fast runs `40049339951` and `40049843306` exposed two test-scope
+defects; both corrections are documented in `AGENTS.md` and the roadmap, and
+the corrected matrix passed. EH4-205 is complete for configured matrix
+acceptance; physical unsupported GPUs remain **NOT TESTED**.
 
 Rechecked on the implementation branch on 2026-10-21: the diagnostics module
 passed **6/6**, the startup/GL smoke passed with three clean window lifecycle
@@ -334,6 +393,26 @@ XTest load/render/pick/close cycle. An early display-open attempt in
 packaged direct-launch acceptance therefore remains **FAIL / unresolved**.
 No desktop installer was built; Windows and macOS packaging and GTK versions
 other than 4.24.1 remain **NOT TESTED**. EH4-304 stays unchecked.
+**EH4-400 frozen water-fixture check (2026-10-21; partial):** the real app
+smoke loads the checked-in `tests/fixtures/water.pdb` and compares all three
+VisMol coordinates against independent expected values with 0.0005 Å
+tolerance. Five fresh production MainWindow cycles on Linux x86_64 preserved
+the coordinates, loaded three atoms, rendered, picked oxygen (`O:0`), and
+closed cleanly. Runtime: Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 /
+GLib 2.80.0, pDynamo3 revision `09e583049de5d1cdca6c9b4009c7c75e451a5ae0`
+rebuilt for Python 3.12.3, Mesa 25.2.8 llvmpipe OpenGL 4.5 Core. Pointer
+input in this test is a synthetic GTK callback. Windows/macOS, other GTK
+runtimes, additional fixture types and broader molecular invariants remain
+**NOT TESTED**; EH4-400 stays unchecked.
+
+The VisMol scale/resize test now reads its six-atom input from the checked-in
+`tests/fixtures/render_validation.pdb`; a fixture test locks the atom names,
+elements, residue identities and coordinates for both PDB inputs. On Linux
+Mint 22.3 x86_64, the GTK 4.14.5/Xvfb renderer test passed at scale 1 and 2
+(Python 3.12.3 / PyGObject 3.48.2 / GLib 2.80.0): all eight representations,
+resize, export, and 9/9 sphere-pick samples passed with llvmpipe OpenGL 4.5
+Core. Additional OS/GTK runtimes, other structure formats and wider scientific
+invariants remain **NOT TESTED**.
 
 **EH4-304 test scope correction (2026-10-24):** PR #5 matrix run
 [`40049843306`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40049843306)
@@ -530,6 +609,12 @@ OpenGL 4.5 Core. The pDynamo3 source/build revision
 not installed in the GTK environment. This is Linux GTK 4.14.5 evidence only;
 Windows/macOS native pointer injection and full-app tests on other GTK/platform
 cells remain **NOT TESTED**.
+**CI quality gate update (2026-10-20):** the native matrix now runs Python
+`compileall` across `src/` and `tests/`, then repo-wide Ruff critical checks
+(`E9,F63,F7`) in every GTK runtime job. Local Linux validation passed. The
+updated hosted jobs have not yet run. Existing matrix steps already build
+graphics extensions and pDynamo3, perform pDynamo imports, run tests, and
+upload per-cell logs; no static type checker is configured yet.
 
 **EH4-202 input-picking history and current acceptance state.** GTK
 pointer events arrive in widget-local logical units, while VisMol pick reads
@@ -1263,19 +1348,22 @@ migration is claimed but end-to-end behavior is not demonstrated.
 | Workflow | EasyHybrid4 status | Evidence / remaining work |
 |---|---|---|
 | Atom/bond mutation and bond-order perception logic | **WORKING (logic slice only)** | 23 tests cover bond edits, valence/order handling, representations' bookkeeping, and frame-specific dynamic bonds. No GTK UI, GL rendering, or pDynamo sync claim. |
-| Interactive Builder (create/edit, undo, charges/hydrogens, fragments, structures, solvation, DYFF/OPLS) | **UNTESTED** | GTK4 source exists under `src/gui/windows/builder/`; current tests do not run the UI, full pDynamo editing, or round-trip persistence. |
+| Interactive Builder (create/edit, undo, charges/hydrogens, fragments, structures, solvation, DYFF/OPLS) | **PARTIAL** | `tests/test_atom_ops_bonds.py` exercises coordinate/add-bonded-atom/undo restoration plus atom multi-select/toggle/clear and numeric distance/angle measurements (15 tests pass). Selection-clear now resets atom selection flags. The opt-in full-app smoke now passes one native Linux X11/XTest `.easy` save/reload cycle with real pDynamo3 and checks the restored system and VisMol object; it also verifies GTK row references are restored after successful and injected-failure writes. Builder UI workflows, persistence of edited structures, Windows/macOS and other GTK minors remain untested. |
 | VisMol viewer, picking, selection, representations, camera and playback | **PARTIAL** | Real GTK GLArea, production renderer, picking, representation/export/resize checks pass in native matrix run `39485989866`; component matrix picking calls GTK handlers with synthetic coordinates. Full app passed focused native Linux, Windows GTK 4.8/4.10, and macOS GTK 4.24.1 checks. Local Linux X11/XTest full-app picking passes five cycles; hosted full-matrix confirmation is pending. Windows/macOS native OS input, physical GPU, Retina/trackpad, Wayland, and real trajectory playback remain **NOT TESTED**. |
 | GTK widget startup/lifecycle | **BROKEN (diagnostic observed)** | User-provided launch output showed two `gtk_box_remove` parent assertion critical messages. Visible impact and responsible removal path are unknown. |
-| System import, force-field assignment, merge/prune, trajectory import, `.easy` save/load | **UNTESTED** | Matching dialogs/session/serialization code exists; no representative import or project round-trip fixture was run. |
+| System import, force-field assignment, merge/prune, trajectory import, `.easy` save/load | **PARTIAL** | Project writes now use atomic replacement and a versioned payload; readers accept legacy unversioned files and reject unsupported future versions before application restart. Five file-level regressions pass, including corrupt-read and simulated-write failure preservation. Full session/system/camera/vobject round trips and historical project migrations remain untested. |
+| System import, force-field assignment, merge/prune, trajectory import, `.easy` save/load | **PARTIAL** | The opt-in full-app regression imports a generated three-atom water system and now saves/reloads it through the production `.easy` serializer and loader on Linux X11 (GTK 4.14.5), verifying one pDynamo system and one 3-atom VisMol object. Other project contents, trajectory import, edited-structure persistence, Windows/macOS and other GTK minors remain **NOT TESTED**. |
 | MM/QC/QC-MM setup and calculations | **UNTESTED** | Setup modules and pDynamo dispatch exist; no calculation-level comparison was run. |
+| System import, force-field assignment, merge/prune, trajectory import, `.easy` save/load | **UNTESTED** | Matching dialogs/session/serialization code exists; no representative import or project round-trip fixture was run. |
+| MM/QC/QC-MM setup and calculations | **PARTIAL** | Opt-in pDynamo regressions in `tests/test_pdynamo_mm_workflow.py` pass a 3-atom water DYFF energy/minimization reference (initial `5.104425761412759`, minimized `0.0010421253750697622`) and AM1/MNDO single-point reference (`-247.65607705020375`, coordinates unchanged within `1e-12 Å`). These call pDynamo APIs directly; EasyHybrid settings dispatch, QC/MM, and cross-platform numerical comparison remain untested. |
 | Single point, optimization, MD, normal modes, transition-state search | **UNTESTED** | GTK4 windows and dispatch are present; no sample scientific output comparison. |
-| PES scans, umbrella sampling, WHAM, NEB/reaction paths, CPR | **UNTESTED** | UI/methods are present; generated inputs and numerical outputs have not been compared. |
+| PES scans, umbrella sampling, WHAM, NEB/reaction paths, CPR | **PARTIAL** | Opt-in `tests/test_reaction_coordinate_workflow.py` verifies simple/chained/paired distances with fake and compiled pDynamo3 coordinates, and compiles generated script text/checks class dispatch for relaxed/advanced scans, umbrella sampling and NEB (**4 passed**). NEB generated scripts now load exported coordinate pickle files. Actual scan/path/umbrella/WHAM calculations, exported script execution, and native GTK export UI remain untested. |
 | RDF, density, RMSD/RMSF, Ramachandran, surfaces, trajectory analysis | **UNTESTED** | Modules exist; no representative analysis-result fixtures were run. |
 | Infrared spectrum GUI | **UNIMPLEMENTED** | No matching EasyHybrid4 spectrum window/menu workflow was found. |
 | AutoDock Vina / AutoDock-GPU setup-run-import | **UNIMPLEMENTED** | EasyHybrid3 report and dialogs identify both; no EasyHybrid4 front ends/actions were found. |
 | NAMD/SMD, AMBER `tleap`, Packmol, Antechamber preparation dialogs | **UNIMPLEMENTED** | EasyHybrid3 front ends are absent. Packmol-style solvent placement is not a replacement for these dialogs. |
 | Scientific system/script exports and simulation output files | **UNTESTED** | Export code exists, but schemas/restarts/numerical outputs lack fixture comparisons. |
-| Process manager, job lifecycle, recent files, project/session management | **UNTESTED** | Source exists; process and restart lifecycle were not exercised. |
+| Process manager, job lifecycle, recent files, project/session management | **PARTIAL** | Two helper regressions verify process-tree SIGTERM dispatch and nonblocking GLib abort polling. Live job execution/cancellation, exception propagation, restart lifecycle and cross-platform behavior remain untested. |
 
 EasyHybrid3's detailed implementation report was inspected read-only at
 `~/software/EasyHybrid3/docs/EASYHYBRID3_IMPLEMENTATION_REPORT.md`.
@@ -3049,7 +3137,11 @@ temporary-copy command in [Section 6 of this report](#6-reproducible-test-baseli
   `EasyHybridApplication` or the real `gui.main.MainWindow`; therefore it is
   component/renderer evidence, not full-interface acceptance. A separate full-app
   regression with real pDynamo3 is still required across the supported GTK/OS
-  matrix. pDynamo3 scientific calculations remain tested against pDynamo3.
+  matrix. The full-app regression performs one production `.easy` save/reload
+  in each cycle; it currently passes locally on Linux X11 with GTK 4.14.5 and
+  native XTest pointer injection. Other OS/minor combinations are not covered
+  by that local run. pDynamo3 scientific calculations remain tested against
+  pDynamo3.
 - `test_dependency_boundaries.py`, `test_session_state.py`,
   `test_easyplot_boundaries.py`, and `test_os_integration.py` cover the
   EH4-100 import, state, plotting, and startup-policy boundaries.
@@ -3058,9 +3150,10 @@ temporary-copy command in [Section 6 of this report](#6-reproducible-test-baseli
   session or call pDynamo calculations.
 
 The default suite skips display-dependent GTK checks. The opt-in GTK smoke
-must be run with an accessible native display or virtual display. The suite
-does not prove pDynamo synchronization, simulation results, project/export
-round trips, or cross-platform support.
+must be run with an accessible native display or virtual display. The full-app
+smoke covers one generated `.easy` save/reload fixture on the tested local
+Linux runtime; it does not prove persistence for other project contents,
+scientific simulation results, export round trips, or cross-platform support.
 Those checks are tracked in `docs/ROADMAP.md` and Section 6 of this report.
 Fixture requirements are documented in [Section 8 of this report](#8-safe-test-data-policy).
 

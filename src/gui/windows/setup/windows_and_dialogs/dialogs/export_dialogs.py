@@ -95,6 +95,75 @@ HOME             = os.environ.get('HOME')
 PDYNAMO3_SCRATCH = os.environ.get('PDYNAMO3_SCRATCH')
 
 
+def build_simulation_script(parameters, system_pickle, pmethod_path):
+    """Return a standalone pDynamo script for an exported simulation setup."""
+    header = '''
+#---------------------------------------
+from pBabel                    import*
+from pCore                     import*
+#---------------------------------------
+from pMolecule                 import*
+from pMolecule.MMModel         import*
+from pMolecule.NBModel         import*
+from pMolecule.QCModel         import*
+#---------------------------------------
+from pScientific               import*
+from pScientific.Arrays        import*
+from pScientific.Geometry3     import*
+from pScientific.RandomNumbers import*
+from pScientific.Statistics    import*
+from pScientific.Symmetry      import*
+#---------------------------------------
+from pSimulation               import*
+#---------------------------------------
+import sys
+
+sys.path.insert(1, {!r})
+from pdynamo import p_methods as pMethods
+
+system = ImportSystem ({!r})
+
+import os
+import random
+import string
+
+PDYNAMO3_SCRATCH = os.environ.get('PDYNAMO3_SCRATCH')
+if hasattr(system, 'qcState') and hasattr(system.qcState, 'paths'):
+    directory = os.path.dirname(system.qcState.paths['Coord'])
+    if not os.path.isdir(directory):
+        if not PDYNAMO3_SCRATCH:
+            raise RuntimeError('PDYNAMO3_SCRATCH must be set for external QC calculations')
+        s = ''.join(random.choices(string.ascii_letters, k=10))
+        system.qcState.DeterminePaths(os.path.join(PDYNAMO3_SCRATCH, s))
+
+system.Summary()
+'''.format(pmethod_path, system_pickle)
+    header += '\nparameters = ' + pprint.pformat(parameters, indent=4)
+    header += "\nparameters['system'] = system"
+
+    simulation_types = {
+        'Umbrella_Sampling': 'UmbrellaSampling',
+        'Advanced_Relaxed_Surface_Scan': 'AdvancedRelaxedSurfaceScan',
+        'Relaxed_Surface_Scan': 'RelaxedSurfaceScan',
+        'Nudged_Elastic_Band': 'ChainOfStatesOptimizePath',
+    }
+    simulation_type = parameters['simulation_type']
+    try:
+        simulation_class = simulation_types[simulation_type]
+    except KeyError as exc:
+        raise ValueError('Unsupported simulation type: {}'.format(simulation_type)) from exc
+    header += '\n\nsimObj = pMethods.{}()'.format(simulation_class)
+
+    if simulation_type == 'Nudged_Elastic_Band':
+        header += '''
+reac_coordinates = Unpickle(parameters['reac_coordinates'])
+prod_coordinates = Unpickle(parameters['prod_coordinates'])
+parameters['reac_coordinates'] = reac_coordinates
+parameters['prod_coordinates'] = prod_coordinates
+'''
+    return header + '\nsimObj.run(parameters)\n'
+
+
 class ExportScriptDialog:
     """ 
     A GTK-based dialog for exporting simulation scripts. 
@@ -167,99 +236,7 @@ class ExportScriptDialog:
                    self.parameters['prod_coordinates'])
             self.parameters['reac_coordinates'] = os.path.join(outputfolder, filename + 'reac_coordinates.pkl')
             self.parameters['prod_coordinates'] = os.path.join(outputfolder, filename + 'prod_coordinates.pkl')
-            
-        # Build the Python script header with imports and system loading
-        header = ''' 
-#---------------------------------------
-from pBabel                    import*                                     
-from pCore                     import*  
-#---------------------------------------
-from pMolecule                 import*                              
-from pMolecule.MMModel         import*
-from pMolecule.NBModel         import*                                     
-from pMolecule.QCModel         import*
-#---------------------------------------
-from pScientific               import*                                     
-from pScientific.Arrays        import*                                     
-from pScientific.Geometry3     import*                                     
-from pScientific.RandomNumbers import*                                     
-from pScientific.Statistics    import*
-from pScientific.Symmetry      import*
-#---------------------------------------                              
-from pSimulation               import*
-#---------------------------------------
-import sys
-
-
-#--------------------------------------------------------------------------
-# If you are running in a different machine. this section should be edited:
-#.Enter the path to the src folder, somewhere: ../EasyHybid/pDynamo/src
-sys.path.insert(1, '{}')
-#--------------------------------------------------------------------------
-
-from pdynamo import p_methods as pMethods
-
-# Importing system
-system = ImportSystem ('{}')
-
-
-
-#--------------------------------  HPC SETUP  -------------------------------------#
-
-# You only need this section if you are using an external engine for QC calculations, 
-# such as ORCA, xTB, etc.
-# system.qcState.DeterminePaths('~/scratch') # Uncomment for ORCA / DFTB+ / xTB
-
-
-#This section is only used to check whether the scratch folder exists on the current 
-#workstation. If it is not found, the scratch directory will be redirected to the
-#default pDynamo scratch directory, with a random 10-character tag appended.
-
-import os
-import random
-import string
-
-PDYNAMO3_SCRATCH = os.environ.get('PDYNAMO3_SCRATCH')
-
-# External QC engines such as ORCA/xTB may define scratch paths.
-# Internal QC models such as PySCF do not necessarily have qcState.paths.
-if hasattr(system, 'qcState') and hasattr(system.qcState, 'paths'):
-    directory = os.path.dirname(system.qcState.paths['Coord'])
-    if not os.path.isdir(directory):
-        s = ''.join(random.choices(string.ascii_letters, k=10))
-        system.qcState.DeterminePaths(os.path.join(PDYNAMO3_SCRATCH, s))
-#----------------------------------------------------------------------------------#
-
-
-# Summary of the imported system
-system.Summary()
-'''.format(pmethod_path, fullfilename)
-        
-        # Append parameters dictionary in pretty format
-        header += '\nparameters = '
-        pp = pprint.PrettyPrinter(indent=4)
-        formatted_data = pp.pformat(self.parameters)
-        header += formatted_data
-        header += "\nparameters['system'] = system"
-        
-        # Add simulation object based on the type
-        if self.parameters['simulation_type'] == 'Umbrella_Sampling':
-            header += '\n\nsimObj =  pMethods.UmbrellaSampling()'
-        
-        elif self.parameters['simulation_type'] == 'Advanced_Relaxed_Surface_Scan':
-            header += '\n\nsimObj =  pMethods.AdvancedRelaxedSurfaceScan()'
-        
-        elif self.parameters['simulation_type'] == 'Relaxed_Surface_Scan':
-            header += '\n\nsimObj =  pMethods.RelaxedSurfaceScan()'
-
-        elif self.parameters['simulation_type'] == 'Advanced_Relaxed_Surface_Scan':
-            header += '\n\nsimObj =  pMethods.AdvancedRelaxedSurfaceScan()'
-        
-        elif self.parameters['simulation_type'] == 'Nudged_Elastic_Band':
-            header += '\n\nsimObj =  pMethods.ChainOfStatesOptimizePath()'
-        
-        # Add execution line
-        header += '\nsimObj.run(parameters)' 
+        header = build_simulation_script(self.parameters, fullfilename, pmethod_path)
         
         # Save the generated script as a .py file
         fullfilename = os.path.join(outputfolder, filename + '.py')

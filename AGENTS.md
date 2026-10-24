@@ -153,3 +153,15 @@ directly and raised `WinError 193`; the other 145 tests passed. The module now
 uses a module-level skip on non-Linux OSes. Keep those shell-launcher tests
 active on Linux, and do not treat their Windows/macOS skips as packaging
 acceptance for those platforms.
+
+**Windows full-app harness command length (observed 2026-10-24):** PR #6
+matrix run `40052058048` failed the full-app lifecycle test on Windows GTK
+4.8.2 and 4.10.1 before EasyHybrid launched. Passing its full embedded Python
+program through `python -c` exceeded Windows `CreateProcess` limits
+(`WinError 206`). The first fix wrote the program to a temporary `.py` file
+and executed it directly; follow-up run `40101418631` then failed because that
+changed `sys.path[0]`, so the child could not import the repository's `src`
+package. `_run_full_app_cycle()` now uses a short `python -c` bootstrap to run
+the temp file with `runpy`, retaining the original working-directory import
+behavior while keeping the command short. Focused regression: **1 passed**.
+Rerun the full matrix before merge; neither run is acceptance evidence.

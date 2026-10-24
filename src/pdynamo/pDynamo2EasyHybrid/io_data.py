@@ -55,6 +55,7 @@ import random
 import string
 
 from pprint import pprint
+from pdynamo.pDynamo2EasyHybrid.project_file import read_project_file, write_project_file
 
 #VISMOL_HOME = os.environ.get('VISMOL_HOME')
 
@@ -74,6 +75,7 @@ from vismol.model.atom import Atom
 #print ('\n\n\n\n\n\nATOM',Atom,'\n\n\n\n\n\nATOM')
 from logging import getLogger
 logger = getLogger(__name__)
+
 
 #---------------------------------------
 from pBabel                    import*                                     
@@ -183,8 +185,7 @@ class LoadAndSaveData:
                     system.tree_row = None
                 if choice_row is not missing:
                     system.system_choice_row = None
-            with open(filename, 'wb') as outfile:
-                pickle.dump(easyhybrid_session_data, outfile)
+            write_project_file(filename, easyhybrid_session_data)
         finally:
             for system, tree_row, choice_row in backup:
                 if tree_row is not missing:
@@ -377,14 +378,14 @@ class LoadAndSaveData:
         #'''- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - '''
 
     def load_easyhybrid_serialization_file (self, filename = None, tmp = False):
-        self.main.restart() 
-        self.main.bottom_notebook.status_teeview_add_new_item(message = ':  {}  loaded'.format(filename), 
-                                                               system =  None )
         if filename is None:
             return None
-        with open(filename, "rb") as f:
-            # Load the object from the file
-            easyhybrid_session_data = pickle.load(f)
+        # Read and validate before clearing the current session. A truncated,
+        # corrupt, or newer-format file must not destroy the live project.
+        easyhybrid_session_data = read_project_file(filename)
+        self.main.restart()
+        self.main.bottom_notebook.status_teeview_add_new_item(
+            message=':  {}  loaded'.format(filename), system=None)
         #print(easyhybrid_session_data)
         
         '''- - - - - - - - - - camera/view orientation - - - - - - - - - - '''
