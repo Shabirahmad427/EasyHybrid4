@@ -88,6 +88,7 @@ scales. The scale test reported `scale_applied=false` and widget scale factor
 1, so this does not establish Retina/HiDPI support. This focused result was
 superseded by matrix `39717469974`, which passed native pointer cycles in all
 configured macOS arm64 GTK minors and Intel macOS GTK 4.8/4.10.
+**Report date:** 2026-10-21
 
 **Purpose:** One consolidated source for repository, architecture, dependency,
 GTK/Python compatibility, parity, platform, testing, and known-limitation
@@ -263,6 +264,36 @@ display-backed Xvfb monitor-geometry check passed **1/1** on 2026-10-21.
 Restoring an oversized window on physical displays, monitor hot-plug or scale
 transitions, Wayland, Retina, Windows/macOS and other GTK runtimes remain
 **NOT TESTED**; EH4-302 stays unchecked.
+**EH4-303 installation instructions (2026-10-21; partial):** the root README
+documents a conda-forge GTK 4.24.1 baseline environment, native compiler
+prerequisites, the graphics-extension build, separate pDynamo3 setup, and
+Linux/macOS plus PowerShell launch environment variables. A fresh conda-forge
+environment on Linux x86_64 installed Python 3.12.15, GTK 4.24.1, PyGObject
+3.58.1, GLib 2.90.0, and NumPy 2.5.4. With user-site packages disabled, all
+seven Cython extensions built using that environment's NumPy headers and
+imported successfully; the native GTK startup/icon smoke passed three window
+cycles under Xvfb/X11 and Mesa 25.2.8 llvmpipe (OpenGL 4.5 Core). An initial
+build exposed contamination by the host's user-site NumPy 1.x headers, so the
+README now advises disabling user-site packages during builds.
+
+An explicit package-URL lock for Linux x86_64 was exported from that verified
+runtime. On Linux Mint 22.3 x86_64, the lock recreated a fresh conda prefix;
+all seven extensions built from a clean source copy and imported, and the GTK
+startup/icon smoke again passed three open/close cycles. The replay used
+Python 3.12.15 / PyGObject 3.58.1 / GTK 4.24.1 / GLib 2.90.0 / NumPy 2.5.4
+and the NVIDIA GeForce RTX 4060 Ti OpenGL 4.6.0 backend. This is Linux GTK
+4.24.1 developer-install evidence only: Windows/macOS and other GTK minor
+locks, packaged launchers, and full pDynamo3 installation remain **NOT
+TESTED**. EH4-303 remains unchecked.
+
+The lock replay's GTK window smoke must be launched with `conda run` (or an
+activated environment) so the prefix's GTK runtime variables and libraries
+are present. Calling the prefix `python` directly bypassed these and could
+not open the Xvfb display. The installer-manifest test passed separately with
+`pytest --noconftest` (2 passed); the default repository `conftest.py` imports
+existing source-tree binary extensions built against NumPy 1.x, which cannot
+load in the locked NumPy 2.5.4 environment. This test invocation adjustment
+does not change the recorded clean-copy build/import evidence.
 
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
