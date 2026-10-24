@@ -471,6 +471,17 @@ print(result["text"])
     assert stdout.rstrip("\r\n") == expected
 
 
+@needs_display
+def test_display_monitor_geometry_limits_restored_window_size():
+    from src.gtk4_compat import clamp_window_size_to_monitors, monitor_geometry_sizes
+
+    sizes = monitor_geometry_sizes(Gdk.Display.get_default())
+    assert sizes, "GDK did not report any connected monitor geometry"
+    width, height = clamp_window_size_to_monitors(10000, 10000, sizes)
+    assert width <= max(size[0] for size in sizes) - 48
+    assert height <= max(size[1] for size in sizes) - 96
+
+
 def test_xtb_worker_callbacks_skip_closed_window_widgets():
     from gui.windows.setup.xtb_fragment_charges_window import XtbFragmentChargesWindow
 

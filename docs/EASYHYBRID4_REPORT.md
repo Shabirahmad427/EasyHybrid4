@@ -238,6 +238,31 @@ changing the host desktop clipboard. GTK 4.24.1 printed an unrecognized
 `gl-glx` debug-flag warning, a Mesa DRI3 warning, and an unavailable IBus
 module warning; the tests passed. This remains Linux-only test coverage; all
 other GTK minors and Windows/macOS native integration are **NOT TESTED**.
+**EH4-302 local X11 scale/resize check (2026-10-20; partial):** the real
+Gtk.GLArea renderer validation passed at `GDK_SCALE=1` and `2` on Linux Mint
+22.3 x86_64, Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib 2.80.0,
+Mesa 25.2.8 llvmpipe OpenGL 4.5. At scale 2, the widget scale factor was 2
+and framebuffer dimensions doubled from 420x300 to 840x600; representation
+coverage, projected sizes, picking, viewport resize and export checks passed.
+This is Xvfb/X11 evidence only. Native Wayland, physical HiDPI displays,
+Retina, multi-monitor transitions, Windows/macOS and other GTK runtimes remain
+**NOT TESTED**. EH4-302 stays unchecked.
+
+The renderer check was rerun on 2026-10-21 on the same GTK 4.14.5 environment:
+**1 passed**. With `GDK_SCALE=2`, GTK applied widget scale 2 and doubled the
+GLArea framebuffer to 840x600 from 420x300. All representation, projected
+size, selection, resize, export-difference and GL checks passed at scale 1 and
+2. This remains virtual X11 evidence; physical displays, Wayland, Retina,
+multi-monitor transitions and non-Linux platforms are still **NOT TESTED**.
+
+The main window now bounds restored/default logical dimensions against GDK's
+connected-monitor geometries, with margins for decorations and panels. It
+uses the smallest connected dimensions so a window opened on a secondary
+monitor remains reachable. The compatibility tests passed **9/9**, and a
+display-backed Xvfb monitor-geometry check passed **1/1** on 2026-10-21.
+Restoring an oversized window on physical displays, monitor hot-plug or scale
+transitions, Wayland, Retina, Windows/macOS and other GTK runtimes remain
+**NOT TESTED**; EH4-302 stays unchecked.
 
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
