@@ -18,14 +18,16 @@
 
 ## Latest full native matrix (2026-10-24)
 
-Run [`40050468870`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40050468870)
-passed **30/30** configured native cells on branch
-`eh4-205-graphics-fallback-diagnostics`. Every cell passed five native
-full-app OS-pointer pick/render/close cycles, five production menu/VisMol
-cycles, the regression suite and renderer validation. The artifacts were
-downloaded and checked for actual OS/architecture, Python, PyGObject, GTK
-patch, GLib and GL backend; each is available under the linked run's
-platform-specific `gtk-*-results` artifact.
+Run [`40102390980`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40102390980)
+passed **30/30** configured native cells on PR #6 head `341a7cc`, merged as
+`b676d00`. Every cell passed five full-app native OS-pointer pick, session
+save/reopen, render and clean-close cycles, five production molecule-scene
+cycles, widget-pattern checks and renderer validation. All 30 artifacts were
+downloaded and checked for OS/architecture, Python, PyGObject, GTK patch,
+GLib and GL backend; each is available under the linked run's
+platform-specific `gtk-*-results` artifact. On GTK 4.24, the full regression
+suite passed with 165 passed/16 skipped on Linux, 163/18 on Windows and 163/18
+on macOS arm64.
 
 | GTK minor | Linux x86_64 runtime(s) | Windows x86_64 | macOS arm64 | macOS x86_64 |
 |---|---|---|---|---|

@@ -154,14 +154,14 @@ uses a module-level skip on non-Linux OSes. Keep those shell-launcher tests
 active on Linux, and do not treat their Windows/macOS skips as packaging
 acceptance for those platforms.
 
-**Windows full-app harness command length (observed 2026-10-24):** PR #6
-matrix run `40052058048` failed the full-app lifecycle test on Windows GTK
-4.8.2 and 4.10.1 before EasyHybrid launched. Passing its full embedded Python
-program through `python -c` exceeded Windows `CreateProcess` limits
-(`WinError 206`). The first fix wrote the program to a temporary `.py` file
-and executed it directly; follow-up run `40101418631` then failed because that
-changed `sys.path[0]`, so the child could not import the repository's `src`
-package. `_run_full_app_cycle()` now uses a short `python -c` bootstrap to run
-the temp file with `runpy`, retaining the original working-directory import
-behavior while keeping the command short. Focused regression: **1 passed**.
-Rerun the full matrix before merge; neither run is acceptance evidence.
+**Windows full-app harness command length (resolved 2026-10-24):** PR #6
+matrix run `40052058048` exposed Windows `WinError 206` when the full embedded
+Python program was passed through `python -c`. The first fix wrote it to a
+temporary `.py` file and ran it directly; run `40101418631` then exposed that
+the changed `sys.path[0]` prevented importing the repository's `src` package.
+`_run_full_app_cycle()` now uses a short `python -c` bootstrap and `runpy` to
+run the temporary file while retaining working-directory imports. The focused
+regression passed, and corrected full matrix `40102390980` passed all 30 cells
+on head `341a7cc` (merged as `b676d00`). The artifacts confirm five full-app
+native pointer/session/render/close cycles and five scene cycles in every
+cell. Neither prior failure run is acceptance evidence.

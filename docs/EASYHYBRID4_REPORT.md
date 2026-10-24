@@ -24,22 +24,28 @@ Cancellation, progress reporting, GUI responsiveness, and unexpected worker
 crash detection remain unverified.
 
 **Current roadmap pointer:** EH4-200 graphics-engine provenance audit. EH4-203
-still needs physical macOS trackpad review. EH4-204 and EH4-205 passed their
-configured full native acceptance; EH4-200 provenance, EH4-301 clipboard and
-accessibility, and packaging tasks remain open.
+still needs physical macOS trackpad review. EH4-204, EH4-205 and EH4-400–405
+passed their configured native matrix acceptance; domain-specific scientific
+and persistence criteria remain tracked separately. EH4-200 provenance,
+EH4-301 clipboard/accessibility, and packaging tasks remain open.
 
-**EH4-405 batch PR #6 matrix status:** first run
-[`40052058048`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40052058048)
-stopped on Windows `CreateProcess` command length (`WinError 206`) before app
-startup. Follow-up run
-[`40101418631`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40101418631)
-then found the temporary script launch changed `sys.path[0]`, preventing
-`src` imports. The harness now uses a short `runpy` bootstrap to retain the
-working-directory import path; its focused regression passed locally. A full
-native matrix on the latest corrected PR head is required before merge.
+**EH4-405 batch PR #6 matrix status:** corrected head `341a7cc`, merged as
+`b676d00`, passed full matrix
+[`40102390980`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40102390980)
+**30/30**. All 30 runtime artifacts confirm five full-app native pick,
+`.easy` session save/reopen, render and clean-close cycles and five production
+scene cycles; widget-pattern and renderer validation also passed. The GTK
+4.24 full regression suite passed 165 tests (16 skipped) on Linux, 163 (18
+skipped) on Windows, and 163 (18 skipped) on macOS arm64. Exact versions and
+platform coverage are in [`GTK4_COMPATIBILITY.md`](GTK4_COMPATIBILITY.md).
+Earlier fail-fast runs `40052058048` and `40101418631` exposed two harness
+defects: an oversized Windows inline command (`WinError 206`) and then a
+working-directory import loss from direct temp-script execution. The final
+short `runpy` bootstrap fixes both; focused regression: **1 passed**. The
+failed runs are not acceptance evidence.
 
 **Latest native full-matrix status (2026-10-24): PASS, 30/30 cells.** Run
-[`40050468870`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40050468870)
+[`40102390980`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40102390980)
 passed the Linux x86_64, Windows x86_64 and macOS arm64 GTK 4.8–4.24 cells,
 plus Intel macOS GTK 4.8/4.10. Runtime artifacts confirm exact GTK, GLib,
 Python, PyGObject, OS/architecture and renderer versions. Each cell passed
