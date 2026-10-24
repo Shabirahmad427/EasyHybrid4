@@ -184,7 +184,19 @@ def test_user_selected_opengl_platform_is_preserved():
     )
 
     assert environment["PYOPENGL_PLATFORM"] == "glx"
-    assert environment["GDK_DEBUG"] == "gl-prefer-gl:gl-glx"
+    assert environment["GDK_DEBUG"] == "gl-prefer-gl"
+
+
+def test_gtk424_x11_uses_egl_without_removed_gdk_debug_flag():
+    # GTK 4.24.1 reports 'Unrecognized value "gl-glx"' for GDK_DEBUG.
+    environment = {"DISPLAY": ":99"}
+
+    configure_gl_context_environment(
+        platform="linux", environ=environment, runtime_version=(4, 24)
+    )
+
+    assert environment["PYOPENGL_PLATFORM"] == "egl"
+    assert "gl-glx" not in environment.get("GDK_DEBUG", "").split(":")
 
 
 def test_user_paths_follow_platform_conventions_and_unicode(tmp_path):

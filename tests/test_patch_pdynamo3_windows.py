@@ -108,7 +108,7 @@ def test_native_matrix_uses_scratch_and_keeps_windows_legacy_dispatch_focused():
     # must not inject unrelated Intel macOS cells into a focused failure retry.
     assert (
         "(inputs.scope == 'linux-gtk48' || inputs.scope == 'windows' || inputs.scope == 'windows-legacy' "
-        "|| inputs.scope == 'macos-diagnostic' || inputs.scope == 'macos-gtk424') "
+        "|| inputs.scope == 'windows-gtk420' || inputs.scope == 'macos-diagnostic' || inputs.scope == 'macos-gtk424') "
         "&& '[]'"
     ) in workflow
 

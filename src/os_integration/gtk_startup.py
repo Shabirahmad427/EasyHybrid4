@@ -138,7 +138,13 @@ def configure_gl_context_environment(*, platform=None, environ=None,
             # Some distro GTK 4.16/4.18 builds reject ``gl-glx`` and fall
             # back to EGL. Keep PyOpenGL on GTK's backend there; forcing GLX
             # gives PyOpenGL a wrapper with no current context.
-            if version is not None and (4, 16) <= tuple(version[:2]) < (4, 20):
+            # GTK 4.24 removed ``gl-glx`` ('Unrecognized value') and its X11
+            # GLArea uses EGL (verified with GTK 4.24.1; GLX gives PyOpenGL
+            # no current context).
+            if version is not None and (
+                (4, 16) <= tuple(version[:2]) < (4, 20)
+                or tuple(version[:2]) >= (4, 24)
+            ):
                 environ.setdefault("PYOPENGL_PLATFORM", "egl")
             else:
                 environ.setdefault("PYOPENGL_PLATFORM", "glx")
