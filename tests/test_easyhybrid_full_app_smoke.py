@@ -755,8 +755,14 @@ def test_full_app_native_pointer_test_uses_one_shared_os_dispatcher():
     assert "xdotool" not in _FULL_APP_CYCLE
 
 
-def _run_full_app_cycle(fixture, environment, cycle, timeout=60):
-    """Run one app cycle; on timeout keep its partial output and native stack."""
+def _run_full_app_cycle(fixture, environment, cycle, timeout=90):
+    """Run one app cycle; on timeout keep its partial output and native stack.
+
+    macOS GTK 4.24 can defer the post-pick GLib callback until the in-app
+    45 s watchdog verifies the completed GL readback; with the .easy
+    save/reopen/render that left too little of a 60 s budget (run
+    40044668172: cycle 4 printed CLOSED=True, then hit the limit).
+    """
     process = subprocess.Popen(
         [sys.executable, "-c", _FULL_APP_CYCLE, str(fixture)],
         cwd=Path(__file__).resolve().parents[1],
@@ -779,7 +785,9 @@ def _run_full_app_cycle(fixture, environment, cycle, timeout=60):
                 timeout=30,
                 check=False,
             )
-            native_stack = sampled.stdout[-12000:] + sampled.stderr[-2000:]
+            # The call graph precedes the long binary-image list.
+            report = sampled.stdout.split("Binary Images:")[0]
+            native_stack = report[:16000] + sampled.stderr[-2000:]
         process.kill()
         stdout, stderr = process.communicate()
         pytest.fail(
