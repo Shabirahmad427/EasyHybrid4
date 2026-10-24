@@ -519,3 +519,24 @@ Next eligible task:
 - A large refactor must first be split into small deliverables with separate tests and rollback boundaries.
 - Keep platform and GTK specifics in tests/adapters, not in feature logic.
 - Never commit secrets, private credentials or large proprietary molecular inputs as test fixtures.
+
+## Deleted superseded branches (2026-10-24)
+
+Earlier attempts whose work was reviewed, ported where useful, and replaced by merged PRs #4–#10 (each final version passed the 30-cell native matrix). Deleted from GitHub with the maintainer's approval; restore any of them with `git push origin <commit>:refs/heads/<branch>` while the commit remains in a clone. Fully merged branches were also deleted; their commits are in `main`.
+
+| Branch | Tip commit |
+|---|---|
+| `eh4-202-gtk-gesture-release-marshalling` | `4cd83bac348f3645fa32942bf70bb792622aca86` |
+| `eh4-202-native-pointer-cross-platform` | `d585cf92587406eb2bb2914bb1beb8517004a5fd` |
+| `eh4-202-native-pointer-windows-macos` | `a16a7950602689b16510b4c272497e55c7be7b0a` |
+| `eh4-203-input-semantics` | `992f2fd6e09ae5d3e209dc4690b59f352b80205e` |
+| `eh4-203-input-semantics-scroll-pan` | `cb4df328b8436b812eac6da88cc761cfbe46d0fa` |
+| `eh4-203-scroll-input-semantics` | `47ac942af63d6a852212df8c1717fd0ee0426906` |
+| `eh4-203-scroll-input-semantics-stacked` | `31ba850f1b7ddfff250b3fa1880d840cdef89c48` |
+| `eh4-203-scroll-semantics-full-matrix` | `37f853b441131800af064ee132a2d023a470308a` |
+| `eh4-204-molecular-interaction-regression` | `b75ea3c5335fa5ee5784aab8fcb40e34e01510c4` |
+| `eh4-204-molecular-selection-workflow` | `a756be9f06f7d438549d29a8ec9b26e06a9170c6` |
+| `eh4-204-selection-camera-state` | `c67dfa5b3a75fc6db27375e48c0b7d088b968f65` |
+| `eh4-204-selection-camera-state-stacked` | `981cd8e0c2795faac97b2694553f756aead7274d` |
+| `eh4-205-graphics-fallback-messaging` | `50e36ffada3d1da478c8134579a41ebfeb113d25` |
+| `eh4-205-graphics-fallback-messaging-stacked` | `f14d6249f6bf0ab817f5b3128e95fd69832dca80` |
