@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[2]
 TESTS = (
     "tests/test_pdynamo_mm_workflow.py",
     "tests/test_reaction_coordinate_workflow.py",
+    "tests/test_simulation_sample_calculations.py",
     "tests/test_simulation_process_errors.py",
     "tests/test_process_cancellation.py",
     "tests/test_project_persistence.py",
