@@ -140,6 +140,17 @@ def configure_gl_context_environment(*, platform=None, environ=None,
             # gives PyOpenGL a wrapper with no current context.
             if version is not None and (4, 16) <= tuple(version[:2]) < (4, 20):
                 environ.setdefault("PYOPENGL_PLATFORM", "egl")
+            elif version is not None and tuple(version[:2]) >= (4, 24):
+                # GTK 4.24 removed ``gl-glx`` ('Unrecognized value') and picks
+                # EGL or GLX per system: EGL on native NVIDIA X11, GLX on
+                # Xvfb/Mesa (GTK 4.24.1). Pin GLX with GDK_DISABLE=egl so it
+                # matches PyOpenGL, unless the user chose EGL explicitly.
+                platform_name = environ.setdefault("PYOPENGL_PLATFORM", "glx")
+                if platform_name == "glx":
+                    disabled = environ.get("GDK_DISABLE", "").replace(",", ":").split(":")
+                    if "egl" not in disabled:
+                        disabled.append("egl")
+                    environ["GDK_DISABLE"] = ":".join(flag for flag in disabled if flag)
             else:
                 environ.setdefault("PYOPENGL_PLATFORM", "glx")
                 flags = environ.get("GDK_DEBUG", "").replace(",", ":").split(":")

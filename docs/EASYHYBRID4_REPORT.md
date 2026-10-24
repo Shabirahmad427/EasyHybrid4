@@ -2,12 +2,12 @@
 
 **Report date:** 2026-10-22
 
-**Current roadmap pointer:** EH4-203. EH4-202 passed all configured native
-software-renderer cells in matrix `39717469974` (30/30), but a later Windows
-pointer-hit regression reopened acceptance pending a focused native recheck.
+**Current roadmap pointer:** EH4-204. EH4-203's automated matrix passed in
+`39801594903`; actual macOS trackpad review remains pending. EH4-204 is in
+progress on `eh4-204-molecular-selection-workflow`.
 
 **Latest native full-matrix status (2026-10-22): PASS, 30/30 cells.** Run
-[`39717469974`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39717469974)
+[`39801594903`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39801594903)
 passed the complete Linux x86_64, Windows x86_64 and macOS arm64 GTK 4.8–4.24
 matrix, plus Intel macOS GTK 4.8/4.10. Runtime artifacts confirm exact GTK,
 GLib, Python, PyGObject, OS/architecture and renderer versions. Each cell
@@ -15,26 +15,16 @@ passed five full `EasyHybridApplication`/`MainWindow` cycles with real
 pDynamo3 fixture loading, native OS pointer input (Linux XTest, Windows
 Win32, macOS Quartz), oxygen `O:0` picked, a completed render and clean close.
 Each cell also passed five production menu/VisMol scene cycles and its
-regression/render checks. The earlier macOS GTK 4.24 poll-delay failures are
-resolved by scheduling close after the pick render and retaining the
-readback-verified watchdog fallback. The Windows pointer error showing cursor
-`(613,444)` and target client point `(613,345)` later recurred in a
-user-provided failure excerpt. Its point is consistent with the window's
-99-pixel screen origin, but hit HWND `328186` differs from EasyHybrid HWND
-`393616`; the excerpt does not identify the hit HWND's title, class, or owner.
-The helper now accepts only the target HWND, a child, or a window whose Win32
-`GA_ROOTOWNER` is the target. This rejects unrelated foreground windows while
-allowing an owned GTK helper window. Local regression tests pass; native
-Windows confirmation is pending, so EH4-202 is unchecked again. The helper
-minimizes only the positively identified HostedComputeAgent console blocker.
-See the matrix evidence entry in
+regression/render checks. Two GTK 4.8 macOS job records initially appeared in
+progress despite the successful workflow summary; GitHub later reported all
+30 jobs completed successfully with no failures. The matrix uses hosted
+software renderers. Physical GPUs, Wayland, Retina/HiDPI and trackpad behavior
+remain separately **NOT TESTED**. See the matrix evidence entry in
 [`ROADMAP.md`](ROADMAP.md) and detailed versions in
 [`GTK4_COMPATIBILITY.md`](GTK4_COMPATIBILITY.md).
 
-The matrix is hosted software-renderer evidence. Physical GPU behavior, Linux
-Wayland, Retina/HiDPI on physical displays and real trackpad behavior remain
-**NOT TESTED**. EH4-202 configured-context acceptance is complete; these
-hardware/backend limitations remain assigned to EH4-203 and EH4-302.
+Real trackpad behavior remains assigned to EH4-203; display scaling remains
+under EH4-302.
 
 **Windows GTK 4.20 repeated-launch pointer failure (2026-10-22):** full
 matrix run [`39708415015`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39708415015)
@@ -102,6 +92,78 @@ configured macOS arm64 GTK minors and Intel macOS GTK 4.8/4.10.
 **Purpose:** One consolidated source for repository, architecture, dependency,
 GTK/Python compatibility, parity, platform, testing, and known-limitation
 status. The permanent task queue remains [`ROADMAP.md`](ROADMAP.md).
+
+**EH4-203 scroll semantics (2026-10-22; full native matrix passed, trackpad review pending):** GTK's
+`EventControllerScroll.get_unit()`/`Gdk.ScrollUnit` capability is detected on
+GTK 4.8.2, 4.14.5 and 4.24.1. VisMol requests continuous deltas wherever that
+capability exists, normalizes wheel detents and surface logical pixels to a
+positive-down convention, and accumulates fractional deltas. Both units read
+Ctrl/Shift from the current event and apply them only while dispatching the
+normalized action, preserving the previous GL-core modifier state. Incomplete
+typelibs keep the discrete fallback. The focused delta, event-unit, direction
+and modifier tests passed **3/3** on each of three local Linux GTK runtimes
+(GTK 4.8.2, 4.14.5 and 4.24.1). This was native Linux Mint 22.3 x86_64 with
+Python 3.12.15/PyGObject 3.58.1/GLib 2.90.0 for GTK 4.8.2 and 4.24.1, and
+Python 3.12.3/PyGObject 3.48.2/GLib 2.80.0 for GTK 4.14.5. The tests exercised
+the production scroll callback with deterministic event-unit inputs; they did
+not create a GL context or use a physical input device. Corrected full native
+matrix run
+[`39801594903`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39801594903)
+completed successfully across 30 cells: Linux x86_64, Windows x86_64 and
+macOS arm64 for GTK 4.8–4.24, plus Intel macOS GTK 4.8/4.10. All 30 runtime
+artifacts confirm exact OS/architecture, Python, PyGObject, GTK patch, GLib
+and GL backend. Each reports passing widget-pattern tests, five full-app
+native pointer pick/render/close cycles and five production menu/VisMol
+cycles. The first attempt `39799035762` exposed workflow test ordering:
+widget-pattern tests imported `vismol.utils.matrix_operations` before Cython
+extensions were built, so no scroll assertion was reached in those jobs.
+Commit `f57cf86` builds graphics extensions before widget-pattern tests in all
+four workflow configurations; its static ordering guard passes locally.
+EH4-203 remains unchecked pending physical macOS trackpad review, which is
+**NOT TESTED** by the hosted synthetic-event tests.
+
+**EH4-204 selection-state correction (2026-10-22; partial):** viewing
+selection clear now resets `Atom.selected`, `selected_objects`, and the
+per-object ID buffer. Programmatic index selection and invert-selection now
+rebuild the atom set, object set, flags and ID buffers consistently. Focused
+production selection regressions cover atom-only selection, whole-residue
+select/toggle, clear, index selection, invert, and atom label text. Six
+focused tests pass on Linux GTK 4.8.2 and GTK 4.24.1. The opt-in real-app
+water fixture test verifies a native Linux XTest oxygen click selects all
+three water atoms in default residue mode, then clears and checks oxygen-only
+atom mode. It also uses production session controls to hide/show the oxygen
+nonbonded representation and show/draw/hide its `O` text through the atom label
+representation. The full-app cycle passed at GTK 4.24.1, Python 3.12.15, PyGObject
+3.58.1 and GLib 2.90.0, using pDynamo3
+`6b28dd8958e1a705fcdca130f4ab862a8af8de82` compiled in a disposable Python
+3.12 tree. X11/Xvfb used EGL/PyOpenGL and Mesa 25.2.8 llvmpipe (LLVM 20.1.2),
+OpenGL 4.5 Core; fixture load, pick, selection assertions, render and close
+passed. The session serializer now delegates camera capture/restore to a
+separately tested helper. Camera helper tests cover pickle round-trip, viewport
+and matrix restoration, old payloads without viewport dimensions, absent
+camera state, and best-effort GTK size-request failure. The combined camera and
+selection tests pass on local Linux GTK 4.8.2 and 4.24.1. A subsequent one-cycle
+full-app check at GTK 4.24.1 also passes after the serializer refactor, confirming
+the production module import and water load/native pick/render/close path. That
+same real-app fixture now exercises the production pk1/pk2/pk3 measurement
+workflow and checks both water O–H distances and the H–O–H angle against the
+known fixture coordinates; it passes locally at GTK 4.24.1.
+The user's Python 3.10 pDynamo3 environment/source was not modified. This is
+local Linux evidence only; full `.easy` save/reopen integration, multi-cycle
+full-app coverage on this branch, and the all-platform/all-version matrix
+remain pending.
+EH4-204 remains unchecked. Index-selection and invert changes pass focused
+unit coverage but are not yet exercised by the full-app scenario.
+
+**EH4-204 `.easy` round trip (2026-10-23; partial):** commit `aeeb4e7` makes
+the real-app fixture save a `.easy` session, corrupt the live camera, reopen
+it and require restored camera matrices plus a rendered scene. This passed
+5/5 native-pointer cycles on Linux X11 GTK 4.24.1 (NVIDIA, EGL). GTK 4.24.1
+rejects `GDK_DEBUG=gl-glx` and selects EGL or GLX per X11 system (EGL on
+native NVIDIA, GLX in the CI conda Xvfb cell); a PyOpenGL mismatch leaves no
+current context. Commit `611eac0` pins GLX with `GDK_DISABLE=egl` and passed
+5/5 locally on native NVIDIA X11 and Xvfb llvmpipe. All-platform/all-minor
+matrix run `40043447733` is pending.
 
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)

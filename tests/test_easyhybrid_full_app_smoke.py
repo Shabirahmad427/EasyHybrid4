@@ -20,6 +20,7 @@ _FULL_APP_CYCLE = textwrap.dedent(
     import sys
     import time
     import faulthandler
+    import pickle
     import numpy as np
 
     from src.os_integration.gtk_startup import configure_startup_environment
@@ -68,6 +69,43 @@ _FULL_APP_CYCLE = textwrap.dedent(
         app.quit()
         return GLib.SOURCE_REMOVE
 
+    def finish_session_round_trip(main, expected_camera):
+        core = main.vm_session.vm_glcore
+        if state["core_renders"] <= state["session_render_baseline"]:
+            if time.monotonic() - state["session_round_trip_started"] > 8:
+                return fail("reopened .easy session did not render")
+            return GLib.SOURCE_CONTINUE
+
+        main.vm_session.vm_widget.make_current()
+        gl_error = GL.glGetError()
+        if gl_error != GL.GL_NO_ERROR:
+            return fail("reopened .easy session left OpenGL error 0x%x" % gl_error)
+        if len(main.p_session.psystem) != 1 or len(main.vm_session.vm_objects_dic) != 1:
+            return fail("reopened .easy session did not restore its system and molecule")
+        if not np.array_equal(core.model_mat, expected_camera["model_mat"]):
+            return fail("reopened .easy session did not restore model matrix")
+        if not np.array_equal(
+            core.zero_reference_point, expected_camera["zero_reference_point"]
+        ):
+            return fail("reopened .easy session did not restore camera reference point")
+        if not np.array_equal(
+            core.glcamera.view_matrix, expected_camera["view_matrix"]
+        ):
+            return fail("reopened .easy session did not restore view matrix")
+        if core.dist_cam_zrp != expected_camera["dist_cam_zrp"]:
+            return fail("reopened .easy session did not restore camera distance")
+        print("EASYHYBRID_FULL_APP_CAMERA_SESSION_ROUND_TRIP=True", flush=True)
+        print("EASYHYBRID_FULL_APP_SESSION_REOPEN_RENDER=True", flush=True)
+
+        # Session load restores a dirty session; discard this generated test
+        # fixture and close through the normal MainWindow lifecycle.
+        main.p_session.changed = False
+        main.window.close()
+        main.window.set_visible(False)
+        state["closed"] = True
+        app.quit()
+        return GLib.SOURCE_REMOVE
+
     def complete_pick(main):
         # Finish after the production GL pick pass selected the fixture O.
         if state.get("completion_started"):
@@ -84,6 +122,93 @@ _FULL_APP_CYCLE = textwrap.dedent(
         picked = main.vm_session.vm_glcore.atom_picked
         molecule = state["molecule"]
         print("EASYHYBRID_FULL_APP_PICK=O:%s" % picked.atom_id, flush=True)
+        viewing_selection = main.vm_session.selections[
+            main.vm_session.current_selection
+        ]
+        residue_atom_ids = {atom.atom_id for atom in molecule.atoms.values()}
+        selected_atom_ids = {
+            atom.atom_id for atom in viewing_selection.selected_atoms
+        }
+        if selected_atom_ids != residue_atom_ids:
+            return fail(
+                "production residue pick selected atom IDs %r, expected %r"
+                % (sorted(selected_atom_ids), sorted(residue_atom_ids))
+            )
+        print(
+            "EASYHYBRID_FULL_APP_RESIDUE_SELECTION=%d"
+            % len(viewing_selection.selected_atoms),
+            flush=True,
+        )
+
+        # Exercise atom mode through the same production viewing-selection
+        # object and confirm it replaces the residue selection precisely.
+        viewing_selection.selection_function_viewing_set(None)
+        viewing_selection.selection_mode = "atom"
+        viewing_selection.selection_function_viewing_set({picked}, disable=False)
+        atom_selection_ids = {
+            atom.atom_id for atom in viewing_selection.selected_atoms
+        }
+        if atom_selection_ids != {picked.atom_id}:
+            return fail(
+                "production atom selection returned %r, expected [%r]"
+                % (sorted(atom_selection_ids), picked.atom_id)
+            )
+        print("EASYHYBRID_FULL_APP_ATOM_SELECTION=True", flush=True)
+
+        # Exercise the real session representation controls for the selected
+        # atom and its label. Assertions inspect the production index list and
+        # atom flags consumed by the renderer.
+        main.vm_session.show_or_hide(rep_type="nonbonded", show=False)
+        nonbonded = molecule.representations["nonbonded"]
+        if picked.nonbonded or picked.atom_id in nonbonded.indexes:
+            return fail("production nonbonded hide left oxygen visible")
+        main.vm_session.show_or_hide(rep_type="nonbonded", show=True)
+        if not picked.nonbonded or picked.atom_id not in nonbonded.indexes:
+            return fail("production nonbonded show did not restore oxygen")
+
+        picked.label_text = picked.name
+        main.vm_session.show_or_hide(rep_type="labels", show=True)
+        label_representation = molecule.representations["labels"]
+        if not picked.labels or picked.atom_id not in label_representation.indexes:
+            return fail("production atom label was not added to the label representation")
+        label_entries = []
+        label_representation.vm_glcore._draw_text_labels = (
+            lambda _font, entries, **_kwargs: label_entries.extend(entries)
+        )
+        label_representation.draw_representation()
+        if not any(entry[0] == "O" for entry in label_entries):
+            return fail("production atom label draw did not emit oxygen text")
+        main.vm_session.show_or_hide(rep_type="labels", show=False)
+        if picked.labels or label_representation.active:
+            return fail("production atom label hide did not deactivate the label")
+        print("EASYHYBRID_FULL_APP_LABEL_REPRESENTATION=True", flush=True)
+        print("EASYHYBRID_FULL_APP_SCENE_REPRESENTATION=True", flush=True)
+
+        # Run the production pk1/pk2/pk3 measurement workflow on the loaded
+        # water geometry: H1-O and O-H2 distances, plus the H1-O-H2 angle.
+        atoms_by_name = {atom.name: atom for atom in molecule.atoms.values()}
+        picking = main.vm_session.picking_selections
+        picking.selection_function_picking(atoms_by_name["H1"])
+        picking.selection_function_picking(atoms_by_name["O"])
+        picking.selection_function_picking(atoms_by_name["H2"])
+        if not np.isclose(picking.dist_pk1_pk2, 0.957, atol=0.002):
+            return fail(
+                "production H1-O measurement was %r, expected 0.957 angstrom"
+                % picking.dist_pk1_pk2
+            )
+        if not np.isclose(picking.dist_pk2_pk3, 0.957, atol=0.002):
+            return fail(
+                "production O-H2 measurement was %r, expected 0.957 angstrom"
+                % picking.dist_pk2_pk3
+            )
+        if not np.isclose(picking.theta_deg, 104.5, atol=0.3):
+            return fail(
+                "production H1-O-H2 measurement was %r, expected 104.5 degrees"
+                % picking.theta_deg
+            )
+        picking.selection_function_picking(None)
+        print("EASYHYBRID_FULL_APP_GEOMETRY_MEASUREMENTS=True", flush=True)
+
         print("EASYHYBRID_FULL_APP_SYSTEMS=%d" % len(main.p_session.psystem), flush=True)
         system = next(iter(main.p_session.psystem.values()))
         print("EASYHYBRID_FULL_APP_SYSTEM_LABEL=%s" % system.label, flush=True)
@@ -92,15 +217,73 @@ _FULL_APP_CYCLE = textwrap.dedent(
         print("EASYHYBRID_FULL_APP_GL_VERSION=%s" % state["gl_version"].decode("ascii", "replace"), flush=True)
         print("EASYHYBRID_FULL_APP_GL_RENDERER=%s" % state["gl_renderer"].decode("utf-8", "replace"), flush=True)
 
-        # A newly loaded system is dirty by design and would open the real
-        # save-confirmation dialog. This renderer regression discards only its
-        # temporary fixture, then follows MainWindow's standard close handler.
-        main.p_session.changed = False
-        main.window.close()
-        main.window.set_visible(False)
-        state["closed"] = True
-        app.quit()
+        # Exercise the actual .easy serializer and loader with a generated
+        # filename. Corrupt the live camera after saving so reopening must
+        # restore the serialized view, then require a real scene render.
+        session_path = os.path.join(os.path.dirname(fixture), "camera-roundtrip.easy")
+        live_tree_row = getattr(system, "tree_row", None)
+        live_choice_row = getattr(system, "system_choice_row", None)
+        print("EASYHYBRID_FULL_APP_SESSION_SAVE_STARTED=True", flush=True)
+        main.p_session.save_easyhybrid_session(filename=session_path)
+        if system.tree_row is not live_tree_row:
+            return fail("session save did not restore the live system tree row")
+        if system.system_choice_row is not live_choice_row:
+            return fail("session save did not restore the live system choice row")
+        with open(session_path, "rb") as session_file:
+            saved_session = pickle.load(session_file)
+        expected_camera = saved_session.get("camera")
+        if not expected_camera:
+            return fail("saved .easy session omitted camera state")
+        core = main.vm_session.vm_glcore
+        core.model_mat = np.zeros_like(core.model_mat)
+        core.zero_reference_point = np.zeros_like(core.zero_reference_point)
+        core.dist_cam_zrp = -1.0
+        core.glcamera.set_view_matrix(np.zeros_like(core.glcamera.view_matrix))
+        core.glcamera.set_projection_matrix(
+            np.zeros_like(core.glcamera.projection_matrix)
+        )
+        main.p_session.load_easyhybrid_serialization_file(filename=session_path)
+        print("EASYHYBRID_FULL_APP_SESSION_LOADED=True", flush=True)
+        core = main.vm_session.vm_glcore
+        if not np.array_equal(core.model_mat, expected_camera["model_mat"]):
+            return fail(".easy load did not immediately restore model matrix")
+        if not np.array_equal(
+            core.zero_reference_point, expected_camera["zero_reference_point"]
+        ):
+            return fail(".easy load did not immediately restore camera reference point")
+        if not np.array_equal(
+            core.glcamera.view_matrix, expected_camera["view_matrix"]
+        ):
+            return fail(".easy load did not immediately restore view matrix")
+        if core.dist_cam_zrp != expected_camera["dist_cam_zrp"]:
+            return fail(".easy load did not immediately restore camera distance")
+        state["molecule"] = next(iter(main.vm_session.vm_objects_dic.values()))
+        state["session_render_baseline"] = state["core_renders"]
+        state["session_round_trip_started"] = time.monotonic()
+        state["phase"] = "rendering_reopened_session"
+        main.vm_session.vm_widget.queue_render()
+        GLib.timeout_add(10, safe_finish_session_round_trip, main, expected_camera)
         return GLib.SOURCE_REMOVE
+
+    def safe_finish_session_round_trip(main, expected_camera):
+        try:
+            return finish_session_round_trip(main, expected_camera)
+        except Exception as error:
+            import traceback
+            traceback.print_exc()
+            return fail(".easy round-trip callback raised %s: %s" % (
+                type(error).__name__, error
+            ))
+
+    def safe_complete_pick(main):
+        try:
+            return complete_pick(main)
+        except Exception as error:
+            import traceback
+            traceback.print_exc()
+            return fail("full-app completion raised %s: %s" % (
+                type(error).__name__, error
+            ))
 
     def poll_app():
         main = getattr(app, "main_window", None)
@@ -191,7 +374,7 @@ _FULL_APP_CYCLE = textwrap.dedent(
                         state["pick_completion_scheduled"] = True
                         state["pick_completion_source"] = GLib.timeout_add(
                             1,
-                            complete_pick, main
+                            safe_complete_pick, main
                         )
                 return result
 
@@ -445,7 +628,7 @@ _FULL_APP_CYCLE = textwrap.dedent(
                 )
             )
 
-        return complete_pick(main)
+        return safe_complete_pick(main)
 
     def safe_poll_app():
         state["poll_calls"] += 1
@@ -481,7 +664,7 @@ _FULL_APP_CYCLE = textwrap.dedent(
             and getattr(picked, "symbol", None) == "O"
         ):
             print("EASYHYBRID_FULL_APP_PICK_COMPLETED_AFTER_POLL_TIMEOUT=True", flush=True)
-            return complete_pick(main)
+            return safe_complete_pick(main)
 
         widget = getattr(getattr(main, "vm_session", None), "vm_widget", None)
         if widget is None:
@@ -565,11 +748,53 @@ def test_full_app_native_pointer_test_uses_one_shared_os_dispatcher():
     assert "from gi.repository import Gdk, GLib, Graphene, Gtk" in _FULL_APP_CYCLE
     assert "inject_native_pointer(\n                    main.window, window_point.x, window_point.y" in _FULL_APP_CYCLE
     assert 'last_pick.get("picked_after") == "O"' in _FULL_APP_CYCLE
-    assert "state[\"pick_completion_source\"] = GLib.timeout_add(\n                        1,\n                        complete_pick, main" in _FULL_APP_CYCLE
+    assert "state[\"pick_completion_source\"] = GLib.timeout_add(\n                        1,\n                        safe_complete_pick, main" in _FULL_APP_CYCLE
     assert 'state["completion_started"] = True' in _FULL_APP_CYCLE
     assert "EASYHYBRID_FULL_APP_PICK_COMPLETED_AFTER_POLL_TIMEOUT=True" in _FULL_APP_CYCLE
     assert "GdkX11" not in _FULL_APP_CYCLE
     assert "xdotool" not in _FULL_APP_CYCLE
+
+
+def _run_full_app_cycle(fixture, environment, cycle, timeout=90):
+    """Run one app cycle; on timeout keep its partial output and native stack.
+
+    macOS GTK 4.24 can defer the post-pick GLib callback until the in-app
+    45 s watchdog verifies the completed GL readback; with the .easy
+    save/reopen/render that left too little of a 60 s budget (run
+    40044668172: cycle 4 printed CLOSED=True, then hit the limit).
+    """
+    process = subprocess.Popen(
+        [sys.executable, "-c", _FULL_APP_CYCLE, str(fixture)],
+        cwd=Path(__file__).resolve().parents[1],
+        env=environment,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        stdout, stderr = process.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        native_stack = ""
+        if sys.platform == "darwin":
+            # faulthandler only shows Python frames; a main loop blocked in
+            # GTK, GSK or the GL driver needs the native call graph.
+            sampled = subprocess.run(
+                ["sample", str(process.pid), "3", "-mayDie"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
+            )
+            # The call graph precedes the long binary-image list.
+            report = sampled.stdout.split("Binary Images:")[0]
+            native_stack = report[:16000] + sampled.stderr[-2000:]
+        process.kill()
+        stdout, stderr = process.communicate()
+        pytest.fail(
+            "full-app cycle %d exceeded %d s\n--- stdout ---\n%s\n--- stderr ---\n%s"
+            "\n--- native stack ---\n%s" % (cycle, timeout, stdout, stderr, native_stack)
+        )
+    return subprocess.CompletedProcess(process.args, process.returncode, stdout, stderr)
 
 
 @pytest.mark.skipif(
@@ -616,20 +841,18 @@ def test_real_easyhybrid_application_mainwindow_load_render_pick_close():
         _write_water_pdb(fixture)
 
         for cycle in range(1, cycles + 1):
-            result = subprocess.run(
-                [sys.executable, "-c", _FULL_APP_CYCLE, str(fixture)],
-                cwd=Path(__file__).resolve().parents[1],
-                env=base_environment,
-                capture_output=True,
-                text=True,
-                timeout=60,
-                check=False,
-            )
+            result = _run_full_app_cycle(fixture, base_environment, cycle)
             print("EASYHYBRID_FULL_APP_CYCLE=%d" % cycle)
             print(result.stdout.strip())
             assert result.returncode == 0, result.stdout + result.stderr
             assert "EASYHYBRID_FULL_APP_MAIN_WINDOW=True" in result.stdout
             assert "EASYHYBRID_FULL_APP_PICK=O:" in result.stdout
+            assert "EASYHYBRID_FULL_APP_RESIDUE_SELECTION=3" in result.stdout
+            assert "EASYHYBRID_FULL_APP_ATOM_SELECTION=True" in result.stdout
+            assert "EASYHYBRID_FULL_APP_LABEL_REPRESENTATION=True" in result.stdout
+            assert "EASYHYBRID_FULL_APP_SCENE_REPRESENTATION=True" in result.stdout
+            assert "EASYHYBRID_FULL_APP_CAMERA_SESSION_ROUND_TRIP=True" in result.stdout
+            assert "EASYHYBRID_FULL_APP_SESSION_REOPEN_RENDER=True" in result.stdout
             if os.environ.get("EASYHYBRID_FULL_APP_NATIVE_POINTER") == "1":
                 expected_pointer = {
                     "linux": "linux-x11-xtest",
