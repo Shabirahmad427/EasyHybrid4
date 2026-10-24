@@ -1,6 +1,6 @@
 # EasyHybrid4 Development and Compatibility Report
 
-**Report date:** 2026-10-23
+**Report date:** 2026-10-24
 
 **Project persistence (partial, EH4-404):** EasyHybrid `.easy` payloads now
 write format version 1; payloads without a version key are treated as legacy
@@ -23,24 +23,23 @@ Linux Xvfb with Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib 2.80.0.
 Cancellation, progress reporting, GUI responsiveness, and unexpected worker
 crash detection remain unverified.
 
-**Current roadmap pointer:** EH4-204. EH4-203's automated matrix passed in
-`39801594903`; actual macOS trackpad review remains pending. EH4-204 is in
-progress on `eh4-204-molecular-selection-workflow`.
+**Current roadmap pointer:** EH4-200 graphics-engine provenance audit. EH4-203
+still needs physical macOS trackpad review. EH4-204 and EH4-205 passed their
+configured full native acceptance; EH4-200 provenance, EH4-301 clipboard and
+accessibility, and packaging tasks remain open.
 
-**Latest native full-matrix status (2026-10-22): PASS, 30/30 cells.** Run
-[`39801594903`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39801594903)
-passed the complete Linux x86_64, Windows x86_64 and macOS arm64 GTK 4.8–4.24
-matrix, plus Intel macOS GTK 4.8/4.10. Runtime artifacts confirm exact GTK,
-GLib, Python, PyGObject, OS/architecture and renderer versions. Each cell
-passed five full `EasyHybridApplication`/`MainWindow` cycles with real
-pDynamo3 fixture loading, native OS pointer input (Linux XTest, Windows
-Win32, macOS Quartz), oxygen `O:0` picked, a completed render and clean close.
-Each cell also passed five production menu/VisMol scene cycles and its
-regression/render checks. Two GTK 4.8 macOS job records initially appeared in
-progress despite the successful workflow summary; GitHub later reported all
-30 jobs completed successfully with no failures. The matrix uses hosted
-software renderers. Physical GPUs, Wayland, Retina/HiDPI and trackpad behavior
-remain separately **NOT TESTED**. See the matrix evidence entry in
+**Latest native full-matrix status (2026-10-24): PASS, 30/30 cells.** Run
+[`40050468870`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40050468870)
+passed the Linux x86_64, Windows x86_64 and macOS arm64 GTK 4.8–4.24 cells,
+plus Intel macOS GTK 4.8/4.10. Runtime artifacts confirm exact GTK, GLib,
+Python, PyGObject, OS/architecture and renderer versions. Each cell passed
+five full `EasyHybridApplication`/`MainWindow` cycles with generated pDynamo3
+fixture loading, native OS pointer input (Linux XTest, Windows Win32, macOS
+Quartz), oxygen `O:0` picked, render and clean close. Each also passed five
+production menu/VisMol scene cycles, the complete regression suite and
+render validation. The matrix uses hosted software renderers. Cross-process
+Windows/macOS clipboard, physical GPUs, Wayland, Retina/HiDPI and trackpad
+behavior remain separately **NOT TESTED**. See the matrix evidence entry in
 [`ROADMAP.md`](ROADMAP.md) and detailed versions in
 [`GTK4_COMPATIBILITY.md`](GTK4_COMPATIBILITY.md).
 
@@ -186,6 +185,20 @@ current context. Commit `611eac0` pins GLX with `GDK_DISABLE=egl` and passed
 5/5 locally on native NVIDIA X11 and Xvfb llvmpipe. All-platform/all-minor
 matrix run `40043447733` is pending.
 
+**EH4-204 native acceptance (2026-10-24; complete):** final-head matrix
+[`40045300452`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40045300452)
+passed **30/30** cells, and focused macOS GTK 4.24 artifact run
+`40045322982` passed. Every cell completed five full-app cycles with native
+OS-pointer selection, atom/residue behavior, labels, measurements,
+representation changes, `.easy` camera save/reopen, render and clean close;
+each passed five production menu/VisMol cycles and rendering/export/picking
+validation. All 30 artifacts record `EASYHYBRID_FULL_APP_CAMERA_SESSION_ROUND_TRIP=True`.
+GTK patches covered Linux 4.8.2–4.24.1 (including Ubuntu 4.16.3, Fedora
+4.16.13, Debian 4.18.6), Windows 4.8.2–4.24.1, macOS arm64 4.8.3–4.24.1,
+and Intel macOS 4.8.2/4.10.1. Hosted GL used Linux llvmpipe/X11, Windows
+llvmpipe/WGL and macOS Apple Software Renderer. Physical GPUs, Retina/HiDPI
+and trackpad behavior remain separate **NOT TESTED** claims.
+
 **EH4-205 focused implementation (2026-10-21):** the production VisMol
 `Gtk.GLArea` now checks the realized OpenGL version before initializing its
 shaders, requires OpenGL 3.3+, and shows a portable GTK4 error window for
@@ -215,6 +228,21 @@ display. GTK 4.24.1 printed `Unrecognized value "gl-glx"` and a missing IBus
 module warning in this local direct-runtime setup, but all six tests passed.
 Other GTK minors, Windows/macOS, and real unsupported hardware remain
 **NOT TESTED**; EH4-205 is still open pending the native matrix.
+
+**EH4-205 native acceptance (2026-10-24; complete):** matrix run
+[`40050468870`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40050468870)
+passed **30/30** cells on the final batch head. All artifacts include a
+passing regression suite, five full-app native pointer pick/render/close
+cycles, five production menu/VisMol cycles and renderer validation. The
+artifacts record exact OS/architecture, Python, PyGObject, GTK patch, GLib and
+backend; GTK coverage includes Linux 4.8.2, 4.10.1, 4.12.1, 4.14.1, 4.16.3,
+4.16.13, 4.18.6, 4.20.3, 4.22.5 and 4.24.1; Windows 4.8.2–4.24.1; macOS
+arm64 4.8.3–4.24.1; and Intel macOS 4.8.2/4.10.1. Software renderers were
+Mesa llvmpipe on Linux and Windows and Apple Software Renderer on macOS. The
+earlier fail-fast runs `40049339951` and `40049843306` exposed two test-scope
+defects; both corrections are documented in `AGENTS.md` and the roadmap, and
+the corrected matrix passed. EH4-205 is complete for configured matrix
+acceptance; physical unsupported GPUs remain **NOT TESTED**.
 
 Rechecked on the implementation branch on 2026-10-21: the diagnostics module
 passed **6/6**, the startup/GL smoke passed with three clean window lifecycle

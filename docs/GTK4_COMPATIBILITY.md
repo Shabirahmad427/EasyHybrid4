@@ -16,15 +16,16 @@
   successful unit test on Linux does not establish a native OS or runtime
   result. See the matrix below and `ROADMAP.md` EH4-501/502.
 
-## Latest full native matrix (2026-10-22)
+## Latest full native matrix (2026-10-24)
 
-Run [`39717469974`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39717469974)
+Run [`40050468870`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40050468870)
 passed **30/30** configured native cells on branch
-`eh4-202-cross-platform-pointer-injection`. Every cell passed five native
-full-app OS-pointer pick/render/close cycles and five production menu/VisMol
-cycles. The artifacts were reviewed for actual OS/architecture, Python,
-PyGObject, GTK patch, GLib and GL backend; each artifact is downloadable from
-the linked run under the platform-specific `gtk-*-results` name.
+`eh4-205-graphics-fallback-diagnostics`. Every cell passed five native
+full-app OS-pointer pick/render/close cycles, five production menu/VisMol
+cycles, the regression suite and renderer validation. The artifacts were
+downloaded and checked for actual OS/architecture, Python, PyGObject, GTK
+patch, GLib and GL backend; each is available under the linked run's
+platform-specific `gtk-*-results` artifact.
 
 | GTK minor | Linux x86_64 runtime(s) | Windows x86_64 | macOS arm64 | macOS x86_64 |
 |---|---|---|---|---|
@@ -44,6 +45,12 @@ test injected XTest, Win32 or Quartz HID pointer events by OS. Physical GPUs,
 Linux Wayland, physical Retina scaling and real trackpad behavior remain
 **NOT TESTED**.
 
+The full suite keeps same-process Unicode clipboard coverage on all platforms.
+The cross-process clipboard assertion is skipped on GitHub-hosted Windows
+because its GTK child reader timed out in run `40049339951`; this does not
+establish whether the issue is GTK/Win32 or the hosted session. Cross-process
+Windows and macOS clipboard behavior remain **NOT TESTED**.
+
 ## Capability handling
 
 `src/gtk4_compat.py` is the shared location for runtime API checks and
@@ -53,7 +60,7 @@ parsing patch-version strings.
 | Feature | Shared handling | Runtime evidence |
 |---|---|---|
 | `Gtk.Picture.set_content_fit()` | `set_picture_contain()` uses `ContentFit.CONTAIN` when both API pieces are exposed; otherwise it uses the older shrink/aspect-ratio pair. The fallback is defensive for runtimes below the supported floor. | Capability branches unit-tested; real window/widget smoke passed on GTK 4.8.2, 4.14.5, and 4.24.1. |
-| `Gtk.EventControllerScroll.get_unit()` | `supports_scroll_unit()`, `scroll_controller_flags()`, and `get_scroll_unit()` select discrete wheel events unless the caller handles surface deltas and the runtime exposes the unit API. `scroll_delta_to_steps()` keeps fractional surface motion and maps discrete wheel deltas to whole steps. | Capability branches, delta accumulation, wheel direction, mouse gesture and key-controller signal payloads are unit/UI tested. Linux GTK 4.14.5 local tests pass; all-platform/minor matrix pending. Physical macOS trackpad remains **NOT TESTED**. |
+| `Gtk.EventControllerScroll.get_unit()` | `supports_scroll_unit()`, `scroll_controller_flags()`, and `get_scroll_unit()` select discrete wheel events unless the caller handles surface deltas and the runtime exposes the unit API. `scroll_delta_to_steps()` keeps fractional surface motion and maps discrete wheel deltas to whole steps. | Capability branches, delta accumulation, wheel direction, mouse gesture and key-controller signal payloads are unit/UI tested. Full matrix `40050468870` passed on all configured platform/minor cells. Physical macOS trackpad remains **NOT TESTED**. |
 | `Gtk.GLArea.set_allowed_apis()` | `set_gl_area_allowed_apis()` selects desktop GL through `set_allowed_apis(Gdk.GLAPI.GL)` where exposed (GTK 4.12+) and uses `set_use_es(False)` on GTK 4.8. | Unit-tested both branches; full EasyHybrid native X11 GL context passed on GTK 4.8.2, 4.14.5, and 4.24.1. |
 | `Gtk.Popover` pointer placement | `src/gui/gtk4_context_menu.py` anchors a `Gdk.Rectangle` through `set_pointing_to()` and opens it with `popup()`. It does not use GTK3's `popup_at_pointer()`. | Source inspection only; interactive popover UI on GTK 4.8/current stable is **NOT TESTED**. |
 
