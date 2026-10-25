@@ -102,8 +102,36 @@ _FULL_APP_CYCLE = textwrap.dedent(
             return fail("reopened .easy session did not restore view matrix")
         if core.dist_cam_zrp != expected_camera["dist_cam_zrp"]:
             return fail("reopened .easy session did not restore camera distance")
-        print("EASYHYBRID_FULL_APP_CAMERA_SESSION_ROUND_TRIP=True", flush=True)
-        print("EASYHYBRID_FULL_APP_SESSION_REOPEN_RENDER=True", flush=True)
+        if not state.get("round_trip_reported"):
+            state["round_trip_reported"] = True
+            print("EASYHYBRID_FULL_APP_CAMERA_SESSION_ROUND_TRIP=True", flush=True)
+            print("EASYHYBRID_FULL_APP_SESSION_REOPEN_RENDER=True", flush=True)
+
+        # EH4-301: last step, after every render check, so the OS key events
+        # cannot perturb rendering (macOS 4.24 stalled the reopen render when
+        # the keys were sent right after the pick, run 40151289222). The
+        # recorder swallows menuitem_new so the session is not cleared.
+        if os.environ.get("EASYHYBRID_FULL_APP_NATIVE_POINTER") == "1":
+            if not state.get("shortcut_input"):
+                original_activate = main.on_main_menu_activate
+
+                def record_menu(action):
+                    if action.get_name() == "menuitem_new":
+                        state["shortcut_new_seen"] = True
+                        return None
+                    return original_activate(action)
+
+                main.on_main_menu_activate = record_menu
+                from native_pointer_input import inject_native_shortcut
+
+                state["shortcut_input"] = inject_native_shortcut(main.window)
+                state["shortcut_started"] = time.monotonic()
+                return GLib.SOURCE_CONTINUE
+            if not state.get("shortcut_new_seen"):
+                if time.monotonic() - state["shortcut_started"] < 10:
+                    return GLib.SOURCE_CONTINUE
+                return fail("native %s did not activate menuitem_new" % state["shortcut_input"])
+            print("EASYHYBRID_FULL_APP_NATIVE_SHORTCUT=%s" % state["shortcut_input"], flush=True)
 
         # Session load restores a dirty session; discard this generated test
         # fixture and close through the normal MainWindow lifecycle.
@@ -162,6 +190,7 @@ _FULL_APP_CYCLE = textwrap.dedent(
                 % (sorted(atom_selection_ids), picked.atom_id)
             )
         print("EASYHYBRID_FULL_APP_ATOM_SELECTION=True", flush=True)
+
 
         # Exercise the real session representation controls for the selected
         # atom and its label. Assertions inspect the production index list and
@@ -334,6 +363,21 @@ _FULL_APP_CYCLE = textwrap.dedent(
             state["observing"] = True
             state["phase"] = "main_window_ready"
             print("EASYHYBRID_FULL_APP_MAIN_WINDOW=True", flush=True)
+            # EH4-301: the production window carries the menu's <Primary> shortcuts.
+            controllers = main.window.observe_controllers()
+            bound = set()
+            for index in range(controllers.get_n_items()):
+                controller = controllers.get_item(index)
+                if isinstance(controller, Gtk.ShortcutController):
+                    for item in range(controller.get_n_items()):
+                        action = controller.get_item(item).get_action()
+                        if isinstance(action, Gtk.NamedAction):
+                            bound.add(action.get_action_name())
+            expected = {"main.menuitem_new", "main.menuitem_open", "main.menuitem_save",
+                        "main.menuitem_save_as", "main.menuitem_quit"}
+            if not expected <= bound:
+                return fail("MainWindow is missing menu shortcuts: %r" % sorted(expected - bound))
+            print("EASYHYBRID_FULL_APP_MENU_SHORTCUTS=%d" % len(expected), flush=True)
 
         # The fixture is supplied as a normal command-line open request. The
         # real application forwards it to EasyHybridSession.load() after the
@@ -701,6 +745,14 @@ _FULL_APP_CYCLE = textwrap.dedent(
         if verified_pick_ready(main):
             print("EASYHYBRID_FULL_APP_PICK_COMPLETED_AFTER_POLL_TIMEOUT=True", flush=True)
             return safe_complete_pick(main)
+        # macOS hosted runners stall the main loop for ~45 s once per cycle;
+        # when the pick finishes first, the stall lands on the reopened-session
+        # render (runs 40151289222, 40151931738). Allow it once, then fail.
+        if state["phase"] == "rendering_reopened_session" and not state.get("watchdog_rearmed"):
+            state["watchdog_rearmed"] = True
+            print("EASYHYBRID_FULL_APP_WATCHDOG_REARMED=rendering_reopened_session", flush=True)
+            GLib.timeout_add_seconds(30, lifecycle_timeout)
+            return GLib.SOURCE_REMOVE
 
         widget = getattr(getattr(main, "vm_session", None), "vm_widget", None)
         if widget is None:
@@ -776,13 +828,14 @@ def test_full_app_native_pointer_test_uses_one_shared_os_dispatcher():
     assert "xdotool" not in _FULL_APP_CYCLE
 
 
-def _run_full_app_cycle(fixture, environment, cycle, timeout=90):
+def _run_full_app_cycle(fixture, environment, cycle, timeout=120):
     """Run one app cycle; on timeout keep its partial output and native stack.
 
     macOS GTK 4.24 can defer the post-pick GLib callback until the in-app
     45 s watchdog verifies the completed GL readback; with the .easy
     save/reopen/render that left too little of a 60 s budget (run
-    40044668172: cycle 4 printed CLOSED=True, then hit the limit).
+    40044668172: cycle 4 printed CLOSED=True, then hit the limit). 120 s also
+    covers one re-armed 30 s watchdog for a stalled reopened-session render.
     """
     with tempfile.NamedTemporaryFile(
         mode="w", encoding="utf-8", suffix=".py", prefix="easyhybrid-full-app-",
@@ -910,6 +963,9 @@ def test_real_easyhybrid_application_mainwindow_load_render_pick_close():
             print(result.stdout.strip())
             assert result.returncode == 0, result.stdout + result.stderr
             assert "EASYHYBRID_FULL_APP_MAIN_WINDOW=True" in result.stdout
+            assert "EASYHYBRID_FULL_APP_MENU_SHORTCUTS=5" in result.stdout
+            if os.environ.get("EASYHYBRID_FULL_APP_NATIVE_POINTER") == "1":
+                assert "EASYHYBRID_FULL_APP_NATIVE_SHORTCUT=" in result.stdout
             assert "EASYHYBRID_FULL_APP_PICK=O:" in result.stdout
             assert "EASYHYBRID_FULL_APP_RESIDUE_SELECTION=3" in result.stdout
             assert "EASYHYBRID_FULL_APP_ATOM_SELECTION=True" in result.stdout
