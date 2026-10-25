@@ -1147,6 +1147,12 @@ Categories=Science;Education;
 def main():
     global NON_INTERACTIVE, CI_MODE
 
+    # Windows consoles and pipes can use a legacy code page (cp1252) that
+    # cannot encode the check marks printed below; replace instead of crashing.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(errors="replace")
+
     import argparse
     parser = argparse.ArgumentParser(
         description="EasyHybrid installer and dependency checker."
