@@ -745,6 +745,14 @@ _FULL_APP_CYCLE = textwrap.dedent(
         if verified_pick_ready(main):
             print("EASYHYBRID_FULL_APP_PICK_COMPLETED_AFTER_POLL_TIMEOUT=True", flush=True)
             return safe_complete_pick(main)
+        # macOS hosted runners stall the main loop for ~45 s once per cycle;
+        # when the pick finishes first, the stall lands on the reopened-session
+        # render (runs 40151289222, 40151931738). Allow it once, then fail.
+        if state["phase"] == "rendering_reopened_session" and not state.get("watchdog_rearmed"):
+            state["watchdog_rearmed"] = True
+            print("EASYHYBRID_FULL_APP_WATCHDOG_REARMED=rendering_reopened_session", flush=True)
+            GLib.timeout_add_seconds(30, lifecycle_timeout)
+            return GLib.SOURCE_REMOVE
 
         widget = getattr(getattr(main, "vm_session", None), "vm_widget", None)
         if widget is None:
@@ -820,13 +828,14 @@ def test_full_app_native_pointer_test_uses_one_shared_os_dispatcher():
     assert "xdotool" not in _FULL_APP_CYCLE
 
 
-def _run_full_app_cycle(fixture, environment, cycle, timeout=90):
+def _run_full_app_cycle(fixture, environment, cycle, timeout=120):
     """Run one app cycle; on timeout keep its partial output and native stack.
 
     macOS GTK 4.24 can defer the post-pick GLib callback until the in-app
     45 s watchdog verifies the completed GL readback; with the .easy
     save/reopen/render that left too little of a 60 s budget (run
-    40044668172: cycle 4 printed CLOSED=True, then hit the limit).
+    40044668172: cycle 4 printed CLOSED=True, then hit the limit). 120 s also
+    covers one re-armed 30 s watchdog for a stalled reopened-session render.
     """
     with tempfile.NamedTemporaryFile(
         mode="w", encoding="utf-8", suffix=".py", prefix="easyhybrid-full-app-",
