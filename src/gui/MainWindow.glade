@@ -126,9 +126,19 @@
           </object>
         </child>
         <child>
-          <object class="GtkBox" id="box2">
+          <!-- A FlowBox lets the toolbar groups wrap onto a second row, so the
+               window can be narrower than all toolbars side by side (1037 px:
+               too wide for 1920x1080 at 200 % scale, i.e. 960 logical px). -->
+          <object class="GtkFlowBox" id="box2">
             <property name="visible">True</property>
             <property name="focusable">False</property>
+            <property name="selection-mode">none</property>
+            <property name="homogeneous">False</property>
+            <property name="halign">start</property>
+            <property name="min-children-per-line">1</property>
+            <property name="max-children-per-line">4</property>
+            <property name="column-spacing">0</property>
+            <property name="row-spacing">0</property>
             <child>
               <object class="GtkBox" id="toolbar1">
                 <property name="visible">True</property>
