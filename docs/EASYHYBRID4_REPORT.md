@@ -30,16 +30,21 @@ pDynamo3 and scope notes. Conda 26.1.1 accepted the Linux lock in an offline
 dry-run; this validates only lock metadata, not package installation. The
 previous clean Linux prefix replay built/imported seven graphics extensions
 and passed smoke checks at Python 3.12.15 / PyGObject 3.58.1 / GTK 4.24.1 /
-GLib 2.90.0. Fresh native Windows/macOS environment installs, extension
-builds and application launches remain **NOT TESTED**; hosted CI environment
-provisioning is not equivalent to user installation acceptance.
+GLib 2.90.0. PR #18 matrix run
+[40164041349](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40164041349)
+passed 31/31 jobs and provisions clean runner environments for Linux, Windows
+and macOS; all 30 runtime artifacts record exact versions. GTK 4.16/4.18 use
+Linux distro packages, Windows MSYS2 builds and macOS source builds. This is
+CI provisioning evidence, not general user-install acceptance. Fresh native
+Windows/macOS installs following the README remain **NOT TESTED**. The README
+now initializes Micromamba shell hooks before activation and explains the
+separate pDynamo3 build and GTK minor providers.
 
 **Current roadmap pointer:** EH4-301 and EH4-302 are complete for their
 hosted-runner acceptance. PR #17 (window-minimum fix) merged as 770e666 after
-native matrix 40161896666 passed 31/31. Codex audited all 30 artifacts. The
-next coordinated task is EH4-303 reproducible installation on the existing
-task branch; EH4-304 is a possible follow-up. Claude is handling EH4-602 then
-EH4-505. EH4-000/200 provenance and licensing, EH4-203 physical trackpad
+native matrix 40161896666 passed 31/31. Codex audited all 30 artifacts. EH4-602 partial merged in PR #18 (`bd6e846`); Codex is handling EH4-303 on the
+existing task branch, then EH4-304. Claude is handling EH4-505. EH4-000/200
+provenance and licensing, EH4-203 physical trackpad
 review, and EH4-506 branch protection remain open pending upstream or user
 evidence.
 
