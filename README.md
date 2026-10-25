@@ -199,46 +199,31 @@ $env:PYTHONPATH = "$PWD;$PWD\src\graphics_engine\src;$env:PDYNAMO3_HOME"
 python .\easyhybrid.py
 ```
 
-`install.py` can check dependencies, build extensions, and create a launcher
-for the configured environment, but it does not install GTK or pDynamo3. The
-shell launcher `activate_easyhybrid4.sh` is Linux/macOS-only. The supported
-GTK/OS provisioning used by native compatibility tests is maintained in
-[`.github/workflows/native-gtk-matrix.yml`](.github/workflows/native-gtk-matrix.yml).
-Windows and macOS interactive installation has not yet been qualified as a
-release path.
-
-## Candidate distribution paths
-
-Distribution should follow each platform's native runtime model rather than
-trying to ship one identical archive everywhere:
-
-- **Linux:** provide a relocatable conda environment archive with a small
-  desktop-entry installer. The bundle launcher is
-  [`packaging/linux/run-easyhybrid4.sh`](packaging/linux/run-easyhybrid4.sh);
-  it expects `app/` and a conda-packed `runtime/` alongside it and uses an
-  external compiled pDynamo3 checkout. Keep system display and OpenGL drivers
-  outside the archive; verify GTK typelibs and graphics-driver discovery on
-  the target distribution.
-- **Windows:** provide a per-user installer/bootstrapper that creates or
-  updates a pinned micromamba environment and registers a Start-menu shortcut.
-  Keep the GTK DLL and typelib environment together, and do not rely on a
-  system-wide GTK installation.
-- **macOS:** provide a signed `.app` launcher that uses a managed arm64 conda
-  environment and resolves its GTK frameworks, typelibs and OpenGL runtime
-  from that environment. Intel macOS would require a separate x86_64 build.
-
-These are candidate designs only. No Linux archive, Windows installer, or
-macOS app bundle has yet been built, independently installed, launched, or
-qualified with a separately configured pDynamo3 installation. They are not
-release artifacts or platform support claims.
+`install.py` checks the active Python/GTK environment and builds the VisMol
+extensions. It does not install GTK or pDynamo3; prepare those using their
+platform-native instructions first. The intended source-checkout flow uses
+one entrypoint on Linux, Windows and macOS; its all-platform GTK matrix
+qualification is in progress:
 
 ## Running EasyHybrid
 
-Once the graphics engine has been successfully compiled, you can launch EasyHybrid by running:
+Clone the source recursively so required submodules are present, configure
+GTK4 and pDynamo3 for the platform, then run the installer and app from the
+checkout root:
 
 ```bash
-./activate_easyhybrid4.sh
+git clone --recurse-submodules https://github.com/Shabirahmad427/EasyHybrid4.git
+cd EasyHybrid4
+python3 ./install.py
+python3 ./easyhybrid.py
 ```
+
+Use `python .\install.py` and `python .\easyhybrid.py` in PowerShell. The
+installer's `--ci` mode performs non-interactive dependency checks and builds
+extensions without installing Python packages or writing to pDynamo/user
+settings; native CI uses the already provisioned GTK and pDynamo3 runtimes.
+There are no app bundles or platform-specific release packages in this
+distribution flow.
 
 ## Development and compatibility status
 

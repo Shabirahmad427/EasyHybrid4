@@ -521,3 +521,134 @@ def inject_native_shortcut(window) -> str:
     if sys.platform == "darwin":
         return _shortcut_macos(window)
     raise RuntimeError("native keyboard injection is not implemented for %s" % sys.platform)
+
+
+def native_window_visible_for_process(process_id: int) -> bool:
+    """Return whether the process owns a visible EasyHybrid main window."""
+    if sys.platform.startswith("linux"):
+        xdotool = shutil.which("xdotool")
+        if xdotool is None:
+            raise RuntimeError("native Linux keyboard smoke requires xdotool")
+        result = subprocess.run(
+            [xdotool, "search", "--onlyvisible", "--pid", str(process_id),
+             "--name", "^EasyHybrid "],
+            capture_output=True, text=True, timeout=5, check=False,
+        )
+        return result.returncode == 0 and bool(result.stdout.strip())
+
+    if sys.platform == "win32":
+        from ctypes import wintypes
+
+        user32 = ctypes.WinDLL("user32", use_last_error=True)
+        user32.IsWindowVisible.argtypes = [wintypes.HWND]
+        user32.IsWindowVisible.restype = wintypes.BOOL
+        user32.GetWindowTextLengthW.argtypes = [wintypes.HWND]
+        user32.GetWindowTextLengthW.restype = ctypes.c_int
+        user32.GetWindowTextW.argtypes = [wintypes.HWND, wintypes.LPWSTR, ctypes.c_int]
+        user32.GetWindowTextW.restype = ctypes.c_int
+        user32.GetWindowThreadProcessId.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
+        user32.GetWindowThreadProcessId.restype = wintypes.DWORD
+        found = []
+        callback_type = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+
+        def inspect(hwnd, _lparam):
+            owner = wintypes.DWORD()
+            user32.GetWindowThreadProcessId(hwnd, ctypes.byref(owner))
+            if owner.value == process_id and user32.IsWindowVisible(hwnd):
+                length = user32.GetWindowTextLengthW(hwnd)
+                title = ctypes.create_unicode_buffer(length + 1)
+                user32.GetWindowTextW(hwnd, title, length + 1)
+                if title.value.startswith("EasyHybrid "):
+                    found.append(hwnd)
+            return True
+
+        user32.EnumWindows(callback_type(inspect), 0)
+        return bool(found)
+
+    if sys.platform == "darwin":
+        import Quartz
+
+        windows = Quartz.CGWindowListCopyWindowInfo(1, 0)
+        return any(
+            int(window.get("kCGWindowOwnerPID", -1)) == process_id
+            and str(window.get("kCGWindowName", "")).startswith("EasyHybrid ")
+            for window in windows
+        )
+
+    raise RuntimeError("native window detection is not implemented for %s" % sys.platform)
+
+
+def inject_native_quit_shortcut(process_id: int) -> str:
+    """Send the production Ctrl+Q / Cmd+Q shortcut to the target app process."""
+    if sys.platform.startswith("linux"):
+        xdotool = shutil.which("xdotool")
+        if xdotool is None:
+            raise RuntimeError("native Linux keyboard smoke requires xdotool")
+        result = subprocess.run(
+            [xdotool, "search", "--onlyvisible", "--pid", str(process_id),
+             "--name", "^EasyHybrid ", "windowactivate", "--sync",
+             "key", "--clearmodifiers", "ctrl+q"],
+            capture_output=True, text=True, timeout=10, check=False,
+        )
+        if result.returncode != 0:
+            raise RuntimeError("native XTest Ctrl+Q failed: %s" % result.stderr.strip())
+        return "linux-x11-xtest:ctrl+q"
+
+    if sys.platform == "win32":
+        from ctypes import wintypes
+
+        user32 = ctypes.WinDLL("user32", use_last_error=True)
+        user32.IsWindowVisible.argtypes = [wintypes.HWND]
+        user32.IsWindowVisible.restype = wintypes.BOOL
+        user32.GetWindowTextLengthW.argtypes = [wintypes.HWND]
+        user32.GetWindowTextLengthW.restype = ctypes.c_int
+        user32.GetWindowTextW.argtypes = [wintypes.HWND, wintypes.LPWSTR, ctypes.c_int]
+        user32.GetWindowTextW.restype = ctypes.c_int
+        user32.GetWindowThreadProcessId.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
+        user32.GetWindowThreadProcessId.restype = wintypes.DWORD
+        user32.SetForegroundWindow.argtypes = [wintypes.HWND]
+        user32.SetForegroundWindow.restype = wintypes.BOOL
+        found = []
+        callback_type = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+
+        def inspect(hwnd, _lparam):
+            owner = wintypes.DWORD()
+            user32.GetWindowThreadProcessId(hwnd, ctypes.byref(owner))
+            if owner.value == process_id and user32.IsWindowVisible(hwnd):
+                length = user32.GetWindowTextLengthW(hwnd)
+                title = ctypes.create_unicode_buffer(length + 1)
+                user32.GetWindowTextW(hwnd, title, length + 1)
+                if title.value.startswith("EasyHybrid "):
+                    found.append(hwnd)
+            return True
+
+        user32.EnumWindows(callback_type(inspect), 0)
+        if not found:
+            raise RuntimeError("could not find the EasyHybrid Win32 window")
+        user32.SetForegroundWindow(found[0])
+        vk_control, vk_q, keyup = 0x11, 0x51, 0x0002
+        user32.keybd_event(vk_control, 0, 0, 0)
+        user32.keybd_event(vk_q, 0, 0, 0)
+        time.sleep(0.03)
+        user32.keybd_event(vk_q, 0, keyup, 0)
+        user32.keybd_event(vk_control, 0, keyup, 0)
+        return "windows-win32-keybd:ctrl+q"
+
+    if sys.platform == "darwin":
+        import Quartz
+        from AppKit import NSRunningApplication
+
+        app = NSRunningApplication.runningApplicationWithProcessIdentifier_(process_id)
+        if app is None:
+            raise RuntimeError("could not locate the EasyHybrid macOS application process")
+        app.activateWithOptions_(1 << 1)  # NSApplicationActivateIgnoringOtherApps
+        for down in (True, False):
+            event = Quartz.CGEventCreateKeyboardEvent(None, 12, down)  # kVK_ANSI_Q
+            if event is None:
+                raise RuntimeError("Quartz could not create a Command+Q key event")
+            Quartz.CGEventSetFlags(event, 0x00100000)  # kCGEventFlagMaskCommand
+            Quartz.CGEventPost(0, event)  # kCGHIDEventTap
+            time.sleep(0.03)
+        return "macos-quartz-hid:cmd+q"
+
+    raise RuntimeError("native keyboard injection is not implemented for %s" % sys.platform)
