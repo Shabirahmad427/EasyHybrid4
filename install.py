@@ -47,6 +47,7 @@ import os
 import re
 import sys
 import shutil
+import shlex
 import subprocess
 import importlib
 from pathlib import Path
@@ -358,6 +359,16 @@ def _locate_pdynamo_env_script():
         return None
 
 
+
+def _pdynamo_paths_source(pdynamo_path):
+    """Python source for paths.py, which easyhybrid.py imports at startup.
+
+    repr() writes a valid literal for any path: a plain double-quoted Windows
+    path such as "C:\\Users\\..." makes \\U a unicode escape, so paths.py would
+    be a SyntaxError and EasyHybrid could not start.
+    """
+    return "PDYNAMO_HOME = {!r}\n".format(str(pdynamo_path))
+
 def _write_env_var_to_script(script_path, var, value):
     """Add or update 'export VAR="value"' in a bash environment script.
 
@@ -371,7 +382,9 @@ def _write_env_var_to_script(script_path, var, value):
     except Exception:
         lines = []
 
-    new_line = 'export {:s}="{:s}"'.format(var, value)
+    # shlex.quote keeps $, backticks and quotes in a path literal when the
+    # script is sourced (double quotes would still expand them).
+    new_line = 'export {:s}={:s}'.format(var, shlex.quote(str(value)))
     # match a line that sets this var (with or without 'export', ignoring
     # leading spaces), but NOT a commented-out one
     pattern = re.compile(r'^\s*(export\s+)?' + re.escape(var) + r'\s*=')
@@ -706,7 +719,7 @@ To load them manually, run:
         path_file = EASYHYBRID_HOME / "paths.py"
 
         with open(path_file, "w") as f:
-            f.write(f'PDYNAMO_HOME = "{pdynamo_path}"\n')
+            f.write(_pdynamo_paths_source(pdynamo_path))
 
     return missing
 

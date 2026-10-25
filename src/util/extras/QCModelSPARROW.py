@@ -215,32 +215,19 @@ class QCModelSPARROW ( QCModel ):
         #outFile = state.paths["Output"]
         #print(self.command)
         # starting xtb exec
-        cmd = self.command
-        
-        
-        # charge and multiplicity
+        # Argument list, not a shell string, with the same flags as before:
+        # paths with spaces stay one argument and nothing is shell-parsed.
         charge       = target.electronicState.charge
         multiplicity = target.electronicState.multiplicity
-        c_and_u  = ' -c {} -s {} '.format(charge, multiplicity)            
-        cmd += c_and_u
-        
-        
-        #.CPUs
-        #cpus = ' -P {} '.format(self.parallel)
-        #cmd += cpus
-        
-        cmd += ' -M {}'.format('PM6')
-        cmd +=  ' -G' 
-        cmd +=  ' -o'
-        #aditional keys?
+        args  = [ self.command, "-c", str ( charge ), "-s", str ( multiplicity ) ]
+        args += [ "-M", "PM6", "-G", "-o" ]
         if  self.keywords:
-            #for key in self.keywords:
-            cmd += ' ' + self.keywords + ' '
-        
-        # adding inputfile
-        cmd +=  ' -x ' + state.paths["Input"] + ' > SPARROWJob.out'
-        #print(cmd)
-        os.system(cmd)
+            args += self.keywords.split ( )
+        args += [ "-x", state.paths["Input"] ]
+        # SPARROW writes gradients.dat/energy.dat to the current directory
+        # (read back below), so it keeps running there; stdout as before.
+        with open ( "SPARROWJob.out", "w" ) as outFile:
+            subprocess.run ( args, stdout = outFile )
         return True
                 
     def OrbitalEnergies ( self, target ):
