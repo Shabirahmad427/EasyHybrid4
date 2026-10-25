@@ -450,3 +450,74 @@ def inject_native_pointer(window, x: float, y: float) -> str:
     if sys.platform == "darwin":
         return _click_macos(window, x, y)
     raise RuntimeError("native pointer injection is not implemented for %s" % sys.platform)
+
+
+def _shortcut_linux_x11() -> str:
+    xdotool = shutil.which("xdotool")
+    if xdotool is None:
+        raise RuntimeError("native Linux keyboard smoke requires xdotool")
+    # Without --window, xdotool uses XTest on the focused window.
+    result = subprocess.run(
+        [xdotool, "key", "--clearmodifiers", "ctrl+n"],
+        capture_output=True, text=True, timeout=5, check=False,
+    )
+    if result.returncode != 0:
+        raise RuntimeError("native xdotool key failed: %s" % result.stderr.strip())
+    return "linux-x11-xtest:ctrl+n"
+
+
+def _shortcut_windows() -> str:
+    import ctypes
+
+    user32 = ctypes.windll.user32
+    vk_control, vk_n, keyup = 0x11, 0x4E, 0x0002
+    user32.keybd_event(vk_control, 0, 0, 0)
+    user32.keybd_event(vk_n, 0, 0, 0)
+    time.sleep(0.03)
+    user32.keybd_event(vk_n, 0, keyup, 0)
+    user32.keybd_event(vk_control, 0, keyup, 0)
+    return "windows-win32-keybd:ctrl+n"
+
+
+def _shortcut_macos(window) -> str:
+    from AppKit import NSApplication
+    import Quartz
+
+    title = window.get_title()
+    application = NSApplication.sharedApplication()
+    native_window = next(
+        (candidate for candidate in application.windows() if candidate.title() == title),
+        None,
+    )
+    if native_window is not None:
+        native_window.makeKeyAndOrderFront_(None)
+    application.activateIgnoringOtherApps_(True)
+    # Numeric values, not Quartz.k* names: PyObjC resolves those through a
+    # lazy metadata regex scan that stalled a macOS cycle past 90 s
+    # (run 40150573184). Values from CGEventTypes.h / Events.h.
+    key_n = 45  # kVK_ANSI_N
+    command_flag = 0x00100000  # kCGEventFlagMaskCommand (NX_COMMANDMASK)
+    hid_event_tap = 0  # kCGHIDEventTap
+    create = Quartz.CGEventCreateKeyboardEvent
+    set_flags = Quartz.CGEventSetFlags
+    post = Quartz.CGEventPost
+    for down in (True, False):
+        event = create(None, key_n, down)
+        if event is None:
+            raise RuntimeError("Quartz could not create a keyboard event")
+        # The macOS convention users press: Command+N.
+        set_flags(event, command_flag)
+        post(hid_event_tap, event)
+        time.sleep(0.03)
+    return "macos-quartz-hid:cmd+n"
+
+
+def inject_native_shortcut(window) -> str:
+    """Press the platform's standard New shortcut (Cmd+N on macOS, else Ctrl+N)."""
+    if sys.platform.startswith("linux"):
+        return _shortcut_linux_x11()
+    if sys.platform == "win32":
+        return _shortcut_windows()
+    if sys.platform == "darwin":
+        return _shortcut_macos(window)
+    raise RuntimeError("native keyboard injection is not implemented for %s" % sys.platform)

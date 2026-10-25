@@ -204,6 +204,7 @@ class MainWindow:
         )
         self._menu_items = menu.items
         self._ui('menubar1').append(menu.create_widget())
+        menu.attach_shortcuts(self.window)
         # Restore the dimensions saved from the last session, but only if
         # gl_parameters['save_window_size'] is on (the "Save window size"
         # checkbox in Preferences). If off, always use the fixed 1200x600
