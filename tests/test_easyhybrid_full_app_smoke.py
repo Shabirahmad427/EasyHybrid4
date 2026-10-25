@@ -278,6 +278,52 @@ _FULL_APP_CYCLE = textwrap.dedent(
             flush=True,
         )
 
+        # EH4-302: what this display really reports, and HiDPI consistency.
+        display = main.window.get_display()
+        surface = main.window.get_surface()
+        monitor = display.get_monitor_at_surface(surface) if surface is not None else None
+        if monitor is None:
+            monitors = display.get_monitors()
+            monitor = monitors.get_item(0) if monitors.get_n_items() else None
+        if monitor is None:
+            return fail("display reports no monitor")
+        geometry = monitor.get_geometry()
+        scale = main.window.get_scale_factor()
+        settings = Gtk.Settings.get_default()
+        font = settings.get_property("gtk-font-name") if settings is not None else None
+        xft_dpi = settings.get_property("gtk-xft-dpi") if settings is not None else -1
+        if scale < 1 or geometry.width <= 0 or geometry.height <= 0:
+            return fail("implausible display: scale=%r geometry=%r" % (scale, geometry))
+        width, height = main.window.get_width(), main.window.get_height()
+        min_width = main.window.measure(Gtk.Orientation.HORIZONTAL, -1)[0]
+        min_height = main.window.measure(Gtk.Orientation.VERTICAL, width)[0]
+        # The restored size is clamped to the monitor, but GTK never shrinks a
+        # window below its content minimum. At GDK_SCALE=2 a 1920x1080 screen
+        # is 960x540 logical and the UI minimum width (~1037 px) is wider:
+        # a known limitation, recorded rather than failed.
+        if width > max(geometry.width, min_width) or height > max(geometry.height, min_height):
+            return fail("main window %dx%d exceeds monitor %dx%d and its minimum %dx%d"
+                        % (width, height, geometry.width, geometry.height, min_width, min_height))
+        fits = width <= geometry.width and height <= geometry.height
+        vm_widget = main.vm_session.vm_widget
+        core = main.vm_session.vm_glcore
+        widget_size = (vm_widget.get_width(), vm_widget.get_height())
+        expected_fb = (widget_size[0] * vm_widget.get_scale_factor(), widget_size[1] * vm_widget.get_scale_factor())
+        if min(widget_size) > 0 and (core.width, core.height) != expected_fb:
+            return fail("GL framebuffer %r != widget %r x scale %d" % ((core.width, core.height), widget_size, vm_widget.get_scale_factor()))
+        print(
+            "EASYHYBRID_FULL_APP_DISPLAY=backend=%s monitors=%d monitor=%dx%d+%d+%d scale=%d refresh_mHz=%d "
+            "window=%dx%d window_min=%dx%d fits_monitor=%s gl_framebuffer=%dx%d font=%r xft_dpi=%s"
+            % (
+                display.__gtype__.name, display.get_monitors().get_n_items(),
+                geometry.width, geometry.height, geometry.x, geometry.y, scale,
+                monitor.get_refresh_rate(), width, height, min_width, min_height, fits,
+                core.width, core.height,
+                font, ("%.1f" % (xft_dpi / 1024.0)) if xft_dpi and xft_dpi > 0 else "default",
+            ),
+            flush=True,
+        )
+
         # Exercise the actual .easy serializer and loader with a generated
         # filename. Corrupt the live camera after saving so reopening must
         # restore the serialized view, then require a real scene render.
@@ -987,6 +1033,7 @@ def test_real_easyhybrid_application_mainwindow_load_render_pick_close():
             assert "EASYHYBRID_FULL_APP_ATOMS=3" in result.stdout
             assert "EASYHYBRID_FULL_APP_SCENE_DRAWS=" in result.stdout
             assert "EASYHYBRID_FULL_APP_DIAGNOSTICS=GTK " in result.stdout
+            assert "EASYHYBRID_FULL_APP_DISPLAY=backend=" in result.stdout
             assert "EASYHYBRID_FULL_APP_STATUS=0 CLOSED=True" in result.stdout
             assert "Traceback" not in result.stderr
             assert "CRITICAL" not in result.stderr
