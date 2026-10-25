@@ -102,14 +102,36 @@ _FULL_APP_CYCLE = textwrap.dedent(
             return fail("reopened .easy session did not restore view matrix")
         if core.dist_cam_zrp != expected_camera["dist_cam_zrp"]:
             return fail("reopened .easy session did not restore camera distance")
-        if state.get("shortcut_input") and not state.get("shortcut_new_seen"):
-            if time.monotonic() - state["shortcut_started"] < 10:
+        if not state.get("round_trip_reported"):
+            state["round_trip_reported"] = True
+            print("EASYHYBRID_FULL_APP_CAMERA_SESSION_ROUND_TRIP=True", flush=True)
+            print("EASYHYBRID_FULL_APP_SESSION_REOPEN_RENDER=True", flush=True)
+
+        # EH4-301: last step, after every render check, so the OS key events
+        # cannot perturb rendering (macOS 4.24 stalled the reopen render when
+        # the keys were sent right after the pick, run 40151289222). The
+        # recorder swallows menuitem_new so the session is not cleared.
+        if os.environ.get("EASYHYBRID_FULL_APP_NATIVE_POINTER") == "1":
+            if not state.get("shortcut_input"):
+                original_activate = main.on_main_menu_activate
+
+                def record_menu(action):
+                    if action.get_name() == "menuitem_new":
+                        state["shortcut_new_seen"] = True
+                        return None
+                    return original_activate(action)
+
+                main.on_main_menu_activate = record_menu
+                from native_pointer_input import inject_native_shortcut
+
+                state["shortcut_input"] = inject_native_shortcut(main.window)
+                state["shortcut_started"] = time.monotonic()
                 return GLib.SOURCE_CONTINUE
-            return fail("native %s did not activate menuitem_new" % state["shortcut_input"])
-        if state.get("shortcut_input"):
+            if not state.get("shortcut_new_seen"):
+                if time.monotonic() - state["shortcut_started"] < 10:
+                    return GLib.SOURCE_CONTINUE
+                return fail("native %s did not activate menuitem_new" % state["shortcut_input"])
             print("EASYHYBRID_FULL_APP_NATIVE_SHORTCUT=%s" % state["shortcut_input"], flush=True)
-        print("EASYHYBRID_FULL_APP_CAMERA_SESSION_ROUND_TRIP=True", flush=True)
-        print("EASYHYBRID_FULL_APP_SESSION_REOPEN_RENDER=True", flush=True)
 
         # Session load restores a dirty session; discard this generated test
         # fixture and close through the normal MainWindow lifecycle.
@@ -169,22 +191,6 @@ _FULL_APP_CYCLE = textwrap.dedent(
             )
         print("EASYHYBRID_FULL_APP_ATOM_SELECTION=True", flush=True)
 
-        # EH4-301: press the platform's standard New shortcut through the OS.
-        # The recorder swallows menuitem_new so the session is not cleared.
-        if os.environ.get("EASYHYBRID_FULL_APP_NATIVE_POINTER") == "1":
-            original_activate = main.on_main_menu_activate
-
-            def record_menu(action):
-                if action.get_name() == "menuitem_new":
-                    state["shortcut_new_seen"] = True
-                    return None
-                return original_activate(action)
-
-            main.on_main_menu_activate = record_menu
-            from native_pointer_input import inject_native_shortcut
-
-            state["shortcut_input"] = inject_native_shortcut(main.window)
-            state["shortcut_started"] = time.monotonic()
 
         # Exercise the real session representation controls for the selected
         # atom and its label. Assertions inspect the production index list and
