@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 import gi
 
 gi.require_version("Gtk", "4.0")
@@ -20,13 +21,16 @@ _STOCK_LABELS = {
 }
 
 
-# Desktop conventions: <Primary> is Ctrl on Linux/Windows and Cmd on macOS.
+# Desktop conventions: Ctrl on Linux/Windows, Command on macOS. GTK 4 parses
+# <Primary> as Control even on macOS, and a native Quartz Cmd+N did not
+# trigger a <Primary>n shortcut (run 40150363077), so macOS binds <Meta>.
+_PRIMARY = "<Meta>" if sys.platform == "darwin" else "<Primary>"
 ACCELERATORS = {
-    "menuitem_new": "<Primary>n",
-    "menuitem_open": "<Primary>o",
-    "menuitem_save": "<Primary>s",
-    "menuitem_save_as": "<Primary><Shift>s",
-    "menuitem_quit": "<Primary>q",
+    "menuitem_new": _PRIMARY + "n",
+    "menuitem_open": _PRIMARY + "o",
+    "menuitem_save": _PRIMARY + "s",
+    "menuitem_save_as": _PRIMARY + "<Shift>s",
+    "menuitem_quit": _PRIMARY + "q",
 }
 
 

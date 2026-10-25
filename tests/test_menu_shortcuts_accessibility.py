@@ -43,7 +43,9 @@ def test_standard_menu_shortcuts_cover_existing_menu_items():
 
     walk(json.loads(MENU.read_text(encoding="utf-8")))
     assert set(ACCELERATORS) <= ids
-    assert all(accel.startswith("<Primary>") for accel in ACCELERATORS.values())
+    # Command on macOS (GTK maps <Primary> to Control there), Ctrl elsewhere.
+    prefix = "<Meta>" if sys.platform == "darwin" else "<Primary>"
+    assert all(accel.startswith(prefix) for accel in ACCELERATORS.values())
 
 
 def test_primary_accelerator_parses_to_a_platform_modifier():
