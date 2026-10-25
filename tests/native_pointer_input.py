@@ -492,14 +492,22 @@ def _shortcut_macos(window) -> str:
     if native_window is not None:
         native_window.makeKeyAndOrderFront_(None)
     application.activateIgnoringOtherApps_(True)
+    # Numeric values, not Quartz.k* names: PyObjC resolves those through a
+    # lazy metadata regex scan that stalled a macOS cycle past 90 s
+    # (run 40150573184). Values from CGEventTypes.h / Events.h.
     key_n = 45  # kVK_ANSI_N
+    command_flag = 0x00100000  # kCGEventFlagMaskCommand (NX_COMMANDMASK)
+    hid_event_tap = 0  # kCGHIDEventTap
+    create = Quartz.CGEventCreateKeyboardEvent
+    set_flags = Quartz.CGEventSetFlags
+    post = Quartz.CGEventPost
     for down in (True, False):
-        event = Quartz.CGEventCreateKeyboardEvent(None, key_n, down)
+        event = create(None, key_n, down)
         if event is None:
             raise RuntimeError("Quartz could not create a keyboard event")
         # The macOS convention users press: Command+N.
-        Quartz.CGEventSetFlags(event, Quartz.kCGEventFlagMaskCommand)
-        Quartz.CGEventPost(Quartz.kCGHIDEventTap, event)
+        set_flags(event, command_flag)
+        post(hid_event_tap, event)
         time.sleep(0.03)
     return "macos-quartz-hid:cmd+n"
 
