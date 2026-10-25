@@ -86,9 +86,44 @@ python3 setup.py build_ext --inplace
 ## Installation
 
 The application uses native GTK 4, GLib and GObject-introspection packages;
-`pip install -r requirements.txt` alone is not enough. A baseline developer
-environment for the currently verified GTK 4.24 line can be created with
-Micromamba and conda-forge:
+`pip install -r requirements.txt` alone is not enough. The commands below
+create a developer environment; they do not install pDynamo3 or create a
+standalone application package. Use Micromamba 2.9.0 or newer (the Windows
+GTK 4.8/4.10 workflow needs its `--skip-run-link-scripts` support) and
+conda-forge. The Linux x86_64 explicit lock is the exact replay option; the
+other commands are compatible baseline specifications, not full transitive
+locks.
+
+On Linux x86_64, replay the verified explicit lock:
+
+```bash
+micromamba create --yes --prefix "$PWD/.conda/easyhybrid4-linux-64" \
+  --file environments/easyhybrid4-linux-64.lock
+micromamba run --prefix "$PWD/.conda/easyhybrid4-linux-64" python --version
+```
+
+On Windows x86_64, in PowerShell:
+
+```powershell
+micromamba create -n easyhybrid4 -c conda-forge `
+  python=3.12 gtk4=4.24.1 glib-tools pygobject pycairo pyopengl `
+  numpy scipy cython pillow freetype-py pyyaml psutil pytest setuptools
+micromamba activate easyhybrid4
+$env:PYTHONNOUSERSITE = '1'
+```
+
+On macOS arm64, in a terminal:
+
+```bash
+micromamba create -n easyhybrid4 -c conda-forge \
+  python=3.12 gtk4=4.24.1 glib-tools pygobject pycairo pyopengl \
+  numpy scipy cython pillow freetype-py pyyaml psutil pytest setuptools
+micromamba activate easyhybrid4
+export PYTHONNOUSERSITE=1
+```
+
+The baseline developer environment for GTK 4.24 can also be created on Linux
+with:
 
 ```bash
 micromamba create -n easyhybrid4 -c conda-forge \
@@ -97,18 +132,11 @@ micromamba create -n easyhybrid4 -c conda-forge \
 micromamba activate easyhybrid4
 ```
 
-For an exact Linux x86_64 replay of the clean developer environment verified
-on 2026-10-21, create it from
-[`environments/easyhybrid4-linux-64.lock`](environments/easyhybrid4-linux-64.lock):
-
-```bash
-conda create --prefix "$PWD/.conda/easyhybrid4-linux-64" \
-  --file environments/easyhybrid4-linux-64.lock
-```
-
-This explicit package-URL lock is Linux x86_64 only. Use the conda-forge
-environment command above for Windows and macOS; those install paths still
-need separate clean-environment verification.
+The explicit lock is Linux x86_64 only. The native GTK workflow provisions
+clean environments on Linux, Windows and macOS, but uses platform-specific
+GTK providers for some matrix cells; this does not make its workflow a general
+installer or qualify every GTK minor for interactive use. Exact hosted runtime
+evidence is recorded in [`docs/GTK4_COMPATIBILITY.md`](docs/GTK4_COMPATIBILITY.md).
 
 When building from an environment on a machine with user-installed Python
 packages, disable the user site so NumPy headers and Python packages come from
@@ -116,12 +144,12 @@ the selected environment. For Bash, run `export PYTHONNOUSERSITE=1` before the
 build; in PowerShell, run `$env:PYTHONNOUSERSITE = '1'`.
 
 Install a native compiler toolchain before building the graphics extensions:
-GCC/Clang and build tools on Linux, Visual Studio 2022 C++ Build Tools on
-Windows, or Xcode Command Line Tools on macOS. GTK 4.24.1 is pinned here as a
-known matrix runtime; change that pin only to a patch version with a published
-native package for the chosen OS. This pins the main runtime packages, but it
-is not a complete lock of every transitive build. The matrix workflow documents
-its separate providers for GTK minors that conda-forge does not publish.
+GCC and Python development headers on Linux (for example, `build-essential`),
+Visual Studio 2022 C++ Build Tools on Windows, or Xcode Command Line Tools on
+macOS. GTK 4.24.1 is the verified baseline pin here; change it only to a patch
+version available from conda-forge for the chosen OS. This does not lock every
+transitive package. The native matrix documents its separate providers for
+GTK minors that conda-forge does not publish.
 
 Build the bundled VisMol Cython extensions from the repository root:
 
