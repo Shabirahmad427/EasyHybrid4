@@ -1,6 +1,6 @@
 # EasyHybrid4 Development and Compatibility Report
 
-**Report date:** 2026-10-24
+**Report date:** 2026-10-25
 
 **Project persistence (partial, EH4-404):** EasyHybrid `.easy` payloads now
 write format version 1; payloads without a version key are treated as legacy
@@ -23,26 +23,28 @@ Linux Xvfb with Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib 2.80.0.
 Cancellation, progress reporting, GUI responsiveness, and unexpected worker
 crash detection remain unverified.
 
-**Current roadmap pointer:** EH4-500 CI quality gates and source compiler cache
-are complete. A strict static-typing follow-up for the cross-platform path
-adapter is implemented on `eh4-500-ci-quality-gates` and awaits its native
-matrix. Claude's EH4-301 PR #14 merged after matrix run `40152703430` passed
-31/31 jobs; EH4-302 is next, and Codex's EH4-303 packaging work follows the
-EH4-500 type-gate matrix. PR #13 merged as `aa519f3`; its full native matrix
-[`40129629714`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40129629714)
-passed 30/30, and all 30 exact-runtime artifacts were inspected. Each records
-five full-app native pick/session/render/clean-close cycles, five production
-scene cycles, renderer validation at scales 1 and 2, and 27 scientific tests.
-Sequential cold/warm source-build runs (`40126461301`, `40127443099`) passed
-all six cells; warm ccache hit rates were 99.46–99.62%, reducing GTK build-step
-times by 78–91%. The first EH4-500 workflow attempt (`40123686791`) had an
-invalid `runner.temp` job-level environment expression and was fixed in
-`5d6edf5`. After PR #12 merged, main run `40142461544` failed only at the GTK
-4.10 macOS artifact upload (`ETIMEDOUT`); all tests, app cycles and render
-checks passed. Rerunning only that failed cell produced the missing artifact;
-the main run is green with 30 artifacts. All six GTK compiler caches now exist
-in main scope for future PRs. EH4-200 provenance, EH4-203 physical trackpad
-review, EH4-301 clipboard/accessibility, and packaging tasks remain open.
+**EH4-303 reproducible installation: PASS for clean-runner provisioning (2026-10-25).** PR #19 matrix run [40196735291](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40196735291) passed 31/31 jobs. I audited all 30 runtime artifacts: exact OS/architecture, Python, PyGObject, GTK patch, GLib and renderer are recorded; each has five full-app native pointer/pick/render/close cycles, five molecular scene cycles, render validation at scales 1 and 2, and 31 scientific tests passed. The workflow created clean Linux, Windows and macOS environments; GTK 4.16/4.18 use Linux distro packages, Windows MSYS2 builds and macOS source builds. README now covers the Linux x86_64 exact lock, Windows PowerShell and macOS arm64 GTK 4.24.1 baselines, Micromamba shell hooks, compilers and separate pDynamo3 setup. **NOT TESTED:** independent manual Windows/macOS installs following README and complete transitive locks for those platforms. EH4-304 separately tracks distribution packages.
+
+**Current roadmap pointer:** EH4-301 and EH4-302 are complete for their
+hosted-runner acceptance. PR #17 (window-minimum fix) merged as 770e666 after
+native matrix 40161896666 passed 31/31. Codex audited all 30 artifacts. EH4-602 partial merged in PR #18 (`bd6e846`), and EH4-303 passed in PR #19 (matrix `40196735291`, 31/31); Codex next handles EH4-304. Claude is handling EH4-505. EH4-000/200
+provenance and licensing, EH4-203 physical trackpad
+review, and EH4-506 branch protection remain open pending upstream or user
+evidence.
+
+**Latest native GTK matrix (2026-10-25): PASS, 30/30 cells.** PR #17 run
+[40161896666](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40161896666)
+passed all 30 runtime cells (31/31 jobs including the plan). All 30 uploaded
+runtime artifacts were inspected for exact OS/architecture, Python,
+PyGObject, GTK patch, GLib and renderer. Each records five full-app display,
+native pointer/pick/render/close cycles and five production scene cycles.
+Across 150 display records, all report fits_monitor=True; hosted scale is 1.
+A separate local Linux GTK 4.8.2/4.24.1 scale-2 check fits a 912x444 window
+on a 960x540 logical monitor. Hosted Windows GTK 4.20+ and macOS ignore
+GDK_SCALE; physical Retina/HiDPI, multi-monitor, Wayland and live display
+scale changes remain NOT TESTED. Three Linux GTK 4.10/4.12/4.14 artifacts
+contain a g_error_free chooser-test warning, but their test suites passed
+with no failures.
 
 **EH4-405 batch PR #6 matrix status:** corrected head `341a7cc`, merged as
 `b676d00`, passed full matrix
@@ -59,7 +61,7 @@ working-directory import loss from direct temp-script execution. The final
 short `runpy` bootstrap fixes both; focused regression: **1 passed**. The
 failed runs are not acceptance evidence.
 
-**Latest native full-matrix status (2026-10-24): PASS, 30/30 cells.** Run
+**EH4-400–405 batch full-matrix status (2026-10-24): PASS, 30/30 cells.** Run
 [`40102390980`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40102390980)
 passed the Linux x86_64, Windows x86_64 and macOS arm64 GTK 4.8–4.24 cells,
 plus Intel macOS GTK 4.8/4.10. Runtime artifacts confirm exact GTK, GLib,
@@ -1742,6 +1744,7 @@ does not prove native behavior.
 | GTK 4.8–4.24 native GTK/widget and EasyHybrid scene matrix | **PASS, 30/30 cells** in main run `39275185493`, including Windows GTK 4.8/4.10 WGL fix and two molecular-scene render/close cycles per cell. Exact runtimes are listed in `docs/GTK4_COMPATIBILITY.md`. |
 | GTK 4.16 and 4.18 | **PASS** on Linux (Ubuntu 24.10, Fedora 41, Debian 13), Windows (MSYS2 source) and macOS arm64 (GNOME source), run `39275185493`. Linux distro scene uses EGL; Fedora uses PyOpenGL ctypes due optional accelerator ABI mismatch. |
 | Linux x86_64 / X11 live UI and GL | Local NVIDIA scene lifecycle **PASS** at GTK 4.8.2, 4.14.5, and 4.24.1; all GTK 4.8–4.24 minors also pass hosted Xvfb/llvmpipe scene and widget coverage in the native matrix. |
+| EH4-302 hosted display evidence (PR #16/#17; runs 40156091773/40161896666) | **PASS:** both native matrices 31/31; PR #17 artifacts audited 30/30, with five display/native-pointer cycles and five scene cycles per cell. All hosted monitor-fit checks pass at scale 1. Local Linux scale-2 fit passes at GTK 4.8.2 and 4.24.1. Physical Retina/multi-monitor and Wayland remain **NOT TESTED**. |
 | Linux Wayland UI/GL/input/scaling | **NOT TESTED** |
 | Windows GTK4/Python/GL and EasyHybrid scene | **PASS** for GTK 4.8–4.24 on hosted software WGL (run `39275185493`). Physical GPUs and packaging **NOT TESTED**. |
 | macOS arm64 GTK4/Python/GL and EasyHybrid scene | **PASS** for GTK 4.8–4.24 (4.8/4.10/4.16/4.18 built from GNOME source), run `39275185493`. Trackpad/Retina/hardware-driver coverage **NOT TESTED**. |

@@ -86,29 +86,67 @@ python3 setup.py build_ext --inplace
 ## Installation
 
 The application uses native GTK 4, GLib and GObject-introspection packages;
-`pip install -r requirements.txt` alone is not enough. A baseline developer
-environment for the currently verified GTK 4.24 line can be created with
-Micromamba and conda-forge:
+`pip install -r requirements.txt` alone is not enough. The commands below
+create a developer environment; they do not install pDynamo3 or create a
+standalone application package. Use Micromamba 2.9.0 or newer (the Windows
+GTK 4.8/4.10 workflow needs its `--skip-run-link-scripts` support) and
+conda-forge. The Linux x86_64 explicit lock is the exact replay option; the
+other commands are compatible baseline specifications, not full transitive
+locks.
+
+On Linux x86_64, replay the verified explicit lock:
+
+```bash
+micromamba create --yes --prefix "$PWD/.conda/easyhybrid4-linux-64" \
+  --file environments/easyhybrid4-linux-64.lock
+micromamba run --prefix "$PWD/.conda/easyhybrid4-linux-64" python --version
+```
+
+On Windows x86_64, in PowerShell:
+
+```powershell
+micromamba create -n easyhybrid4 -c conda-forge `
+  python=3.12 gtk4=4.24.1 glib-tools pygobject pycairo pyopengl `
+  numpy scipy cython pillow freetype-py pyyaml psutil pytest setuptools
+# Enable `micromamba activate` in this PowerShell session.
+micromamba shell hook -s powershell | Out-String | Invoke-Expression
+micromamba activate easyhybrid4
+$env:PYTHONNOUSERSITE = '1'
+```
+
+On macOS arm64, in a terminal:
 
 ```bash
 micromamba create -n easyhybrid4 -c conda-forge \
   python=3.12 gtk4=4.24.1 glib-tools pygobject pycairo pyopengl \
   numpy scipy cython pillow freetype-py pyyaml psutil pytest setuptools
+# Enable `micromamba activate` in this shell session.
+eval "$(micromamba shell hook --shell bash)"
+micromamba activate easyhybrid4
+export PYTHONNOUSERSITE=1
+```
+
+The baseline developer environment for GTK 4.24 can also be created on Linux
+with:
+
+```bash
+micromamba create -n easyhybrid4 -c conda-forge \
+  python=3.12 gtk4=4.24.1 glib-tools pygobject pycairo pyopengl \
+  numpy scipy cython pillow freetype-py pyyaml psutil pytest setuptools
+eval "$(micromamba shell hook --shell bash)"
 micromamba activate easyhybrid4
 ```
 
-For an exact Linux x86_64 replay of the clean developer environment verified
-on 2026-10-21, create it from
-[`environments/easyhybrid4-linux-64.lock`](environments/easyhybrid4-linux-64.lock):
-
-```bash
-conda create --prefix "$PWD/.conda/easyhybrid4-linux-64" \
-  --file environments/easyhybrid4-linux-64.lock
-```
-
-This explicit package-URL lock is Linux x86_64 only. Use the conda-forge
-environment command above for Windows and macOS; those install paths still
-need separate clean-environment verification.
+The explicit lock is Linux x86_64 only. The native GTK workflow provisions
+clean environments on Linux, Windows and macOS; PR #18's [full matrix run
+40164041349](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40164041349)
+passed 31/31 jobs, and its 30 runtime artifacts record the exact environment
+per cell. The supported matrix spans GTK 4.8–4.24. Conda-forge provides most
+cells; Linux uses distro packages for GTK 4.16/4.18, Windows builds those
+minors with MSYS2, and macOS builds them from source. This is CI provisioning
+evidence, not a general installer or a clean user-install verification for
+every GTK minor. Exact hosted runtime evidence is recorded in
+[`docs/GTK4_COMPATIBILITY.md`](docs/GTK4_COMPATIBILITY.md).
 
 When building from an environment on a machine with user-installed Python
 packages, disable the user site so NumPy headers and Python packages come from
@@ -116,12 +154,12 @@ the selected environment. For Bash, run `export PYTHONNOUSERSITE=1` before the
 build; in PowerShell, run `$env:PYTHONNOUSERSITE = '1'`.
 
 Install a native compiler toolchain before building the graphics extensions:
-GCC/Clang and build tools on Linux, Visual Studio 2022 C++ Build Tools on
-Windows, or Xcode Command Line Tools on macOS. GTK 4.24.1 is pinned here as a
-known matrix runtime; change that pin only to a patch version with a published
-native package for the chosen OS. This pins the main runtime packages, but it
-is not a complete lock of every transitive build. The matrix workflow documents
-its separate providers for GTK minors that conda-forge does not publish.
+GCC and Python development headers on Linux (for example, `build-essential`),
+Visual Studio 2022 C++ Build Tools on Windows, or Xcode Command Line Tools on
+macOS. GTK 4.24.1 is the verified baseline pin here; change it only to a patch
+version available from conda-forge for the chosen OS. This does not lock every
+transitive package. The native matrix documents its separate providers for
+GTK minors that conda-forge does not publish.
 
 Build the bundled VisMol Cython extensions from the repository root:
 
@@ -135,6 +173,13 @@ Install and compile pDynamo3 separately, then set `PDYNAMO3_HOME`,
 `PDYNAMO3_PARAMETERS` and `PDYNAMO3_SCRATCH` for that checkout. On Linux and
 macOS, add the repository and pDynamo3 checkout to `PYTHONPATH`; in PowerShell
 use semicolons between paths. For example, from the repository root:
+
+The native CI workflow checks out a pinned pDynamo3 revision, builds it with
+`pDynamo3/installation/Install.py -f -q`, sets these variables, and verifies
+the core imports. See the [native GTK workflow](.github/workflows/native-gtk-matrix.yml)
+and [`install.py`](install.py). pDynamo3 and its scientific data are separate
+from the GTK environment commands above; install and compile pDynamo3 using
+its own instructions before running EasyHybrid.
 
 ```bash
 export PDYNAMO3_HOME="$HOME/software/pDynamo3"
