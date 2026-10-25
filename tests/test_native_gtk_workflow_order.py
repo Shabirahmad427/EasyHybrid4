@@ -30,6 +30,18 @@ def test_graphics_extensions_build_before_widget_patterns_import_vismol():
     assert all(compiled < tests for compiled, tests in zip(build_positions, widget_positions))
 
 
+def test_static_type_check_runs_in_native_conda_platform_jobs():
+    workflow = (ROOT / ".github" / "workflows" / "native-gtk-matrix.yml").read_text()
+    runtime = workflow.split("  gtk-runtime:", 1)[1].split("  gtk-linux-distro:", 1)[0]
+
+    assert "mypy>=1.18,<2" in (ROOT / "requirements-dev.txt").read_text()
+    assert "files = src/os_integration/app_paths.py" in (ROOT / "mypy.ini").read_text()
+    type_check = runtime.index("- name: Run strict static type checks")
+    assert "mypy --config-file mypy.ini" in runtime[type_check:]
+    assert "tee -a platform-results.txt" in runtime[type_check:]
+    assert "Install graphics scene and development Python dependencies" in runtime
+
+
 def test_failed_macos_gtk424_cell_can_be_dispatched_alone():
     workflow = (ROOT / ".github" / "workflows" / "native-gtk-matrix.yml").read_text()
 
