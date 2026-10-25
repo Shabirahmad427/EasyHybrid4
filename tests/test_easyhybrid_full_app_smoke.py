@@ -334,6 +334,21 @@ _FULL_APP_CYCLE = textwrap.dedent(
             state["observing"] = True
             state["phase"] = "main_window_ready"
             print("EASYHYBRID_FULL_APP_MAIN_WINDOW=True", flush=True)
+            # EH4-301: the production window carries the menu's <Primary> shortcuts.
+            controllers = main.window.observe_controllers()
+            bound = set()
+            for index in range(controllers.get_n_items()):
+                controller = controllers.get_item(index)
+                if isinstance(controller, Gtk.ShortcutController):
+                    for item in range(controller.get_n_items()):
+                        action = controller.get_item(item).get_action()
+                        if isinstance(action, Gtk.NamedAction):
+                            bound.add(action.get_action_name())
+            expected = {"main.menuitem_new", "main.menuitem_open", "main.menuitem_save",
+                        "main.menuitem_save_as", "main.menuitem_quit"}
+            if not expected <= bound:
+                return fail("MainWindow is missing menu shortcuts: %r" % sorted(expected - bound))
+            print("EASYHYBRID_FULL_APP_MENU_SHORTCUTS=%d" % len(expected), flush=True)
 
         # The fixture is supplied as a normal command-line open request. The
         # real application forwards it to EasyHybridSession.load() after the
@@ -910,6 +925,7 @@ def test_real_easyhybrid_application_mainwindow_load_render_pick_close():
             print(result.stdout.strip())
             assert result.returncode == 0, result.stdout + result.stderr
             assert "EASYHYBRID_FULL_APP_MAIN_WINDOW=True" in result.stdout
+            assert "EASYHYBRID_FULL_APP_MENU_SHORTCUTS=5" in result.stdout
             assert "EASYHYBRID_FULL_APP_PICK=O:" in result.stdout
             assert "EASYHYBRID_FULL_APP_RESIDUE_SELECTION=3" in result.stdout
             assert "EASYHYBRID_FULL_APP_ATOM_SELECTION=True" in result.stdout

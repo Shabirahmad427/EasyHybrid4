@@ -20,6 +20,16 @@ _STOCK_LABELS = {
 }
 
 
+# Desktop conventions: <Primary> is Ctrl on Linux/Windows and Cmd on macOS.
+ACCELERATORS = {
+    "menuitem_new": "<Primary>n",
+    "menuitem_open": "<Primary>o",
+    "menuitem_save": "<Primary>s",
+    "menuitem_save_as": "<Primary><Shift>s",
+    "menuitem_quit": "<Primary>q",
+}
+
+
 class Gtk4MainMenu:
     """GTK4 action/menu-model implementation of the application menu."""
 
@@ -37,6 +47,26 @@ class Gtk4MainMenu:
         widget = Gtk.PopoverMenuBar.new_from_model(self.model)
         widget.insert_action_group("main", self._action_group)
         return widget
+
+    def attach_shortcuts(self, window):
+        """Make the menu's standard shortcuts work anywhere in *window*.
+
+        The capture phase runs before the focused widget (for example the
+        VisMol GLArea's key controller) can consume the key press.
+        """
+        window.insert_action_group("main", self._action_group)
+        controller = Gtk.ShortcutController()
+        controller.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        for item_id, accelerator in ACCELERATORS.items():
+            if item_id not in self.items:
+                continue
+            action_name = re.sub(r"[^a-zA-Z0-9_-]", "-", item_id)
+            controller.add_shortcut(Gtk.Shortcut.new(
+                Gtk.ShortcutTrigger.parse_string(accelerator),
+                Gtk.NamedAction.new(f"main.{action_name}"),
+            ))
+        window.add_controller(controller)
+        return controller
 
     def _build_menu(self, entries):
         model = Gio.Menu()
@@ -79,7 +109,11 @@ class Gtk4MainMenu:
             action.connect("activate", self._activate, is_check)
             self._action_group.add_action(action)
             self.items[item_id] = action
-            section.append(label, f"main.{action_name}")
+            item = Gio.MenuItem.new(label, f"main.{action_name}")
+            if item_id in ACCELERATORS:
+                # Shown beside the label by Gtk.PopoverMenu.
+                item.set_attribute_value("accel", GLib.Variant.new_string(ACCELERATORS[item_id]))
+            section.append_item(item)
 
         finish_section()
         return model
