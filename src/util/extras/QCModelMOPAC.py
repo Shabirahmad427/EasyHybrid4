@@ -221,10 +221,12 @@ class QCModelMOPAC ( QCModel ):
 
 
         #.gradients
-        cmd +=  ' '+state.paths["Input"] + ' > /dev/null 2>&1'
-        #print('cmd', cmd)
-        
-        os.system(cmd)
+        # Argument list, not a shell string: paths with spaces (common on
+        # Windows) stay one argument, and no POSIX-only '/dev/null' is needed.
+        # Output is discarded exactly as the former '> /dev/null 2>&1'.
+        args = [ cmd, state.paths["Input"] ]
+        subprocess.run ( args, cwd = directory,
+                         stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL )
         return True
                 
     def OrbitalEnergies ( self, target ):
