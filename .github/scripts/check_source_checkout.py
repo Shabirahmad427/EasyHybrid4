@@ -146,12 +146,24 @@ def _launch_and_close(source: Path, environment: dict[str, str]) -> None:
                 f"exit={process.poll()}"
             )
 
-        method = inject_native_quit_shortcut(process.pid)
-        print(f"SOURCE_CHECKOUT_NATIVE_QUIT={method}", flush=True)
-        try:
-            status = process.wait(timeout=60)
-        except subprocess.TimeoutExpired as error:
-            raise RuntimeError("source app did not exit after native quit shortcut") from error
+        # The main window maps while startup is still finishing (splash close,
+        # first GL render); a key pressed then is dropped (run 40230196293).
+        # Let it settle, and resend the shortcut while the process stays up.
+        time.sleep(3)
+        status = None
+        for attempt in range(1, 7):
+            if process.poll() is not None:
+                break
+            method = inject_native_quit_shortcut(process.pid)
+            print(f"SOURCE_CHECKOUT_NATIVE_QUIT={method} ATTEMPT={attempt}", flush=True)
+            try:
+                status = process.wait(timeout=10)
+                break
+            except subprocess.TimeoutExpired:
+                continue
+        status = process.poll() if status is None else status
+        if status is None:
+            raise RuntimeError("source app did not exit after native quit shortcut")
         if status != 0:
             raise RuntimeError(f"source app exited with status {status}")
         print("SOURCE_CHECKOUT_NATIVE_CLOSE=PASS EXIT=0", flush=True)
