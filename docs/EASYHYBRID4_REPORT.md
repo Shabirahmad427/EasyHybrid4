@@ -2,6 +2,21 @@
 
 **Report date:** 2026-10-25
 
+**EH4-304 distribution decision (2026-10-25):** the maintainer selected a
+generic source-checkout flow for Linux, Windows and macOS: recursive clone,
+`python install.py`, then `python easyhybrid.py`, using the platform's native
+GTK4 and pDynamo3 setup. App bundles, relocated runtimes and GitHub release
+packages are out of scope. The earlier Linux conda-pack launcher prototype
+and its tests have been removed. Safe `install.py --ci` and actual source
+entrypoint launch/clean-close acceptance across every native GTK matrix cell
+are in progress; no cross-platform completion is claimed yet.
+The first PR matrix (`40229256010`) passed fresh clone, safe install and
+production-window startup on GTK 4.12.1/Linux, then failed the native quit
+event because Xvfb has no window manager for xdotool's EWMH `windowactivate`.
+That run was cancelled. The shared X11 input adapter now focuses the PID-owned
+window directly before sending Ctrl+Q; 30 focused native-input/workflow tests
+pass, and a full latest-head matrix is pending.
+
 **Project persistence (partial, EH4-404):** EasyHybrid `.easy` payloads now
 write format version 1; payloads without a version key are treated as legacy
 version 0. The loader validates the deserialized mapping, systems list and
@@ -23,7 +38,9 @@ Linux Xvfb with Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib 2.80.0.
 Cancellation, progress reporting, GUI responsiveness, and unexpected worker
 crash detection remain unverified.
 
-**EH4-303 reproducible installation: PASS for clean-runner provisioning (2026-10-25).** PR #19 matrix run [40196735291](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40196735291) passed 31/31 jobs. I audited all 30 runtime artifacts: exact OS/architecture, Python, PyGObject, GTK patch, GLib and renderer are recorded; each has five full-app native pointer/pick/render/close cycles, five molecular scene cycles, render validation at scales 1 and 2, and 31 scientific tests passed. The workflow created clean Linux, Windows and macOS environments; GTK 4.16/4.18 use Linux distro packages, Windows MSYS2 builds and macOS source builds. README now covers the Linux x86_64 exact lock, Windows PowerShell and macOS arm64 GTK 4.24.1 baselines, Micromamba shell hooks, compilers and separate pDynamo3 setup. **NOT TESTED:** independent manual Windows/macOS installs following README and complete transitive locks for those platforms. EH4-304 separately tracks distribution packages.
+**EH4-304 source-checkout installation: PASS (2026-10-25).** PR #22 matrix [40233041116](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40233041116) passed 31/31 on `37c832b`. One generic driver (`.github/scripts/check_source_checkout.py`) runs identically in every cell: fresh `git clone --recurse-submodules` of the tested commit, `python install.py --ci`, launch of production `easyhybrid.py`, native Ctrl+Q/Cmd+Q, exit 0 required. All 30 artifacts record `SOURCE_CHECKOUT_NATIVE_CLOSE=PASS EXIT=0` and the loaded OS/arch/Python/PyGObject/GTK/GLib (GTK 4.8.2 through 4.24.1; Linux conda + Fedora 41/Ubuntu 24.10/Debian 13, Windows conda + MSYS2, macOS arm64 + Intel 4.8/4.10). The run exposed and fixed a real Windows installer crash on cp1252 consoles. **NOT TESTED:** manual installs on physical user machines.
+
+**EH4-303 reproducible installation: PASS for clean-runner provisioning (2026-10-25).** PR #19 matrix run [40196735291](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40196735291) passed 31/31 jobs. I audited all 30 runtime artifacts: exact OS/architecture, Python, PyGObject, GTK patch, GLib and renderer are recorded; each has five full-app native pointer/pick/render/close cycles, five molecular scene cycles, render validation at scales 1 and 2, and 31 scientific tests passed. The workflow created clean Linux, Windows and macOS environments; GTK 4.16/4.18 use Linux distro packages, Windows MSYS2 builds and macOS source builds. README now covers the Linux x86_64 exact lock, Windows PowerShell and macOS arm64 GTK 4.24.1 baselines, Micromamba shell hooks, compilers and separate pDynamo3 setup. **NOT TESTED:** independent manual Windows/macOS installs following README and complete transitive locks for those platforms. EH4-304 tracks generic source-checkout installation and native launch acceptance.
 
 **Current roadmap pointer:** EH4-301 and EH4-302 are complete for their
 hosted-runner acceptance. PR #17 (window-minimum fix) merged as 770e666 after
@@ -464,6 +481,12 @@ llvmpipe; the selected environment was `PYOPENGL_PLATFORM=glx` and
 `GDK_DISABLE=egl`. This is local GTK 4.24 Linux evidence only. Candidate
 packages using GTK 4.8–4.22 and independently installed Windows/macOS
 packages remain **NOT TESTED**; EH4-304 remains unchecked.
+
+**Superseded by the maintainer's distribution decision (2026-10-25):** the
+Linux bundle launcher and its tests are removed. The candidate-bundle results
+above are historical only and do not satisfy current EH4-304 acceptance,
+which requires source install and native launch/close evidence across the
+complete OS/GTK matrix.
 
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)

@@ -67,7 +67,7 @@ jobs:
     runs-on: ${{ matrix.os == 'linux-x86_64' && 'ubuntu-24.04' || matrix.os == 'windows-x86_64' && 'windows-2022' || matrix.os == 'macos-x86_64' && 'macos-15-intel' || 'macos-14' }}
     timeout-minutes: 45
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         os: ${{ fromJSON(inputs.scope == 'linux-gtk48' && '["linux-x86_64"]' || (inputs.scope == 'windows-legacy' || inputs.scope == 'windows' || inputs.scope == 'windows-gtk420') && '["windows-x86_64"]' || (inputs.scope == 'macos-diagnostic' || inputs.scope == 'macos-gtk424') && '["macos-arm64"]' || '["linux-x86_64", "windows-x86_64", "macos-arm64"]') }}
         gtk: ${{ fromJSON(inputs.scope == 'linux-gtk48' && '["4.8"]' || inputs.scope == 'windows-legacy' && '["4.8", "4.10"]' || inputs.scope == 'windows-gtk420' && '["4.20"]' || inputs.scope == 'macos-gtk424' && '["4.24"]' || '["4.8", "4.10", "4.12", "4.14", "4.16", "4.18", "4.20", "4.22", "4.24"]') }}
@@ -361,6 +361,11 @@ jobs:
             micromamba run -n easyhybrid-gtk python -m pytest -q -s -p no:cacheprovider tests/test_vismol_render_validation.py 2>&1 | tee -a platform-results.txt
           fi
 
+      - name: Verify fresh source checkout install and native launch
+        run: |
+          set -euo pipefail
+          micromamba run -n easyhybrid-gtk python .github/scripts/check_source_checkout.py 2>&1 | tee -a platform-results.txt
+
       - name: Upload runtime and test evidence
         if: always()
         uses: actions/upload-artifact@v6
@@ -380,7 +385,7 @@ jobs:
     container: ${{ matrix.image }}
     timeout-minutes: 30
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         include:
           - gtk: "4.16"
@@ -553,6 +558,13 @@ jobs:
           set -o pipefail
           LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe xvfb-run -a -s "-screen 0 1280x800x24 +extension GLX" python3 -m pytest -q -s -p no:cacheprovider tests/test_vismol_render_validation.py 2>&1 | tee -a platform-results.txt
 
+      - name: Verify fresh source checkout install and native launch
+        env:
+          PYOPENGL_USE_ACCELERATE: "0"
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/check_source_checkout.py 2>&1 | tee -a platform-results.txt
+
       - name: Upload runtime and test evidence
         if: always()
         uses: actions/upload-artifact@v6
@@ -575,7 +587,7 @@ jobs:
       CCACHE_MAXSIZE: 1G
     timeout-minutes: 75
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         include:
           - gtk: "4.16"
@@ -599,6 +611,7 @@ jobs:
           msystem: UCRT64
           update: true
           install: >-
+            git
             mingw-w64-ucrt-x86_64-gcc
             mingw-w64-ucrt-x86_64-ccache
             mingw-w64-ucrt-x86_64-meson
@@ -779,6 +792,11 @@ jobs:
           set -o pipefail
           GALLIUM_DRIVER=llvmpipe python -m pytest -q -s -p no:cacheprovider tests/test_vismol_render_validation.py 2>&1 | tee -a platform-results.txt
 
+      - name: Verify fresh source checkout install and native launch
+        run: |
+          set -euo pipefail
+          python .github/scripts/check_source_checkout.py 2>&1 | tee -a platform-results.txt
+
       - name: Reject native Windows fatal exceptions in GTK logs
         if: always()
         run: |
@@ -832,7 +850,7 @@ jobs:
       CCACHE_MAXSIZE: 1G
     timeout-minutes: 75
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         include:
           - gtk: "4.8"
@@ -1047,6 +1065,11 @@ jobs:
         run: |
           set -o pipefail
           micromamba run -n easyhybrid-gtk-src python -m pytest -q -s -p no:cacheprovider tests/test_vismol_render_validation.py 2>&1 | tee -a platform-results.txt
+
+      - name: Verify fresh source checkout install and native launch
+        run: |
+          set -euo pipefail
+          micromamba run -n easyhybrid-gtk-src python .github/scripts/check_source_checkout.py 2>&1 | tee -a platform-results.txt
 
       - name: Show macOS native crash report
         if: failure() && runner.os == 'macOS'

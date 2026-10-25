@@ -10,9 +10,12 @@ from native_pointer_input import (
     appkit_to_quartz_point,
     logical_to_device_point,
     minimize_hosted_runner_console_blocker,
+    inject_native_quit_shortcut,
+    native_window_visible_for_process,
     retry_until_native_hit_target,
     win32_hit_belongs_to_target,
 )
+import native_pointer_input
 
 
 @pytest.mark.parametrize(
@@ -26,6 +29,30 @@ def test_logical_coordinates_map_to_device_pixels(point, scale, expected):
 def test_logical_to_device_point_rejects_invalid_scale():
     with pytest.raises(ValueError, match="positive"):
         logical_to_device_point(1, 2, 0)
+
+
+def test_native_quit_shortcut_targets_linux_process_window(monkeypatch):
+    calls = []
+    monkeypatch.setattr(native_pointer_input.sys, "platform", "linux")
+    monkeypatch.setattr(native_pointer_input.shutil, "which", lambda name: "/usr/bin/xdotool")
+    monkeypatch.setattr(
+        native_pointer_input.subprocess,
+        "run",
+        lambda command, **kwargs: calls.append((command, kwargs))
+        or type("Completed", (), {"returncode": 0, "stdout": "42\n", "stderr": ""})(),
+    )
+
+    assert native_window_visible_for_process(9001)
+    assert inject_native_quit_shortcut(9001) == "linux-x11-xtest:ctrl+q"
+    assert calls[0][0] == [
+        "/usr/bin/xdotool", "search", "--onlyvisible", "--pid", "9001",
+        "--name", "^EasyHybrid ",
+    ]
+    assert calls[1][0] == calls[0][0]
+    assert calls[2][0] == ["/usr/bin/xdotool", "windowfocus", "--sync", "42"]
+    assert calls[3][0] == [
+        "/usr/bin/xdotool", "key", "--clearmodifiers", "ctrl+q"
+    ]
 
 
 def test_native_click_feedback_corrects_toplevel_client_offset():

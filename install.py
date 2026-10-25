@@ -229,10 +229,14 @@ GTK4_MIN_VERSION = (4, 8)
 # every ask_yes_no() call below just returns True immediately instead of
 # blocking on stdin. Previously there was no such option at all.
 NON_INTERACTIVE = False
+CI_MODE = False
 
 
 def ask_yes_no(question):
-    """Prompt user for yes/no answer (auto-accepts if NON_INTERACTIVE)."""
+    """Prompt interactively; safe automation declines optional mutations."""
+    if CI_MODE:
+        print(f"{question} (y/n): n   [--ci: optional change skipped]")
+        return False
     if NON_INTERACTIVE:
         print(f"{question} (y/n): y   [--yes]")
         return True
@@ -257,15 +261,15 @@ def install_vismol():
 
     print(c_header("\nBuilding the VISMOL graphics engine...\n"))
 
-    install_script = VISMOL_PATH / "install.sh"
+    setup_script = VISMOL_PATH / "setup.py"
 
-    if not install_script.exists():
-        print(c_error("ERROR: install.sh not found."))
+    if not setup_script.exists():
+        print(c_error("ERROR: graphics-engine setup.py not found."))
         return False
 
     try:
         subprocess.run(
-            ["bash", str(install_script)],
+            [sys.executable, str(setup_script), "build_ext", "--inplace"],
             cwd=str(VISMOL_PATH),
             check=True
         )
@@ -278,8 +282,7 @@ def install_vismol():
     # can, in principle, "succeed" while skipping/silently failing an
     # individual extension). vismol.utils.c_distances is the one used
     # for bond auto-detection -- if this one imports, the rest built too
-    # (they're all produced by the same "python3 setup.py build_ext
-    # --inplace" step).
+    # (they're all produced by the same setup.py build_ext step).
     vismol_src = str(VISMOL_PATH / "src")
     if vismol_src not in sys.path:
         sys.path.insert(0, vismol_src)
@@ -423,6 +426,9 @@ def configure_xtb_command():
     the variable is set in future shells. Returns True unless the user
     authorized it but writing failed.
     """
+    if CI_MODE:
+        print(c_info("--ci: skipping optional xTB environment-file changes."))
+        return True
     var = QC_ENGINE_ENV_VARS["xTB"]  # "PDYNAMO3_XTBCOMMAND"
 
     # If it is already set in this shell, tell the user and offer to skip.
@@ -482,6 +488,9 @@ def install_qc_modules():
     only if the user asked to install but it failed.
     """
 
+    if CI_MODE:
+        print(c_info("--ci: skipping optional writes to the external pDynamo checkout."))
+        return True
     print(c_header("\nExternal QC modules (xTB, ...) for pDynamo\n"))
 
     extras_dir = EASYHYBRID_HOME / "src" / "util" / "extras"
@@ -680,6 +689,28 @@ def check_pdynamo():
 
             print(f"{module} : {c_error('NOT FOUND')}")
             missing.append(module)
+
+    if CI_MODE:
+        if missing:
+            print(c_error("--ci requires pDynamo3 modules to be importable; missing: "
+                          + ", ".join(missing)))
+            return missing
+        declared_home = os.environ.get("PDYNAMO3_HOME")
+        if not declared_home:
+            print(c_error("--ci requires PDYNAMO3_HOME to identify the pDynamo3 checkout."))
+            return ["PDYNAMO3_HOME"]
+        try:
+            resolved_home = Path(declared_home).resolve()
+            resolved_module = Path(importlib.import_module("pCore").__file__).resolve()
+            if resolved_home not in resolved_module.parents:
+                print(c_error("PDYNAMO3_HOME does not contain the imported pCore module: "
+                              f"{resolved_module}"))
+                return ["PDYNAMO3_HOME"]
+        except (OSError, ImportError) as error:
+            print(c_error(f"Could not verify the pDynamo3 checkout: {error}"))
+            return ["PDYNAMO3_HOME"]
+        print(c_ok(f"--ci verified PDYNAMO3_HOME -> {resolved_home}"))
+        return []
 
     if missing:
 
@@ -1049,6 +1080,10 @@ def check_external_libraries(auto_install=False):
 
 def create_desktop_icon():
 
+    if CI_MODE:
+        print(c_info("--ci: skipping desktop and application-menu shortcuts."))
+        return
+
     try:
 
         desktop = subprocess.check_output(
@@ -1110,7 +1145,13 @@ Categories=Science;Education;
 # ---------------------------------------------------------------------
 
 def main():
-    global NON_INTERACTIVE
+    global NON_INTERACTIVE, CI_MODE
+
+    # Windows consoles and pipes can use a legacy code page (cp1252) that
+    # cannot encode the check marks printed below; replace instead of crashing.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(errors="replace")
 
     import argparse
     parser = argparse.ArgumentParser(
@@ -1119,6 +1160,10 @@ def main():
     parser.add_argument(
         "-y", "--yes", action="store_true",
         help="Non-interactive: auto-accept every prompt (e.g. for Docker/CI builds).",
+    )
+    parser.add_argument(
+        "--ci", action="store_true",
+        help="Safe non-interactive validation/build; never install packages or mutate pDynamo/user settings.",
     )
     parser.add_argument(
         "--credits", action="store_true",
@@ -1131,7 +1176,8 @@ def main():
         print(CREDITS_TEXT)
         return True
 
-    NON_INTERACTIVE = args.yes
+    CI_MODE = args.ci
+    NON_INTERACTIVE = args.yes and not CI_MODE
 
     print(c_bold(f"\nEasyHybrid {EASYHYBRID_VERSION} -- Installation and Configuration\n"))
     print('''\
@@ -1174,7 +1220,10 @@ Run with --credits at any time to see the full citation details.\
         return False
 
     print(c_header("\n[Step 2/3] pDynamo3 installation"))
-    check_pdynamo()
+    pdynamo_missing = check_pdynamo()
+    if CI_MODE and pdynamo_missing:
+        print(c_error("Installation cannot continue until pDynamo3 is configured."))
+        return False
 
     # External QC engines (ORCA / xTB) are optional but commonly used; report
     # their environment-variable configuration so the user knows what will work.
@@ -1203,4 +1252,4 @@ Run with --credits at any time to see the full citation details.\
 # ---------------------------------------------------------------------
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(0 if main() else 1)

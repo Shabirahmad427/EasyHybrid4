@@ -150,6 +150,33 @@ def test_every_provider_runs_pdynamo_scientific_tests_without_a_display():
     assert '"skipped" in summary' in runner
 
 
+def test_every_provider_installs_and_launches_the_source_checkout_after_render_checks():
+    workflow = (ROOT / ".github" / "workflows" / "native-gtk-matrix.yml").read_text()
+    script = (ROOT / ".github" / "scripts" / "check_source_checkout.py").read_text()
+    native_input = (ROOT / "tests" / "native_pointer_input.py").read_text()
+    assert workflow.count(".github/scripts/check_source_checkout.py") == 4
+    for job in (
+        "gtk-runtime:", "gtk-linux-distro:", "gtk-windows-msys2:", "gtk-macos-source:"
+    ):
+        start = workflow.index("\n  " + job)
+        next_job = workflow.find("\n  gtk-", start + 4)
+        section = workflow[start:next_job if next_job >= 0 else None]
+        render = section.index("- name: Validate VisMol rendering")
+        source = section.index("- name: Verify fresh source checkout install and native launch")
+        upload = section.index("- name: Upload runtime and test evidence")
+        assert render < source < upload
+        source_step = section[source:upload]
+        assert ".github/scripts/check_source_checkout.py" in source_step
+        assert "RUNNER_OS" not in source_step
+        assert "fail-fast: true" in section[:section.index("steps:")]
+        assert "install.py\", \"--ci" in script
+        assert "git\", \"clone\", \"--recurse-submodules" in script
+        assert "native_window_visible_for_process" in script
+        assert "inject_native_quit_shortcut" in script and "ctrl+q" in native_input
+        assert "cmd+q" in native_input
+        assert "SOURCE_CHECKOUT_RUNTIME=" in script
+
+
 def test_main_push_skips_matrix_only_for_tested_merges_or_markdown():
     workflow = (ROOT / ".github" / "workflows" / "native-gtk-matrix.yml").read_text()
 
