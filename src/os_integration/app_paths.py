@@ -2,13 +2,15 @@
 
 import os
 import sys
+from collections.abc import Mapping
+from os import PathLike
 from pathlib import Path
 
 
 APP_DIRECTORY = "EasyHybrid4"
 
 
-def _absolute_env_path(environ, name):
+def _absolute_env_path(environ: Mapping[str, str], name: str) -> Path | None:
     value = environ.get(name)
     if value:
         path = Path(value).expanduser()
@@ -17,7 +19,12 @@ def _absolute_env_path(environ, name):
     return None
 
 
-def user_config_dir(*, platform=None, environ=None, home=None):
+def user_config_dir(
+    *,
+    platform: str | None = None,
+    environ: Mapping[str, str] | None = None,
+    home: str | PathLike[str] | None = None,
+) -> Path:
     """Return the per-user configuration directory without creating it."""
     platform = sys.platform if platform is None else platform
     environ = os.environ if environ is None else environ
@@ -32,7 +39,12 @@ def user_config_dir(*, platform=None, environ=None, home=None):
     return base / APP_DIRECTORY
 
 
-def user_cache_dir(*, platform=None, environ=None, home=None):
+def user_cache_dir(
+    *,
+    platform: str | None = None,
+    environ: Mapping[str, str] | None = None,
+    home: str | PathLike[str] | None = None,
+) -> Path:
     """Return the per-user cache directory without creating it."""
     platform = sys.platform if platform is None else platform
     environ = os.environ if environ is None else environ
@@ -47,7 +59,12 @@ def user_cache_dir(*, platform=None, environ=None, home=None):
     return base / APP_DIRECTORY
 
 
-def ensure_user_directories(*, platform=None, environ=None, home=None):
+def ensure_user_directories(
+    *,
+    platform: str | None = None,
+    environ: Mapping[str, str] | None = None,
+    home: str | PathLike[str] | None = None,
+) -> tuple[Path, Path]:
     """Create and return the application's config and cache directories."""
     config_dir = user_config_dir(platform=platform, environ=environ, home=home)
     cache_dir = user_cache_dir(platform=platform, environ=environ, home=home)
@@ -56,7 +73,13 @@ def ensure_user_directories(*, platform=None, environ=None, home=None):
     return config_dir, cache_dir
 
 
-def config_file_candidates(legacy_home=None, *, platform=None, environ=None, home=None):
+def config_file_candidates(
+    legacy_home: str | PathLike[str] | None = None,
+    *,
+    platform: str | None = None,
+    environ: Mapping[str, str] | None = None,
+    home: str | PathLike[str] | None = None,
+) -> tuple[Path, ...]:
     """Return the active settings file followed by the legacy source-tree file."""
     active = user_config_dir(platform=platform, environ=environ, home=home) / "config.json"
     candidates = [active]

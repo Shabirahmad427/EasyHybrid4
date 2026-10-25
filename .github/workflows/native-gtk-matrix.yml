@@ -188,6 +188,11 @@ jobs:
           micromamba run -n easyhybrid-gtk python -m compileall -q src tests
           micromamba run -n easyhybrid-gtk ruff check --no-cache --select E9,F63,F7 src tests
 
+      - name: Run strict static type checks
+        run: |
+          set -o pipefail
+          micromamba run -n easyhybrid-gtk mypy --config-file mypy.ini 2>&1 | tee -a platform-results.txt
+
       - name: Install full-application dependencies
         # The full EasyHybrid application (with pDynamo3) imports SciPy and
         # psutil and now runs in every cell, not only the 4.24 full suite.

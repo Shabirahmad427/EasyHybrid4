@@ -23,25 +23,25 @@ Linux Xvfb with Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib 2.80.0.
 Cancellation, progress reporting, GUI responsiveness, and unexpected worker
 crash detection remain unverified.
 
-**Current roadmap pointer:** EH4-500 CI compiler-cache timing is active on the
-preserved `eh4-500-ci-quality-gates` branch. PR #11's EH4-403 exported relaxed
-scan calculation passed the native matrix (`40123557334`, 30/30) and is merged.
-PR #9's EH4-402 scientific
-coverage passed 26 headless tests with no skips in all 30 native matrix cells
-(`40112239125`) and is merged. The compiler-output cache is configured for the
-macOS GTK source builds and Windows MSYS2 GTK 4.16/4.18 builds; hosted cold/warm
-cache behavior has been measured in sequential cold/warm focused runs
-(`40126461301`, `40127443099`), each passing all six source-build cells. Warm
-artifacts report cache restore in every cell and 99.46–99.62% compiler-cache
-hits; source-build steps fell from 159–446 seconds cold to 24–57 seconds warm
-(78–91% reduction). Exact GTK patches, OS/architecture, Python, PyGObject,
-GLib and renderers are recorded in `ROADMAP.md`. The first EH4-500 workflow
-attempt (`40123686791`) was rejected before jobs started because `runner.temp`
-was referenced in job-level `env`; commit `5d6edf5` moves `CCACHE_DIR` to
-`$RUNNER_TEMP` inside the build steps. Local workflow regressions pass, but the
-required full 30-cell PR matrix remains pending. EH4-200 provenance, EH4-203
-physical trackpad review, EH4-301 clipboard/accessibility, and packaging tasks
-remain open.
+**Current roadmap pointer:** EH4-500 CI quality gates and source compiler cache
+are complete. A strict static-typing follow-up for the cross-platform path
+adapter is implemented locally and awaits its native matrix, queued behind
+Claude's active EH4-301 matrix. EH4-302 follows EH4-301; Codex's next packaging
+task is EH4-303. PR #13 merged as `aa519f3`; its full native matrix
+[`40129629714`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40129629714)
+passed 30/30, and all 30 exact-runtime artifacts were inspected. Each records
+five full-app native pick/session/render/clean-close cycles, five production
+scene cycles, renderer validation at scales 1 and 2, and 27 scientific tests.
+Sequential cold/warm source-build runs (`40126461301`, `40127443099`) passed
+all six cells; warm ccache hit rates were 99.46–99.62%, reducing GTK build-step
+times by 78–91%. The first EH4-500 workflow attempt (`40123686791`) had an
+invalid `runner.temp` job-level environment expression and was fixed in
+`5d6edf5`. After PR #12 merged, main run `40142461544` failed only at the GTK
+4.10 macOS artifact upload (`ETIMEDOUT`); all tests, app cycles and render
+checks passed. Rerunning only that failed cell produced the missing artifact;
+the main run is green with 30 artifacts. All six GTK compiler caches now exist
+in main scope for future PRs. EH4-200 provenance, EH4-203 physical trackpad
+review, EH4-301 clipboard/accessibility, and packaging tasks remain open.
 
 **EH4-405 batch PR #6 matrix status:** corrected head `341a7cc`, merged as
 `b676d00`, passed full matrix
@@ -638,7 +638,18 @@ cells remain **NOT TESTED**.
 (`E9,F63,F7`) in every GTK runtime job. Local Linux validation passed. The
 updated hosted jobs have not yet run. Existing matrix steps already build
 graphics extensions and pDynamo3, perform pDynamo imports, run tests, and
-upload per-cell logs; no static type checker is configured yet.
+upload per-cell logs.
+
+**EH4-500 strict typing follow-up (2026-10-25):** added mypy 1.20-compatible
+strict checking for `src/os_integration/app_paths.py`, with explicit path and
+environment mapping types. `mypy.ini` pins the syntax target to Python 3.10,
+the project floor. The native conda-backed GTK jobs now install the dev
+requirements and run this check on Linux, Windows and macOS. Local mypy passed
+on Linux x86_64 with Python 3.13.9; the focused path/workflow tests passed
+32/32 on Linux Mint 22.3 x86_64, Python 3.12.3 / PyGObject 3.48.2 / GTK
+4.14.5 / GLib 2.80.0. The hosted matrix for this new gate is pending, and the
+check currently covers the path adapter rather than claiming whole-repository
+type safety.
 **Native UI acceptance (EH4-502):** matrix run
 [`39526661552`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39526661552)
 completed successfully across all 30 provisioned OS/GTK cells. Native GTK
@@ -1427,12 +1438,13 @@ GitHub-hosted runners for dependency provisioning, extension builds, display-
 free scientific tests, real GTK/GL checks and uploaded runtime evidence. PRs
 run the full supported GTK-version matrix. The plan job skips a `main` push
 when its tree is already covered by the merged PR, or when only Markdown
-changed; it does not skip code pushes. Compiler-output caching for the macOS
-GTK source builds and Windows MSYS2 GTK 4.16/4.18 builds is implemented on the
-EH4-500 branch. Focused cold/warm runs `40126461301` and `40127443099` passed
-all six source-build cells; warm artifacts show 99.46–99.62% ccache hits and
-GTK build-step reductions of 78–91%. The cache excludes installed GTK
-prefixes. The full 30-cell PR matrix is still required before merge.
+changed; it does not skip code pushes. EH4-500 compiler-output caching for
+macOS GTK source builds and Windows MSYS2 GTK 4.16/4.18 builds is merged in
+PR #13. Focused cold/warm runs `40126461301` and `40127443099` passed all six
+source-build cells; warm artifacts show 99.46–99.62% ccache hits and GTK
+build-step reductions of 78–91%. The full 30-cell PR matrix passed in
+`40129629714`; all six compiler caches are now available in main scope. The
+cache excludes installed GTK prefixes.
 
 The workflow does not replace dated manual checks for macOS Retina/trackpad or
 physical GPUs; those remain separate native-hardware evidence.
