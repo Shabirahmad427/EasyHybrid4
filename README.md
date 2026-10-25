@@ -181,7 +181,6 @@ and [`install.py`](install.py). pDynamo3 and its scientific data are separate
 from the GTK environment commands above; install and compile pDynamo3 using
 its own instructions before running EasyHybrid.
 
-
 ```bash
 export PDYNAMO3_HOME="$HOME/software/pDynamo3"
 export PDYNAMO3_PARAMETERS="$PDYNAMO3_HOME/parameters"
