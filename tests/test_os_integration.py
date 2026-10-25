@@ -201,7 +201,7 @@ def test_gtk424_x11_pins_glx_with_gdk_disable_instead_of_removed_debug_flag():
     assert "gl-glx" not in environment.get("GDK_DEBUG", "").split(":")
 
 
-def test_gtk424_x11_keeps_user_selected_egl_enabled():
+def test_gtk424_x11_aligns_gdk_when_user_selects_egl():
     environment = {"DISPLAY": ":99", "PYOPENGL_PLATFORM": "egl"}
 
     configure_gl_context_environment(
@@ -209,10 +209,10 @@ def test_gtk424_x11_keeps_user_selected_egl_enabled():
     )
 
     assert environment["PYOPENGL_PLATFORM"] == "egl"
-    assert "GDK_DISABLE" not in environment
+    assert environment["GDK_DISABLE"] == "glx"
 
 
-def test_user_selected_egl_platform_does_not_force_gdk_glx():
+def test_user_selected_egl_platform_aligns_gdk_to_egl():
     environment = {"DISPLAY": ":99", "PYOPENGL_PLATFORM": "egl"}
 
     configure_gl_context_environment(
@@ -221,6 +221,7 @@ def test_user_selected_egl_platform_does_not_force_gdk_glx():
 
     assert environment["PYOPENGL_PLATFORM"] == "egl"
     assert environment["GDK_DEBUG"] == "gl-prefer-gl"
+    assert environment["GDK_DISABLE"] == "glx"
 
 def test_user_paths_follow_platform_conventions_and_unicode(tmp_path):
     home = tmp_path / "Usuário Ω"

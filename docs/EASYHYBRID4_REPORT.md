@@ -448,6 +448,18 @@ scoped to Linux only; its fake executable tests remain active on Linux.
 Windows/macOS skips do not verify those platforms' packaging, and EH4-304
 remains unchecked.
 
+**EH4-304 Linux bundle backend update (2026-10-25):** the Linux launcher no
+longer forces `PYOPENGL_PLATFORM=egl`. It leaves backend selection to
+`configure_gl_context_environment()`, which aligns PyOpenGL with the loaded
+GTK runtime and the current display. Launcher regressions pass (2/2) using
+Python 3.12.3. A relocated conda-pack candidate launched and closed through
+the application's Escape handler under Linux x86_64 X11/Xvfb with Python
+3.12.15, PyGObject 3.58.1, GTK 4.24.1, GLib 2.90.0 and Mesa 25.2.8 llvmpipe;
+the selected environment was `PYOPENGL_PLATFORM=glx` and `GDK_DISABLE=egl`.
+This is local GTK 4.24 Linux evidence only. Candidate packages using GTK
+4.8–4.22 and independently installed Windows/macOS packages remain
+**NOT TESTED**; EH4-304 remains unchecked.
+
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
 used GTK 4.24.1 / GLib 2.90.0 / PyGObject 3.58.1 / Python 3.12.15 on

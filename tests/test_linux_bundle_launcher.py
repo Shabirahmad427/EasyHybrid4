@@ -109,17 +109,19 @@ def test_linux_bundle_launcher_sets_runtime_and_external_pdynamo_paths(tmp_path)
         str(pdynamo),
         "/existing/python/path",
     ]
-    assert values[6] == "egl"
+    assert values[6] == ""
     assert values[7] == str(bundle / "runtime")
     assert values[8] == str(
         bundle / "runtime" / "share" / "glib-2.0" / "schemas"
     )
     second_run = subprocess.run(
-        [str(launcher)], cwd=bundle, env=environment, capture_output=True,
+        [str(launcher)], cwd=bundle,
+        env={**environment, "PYOPENGL_PLATFORM": "egl"}, capture_output=True,
         text=True, check=False,
     )
     assert second_run.returncode == 0, second_run.stderr
     assert unpack_count.read_text(encoding="utf-8") == "x"
+    assert capture_env.read_text(encoding="utf-8").splitlines()[6] == "egl"
 
 
 def test_linux_bundle_launcher_reports_missing_pdynamo_checkout(tmp_path):

@@ -35,8 +35,8 @@ for activation_script in "$runtime"/etc/conda/activate.d/*.sh; do
 done
 
 export PYTHONNOUSERSITE=1
-# The relocatable conda GTK runtime uses EGL on Linux. Keep PyOpenGL on the
-# same backend as Gtk.GLArea so VisMol can see GTK's current context.
-export PYOPENGL_PLATFORM="${PYOPENGL_PLATFORM:-egl}"
+# Let the GTK runtime's startup policy select a matching PyOpenGL backend.
+# GTK 4.24 can use EGL or GLX on X11 depending on the machine; forcing EGL
+# here can mismatch the backend GTK selected in the conda runtime.
 export PYTHONPATH="$app_root:$app_root/src/graphics_engine/src:$PDYNAMO3_HOME${PYTHONPATH:+:$PYTHONPATH}"
 exec "$python" "$app_root/easyhybrid.py" "$@"
