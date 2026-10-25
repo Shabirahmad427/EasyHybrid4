@@ -8,6 +8,7 @@ from pathlib import Path
 import platform
 import shlex
 import shutil
+import site
 import subprocess
 import sys
 import tempfile
@@ -71,6 +72,8 @@ def _source_environment(source: Path, matrix_checkout: Path, temporary_home: Pat
     environment["PYTHONDONTWRITEBYTECODE"] = "1"
     if sys.platform == "win32":
         environment.setdefault("GALLIUM_DRIVER", "llvmpipe")
+    # Keep `pip install --user` packages (distro cells) visible after HOME moves.
+    environment.setdefault("PYTHONUSERBASE", site.getuserbase())
     environment["HOME"] = str(temporary_home)
     environment["USERPROFILE"] = str(temporary_home)
     environment["APPDATA"] = str(temporary_home / "AppData" / "Roaming")
