@@ -25,9 +25,10 @@ crash detection remain unverified.
 
 **Current roadmap pointer:** EH4-500 CI quality gates and source compiler cache
 are complete. A strict static-typing follow-up for the cross-platform path
-adapter is implemented locally and awaits its native matrix, queued behind
-Claude's active EH4-301 matrix. EH4-302 follows EH4-301; Codex's next packaging
-task is EH4-303. PR #13 merged as `aa519f3`; its full native matrix
+adapter is implemented on `eh4-500-ci-quality-gates` and awaits its native
+matrix. Claude's EH4-301 PR #14 merged after matrix run `40152703430` passed
+31/31 jobs; EH4-302 is next, and Codex's EH4-303 packaging work follows the
+EH4-500 type-gate matrix. PR #13 merged as `aa519f3`; its full native matrix
 [`40129629714`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40129629714)
 passed 30/30, and all 30 exact-runtime artifacts were inspected. Each records
 five full-app native pick/session/render/clean-close cycles, five production
