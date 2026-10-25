@@ -23,27 +23,11 @@ Linux Xvfb with Python 3.12.3 / PyGObject 3.48.2 / GTK 4.14.5 / GLib 2.80.0.
 Cancellation, progress reporting, GUI responsiveness, and unexpected worker
 crash detection remain unverified.
 
-**EH4-303 installation status (2026-10-25): PARTIAL.** README now gives an
-exact Linux x86_64 explicit-lock replay and GTK 4.24.1 developer-environment
-commands for Windows x86_64 and macOS arm64, plus compiler, user-site,
-pDynamo3 and scope notes. Conda 26.1.1 accepted the Linux lock in an offline
-dry-run; this validates only lock metadata, not package installation. The
-previous clean Linux prefix replay built/imported seven graphics extensions
-and passed smoke checks at Python 3.12.15 / PyGObject 3.58.1 / GTK 4.24.1 /
-GLib 2.90.0. PR #18 matrix run
-[40164041349](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40164041349)
-passed 31/31 jobs and provisions clean runner environments for Linux, Windows
-and macOS; all 30 runtime artifacts record exact versions. GTK 4.16/4.18 use
-Linux distro packages, Windows MSYS2 builds and macOS source builds. This is
-CI provisioning evidence, not general user-install acceptance. Fresh native
-Windows/macOS installs following the README remain **NOT TESTED**. The README
-now initializes Micromamba shell hooks before activation and explains the
-separate pDynamo3 build and GTK minor providers.
+**EH4-303 reproducible installation: PASS for clean-runner provisioning (2026-10-25).** PR #19 matrix run [40196735291](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40196735291) passed 31/31 jobs. I audited all 30 runtime artifacts: exact OS/architecture, Python, PyGObject, GTK patch, GLib and renderer are recorded; each has five full-app native pointer/pick/render/close cycles, five molecular scene cycles, render validation at scales 1 and 2, and 31 scientific tests passed. The workflow created clean Linux, Windows and macOS environments; GTK 4.16/4.18 use Linux distro packages, Windows MSYS2 builds and macOS source builds. README now covers the Linux x86_64 exact lock, Windows PowerShell and macOS arm64 GTK 4.24.1 baselines, Micromamba shell hooks, compilers and separate pDynamo3 setup. **NOT TESTED:** independent manual Windows/macOS installs following README and complete transitive locks for those platforms. EH4-304 separately tracks distribution packages.
 
 **Current roadmap pointer:** EH4-301 and EH4-302 are complete for their
 hosted-runner acceptance. PR #17 (window-minimum fix) merged as 770e666 after
-native matrix 40161896666 passed 31/31. Codex audited all 30 artifacts. EH4-602 partial merged in PR #18 (`bd6e846`); Codex is handling EH4-303 on the
-existing task branch, then EH4-304. Claude is handling EH4-505. EH4-000/200
+native matrix 40161896666 passed 31/31. Codex audited all 30 artifacts. EH4-602 partial merged in PR #18 (`bd6e846`), and EH4-303 passed in PR #19 (matrix `40196735291`, 31/31); Codex next handles EH4-304. Claude is handling EH4-505. EH4-000/200
 provenance and licensing, EH4-203 physical trackpad
 review, and EH4-506 branch protection remain open pending upstream or user
 evidence.
