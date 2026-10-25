@@ -48,7 +48,11 @@ def test_native_quit_shortcut_targets_linux_process_window(monkeypatch):
         "/usr/bin/xdotool", "search", "--onlyvisible", "--pid", "9001",
         "--name", "^EasyHybrid ",
     ]
-    assert calls[1][0][-2:] == ["--clearmodifiers", "ctrl+q"]
+    assert calls[1][0] == calls[0][0]
+    assert calls[2][0] == ["/usr/bin/xdotool", "windowfocus", "--sync", "42"]
+    assert calls[3][0] == [
+        "/usr/bin/xdotool", "key", "--clearmodifiers", "ctrl+q"
+    ]
 
 
 def test_native_click_feedback_corrects_toplevel_client_offset():

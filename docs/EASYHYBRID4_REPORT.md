@@ -10,6 +10,12 @@ packages are out of scope. The earlier Linux conda-pack launcher prototype
 and its tests have been removed. Safe `install.py --ci` and actual source
 entrypoint launch/clean-close acceptance across every native GTK matrix cell
 are in progress; no cross-platform completion is claimed yet.
+The first PR matrix (`40229256010`) passed fresh clone, safe install and
+production-window startup on GTK 4.12.1/Linux, then failed the native quit
+event because Xvfb has no window manager for xdotool's EWMH `windowactivate`.
+That run was cancelled. The shared X11 input adapter now focuses the PID-owned
+window directly before sending Ctrl+Q; 30 focused native-input/workflow tests
+pass, and a full latest-head matrix is pending.
 
 **Project persistence (partial, EH4-404):** EasyHybrid `.easy` payloads now
 write format version 1; payloads without a version key are treated as legacy

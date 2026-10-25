@@ -584,10 +584,22 @@ def inject_native_quit_shortcut(process_id: int) -> str:
         xdotool = shutil.which("xdotool")
         if xdotool is None:
             raise RuntimeError("native Linux keyboard smoke requires xdotool")
-        result = subprocess.run(
+        search = subprocess.run(
             [xdotool, "search", "--onlyvisible", "--pid", str(process_id),
-             "--name", "^EasyHybrid ", "windowactivate", "--sync",
-             "key", "--clearmodifiers", "ctrl+q"],
+             "--name", "^EasyHybrid "],
+            capture_output=True, text=True, timeout=5, check=False,
+        )
+        if search.returncode != 0 or not search.stdout.strip():
+            raise RuntimeError("could not find the visible EasyHybrid X11 window")
+        window_id = search.stdout.strip().splitlines()[0]
+        focus = subprocess.run(
+            [xdotool, "windowfocus", "--sync", window_id],
+            capture_output=True, text=True, timeout=5, check=False,
+        )
+        if focus.returncode != 0:
+            raise RuntimeError("native X11 window focus failed: %s" % focus.stderr.strip())
+        result = subprocess.run(
+            [xdotool, "key", "--clearmodifiers", "ctrl+q"],
             capture_output=True, text=True, timeout=10, check=False,
         )
         if result.returncode != 0:
