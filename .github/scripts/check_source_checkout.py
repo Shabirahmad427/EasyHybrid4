@@ -103,6 +103,8 @@ def _fresh_clone(matrix_checkout: Path, destination: Path) -> Path:
         commit = subprocess.check_output(
             ["git", "rev-parse", "HEAD"], cwd=matrix_checkout, text=True
         ).strip()
+    if shutil.which("git") is None:
+        raise RuntimeError("the fresh source-checkout check needs git on PATH")
     clone = destination / "EasyHybrid4"
     _run([
         "git", "clone", "--recurse-submodules", "--no-hardlinks",
