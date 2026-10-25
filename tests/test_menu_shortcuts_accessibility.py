@@ -46,14 +46,19 @@ def test_standard_menu_shortcuts_cover_existing_menu_items():
     assert all(accel.startswith("<Primary>") for accel in ACCELERATORS.values())
 
 
-def test_primary_modifier_is_cmd_on_macos_and_ctrl_elsewhere():
+def test_primary_accelerator_parses_to_a_platform_modifier():
     if Gdk.Display.get_default() is None:
         pytest.skip("requires a native GTK display")
     parsed = Gtk.accelerator_parse("<Primary>o")
     keyval, modifiers = parsed[-2], parsed[-1]
     assert keyval == Gdk.KEY_o
-    expected = Gdk.ModifierType.META_MASK if sys.platform == "darwin" else Gdk.ModifierType.CONTROL_MASK
-    assert modifiers == expected, (sys.platform, modifiers)
+    # GTK 4.24.1 on macOS arm64 parses <Primary> as Control (run 40149611393),
+    # not Meta. Whether the Command key then triggers the shortcut is checked
+    # natively by the real-app cycle, which presses Cmd+N through Quartz.
+    allowed = {Gdk.ModifierType.CONTROL_MASK}
+    if sys.platform == "darwin":
+        allowed.add(Gdk.ModifierType.META_MASK)
+    assert modifiers in allowed, (sys.platform, modifiers)
 
 
 class _Owner:
