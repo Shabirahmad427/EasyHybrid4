@@ -451,14 +451,19 @@ remains unchecked.
 **EH4-304 Linux bundle backend update (2026-10-25):** the Linux launcher no
 longer forces `PYOPENGL_PLATFORM=egl`. It leaves backend selection to
 `configure_gl_context_environment()`, which aligns PyOpenGL with the loaded
-GTK runtime and the current display. Launcher regressions pass (2/2) using
-Python 3.12.3. A relocated conda-pack candidate launched and closed through
-the application's Escape handler under Linux x86_64 X11/Xvfb with Python
-3.12.15, PyGObject 3.58.1, GTK 4.24.1, GLib 2.90.0 and Mesa 25.2.8 llvmpipe;
-the selected environment was `PYOPENGL_PLATFORM=glx` and `GDK_DISABLE=egl`.
-This is local GTK 4.24 Linux evidence only. Candidate packages using GTK
-4.8–4.22 and independently installed Windows/macOS packages remain
-**NOT TESTED**; EH4-304 remains unchecked.
+GTK runtime and the current display. On GTK 4.24 X11, it pins GDK opposite
+the selected PyOpenGL backend: GLX disables EGL, and an explicit EGL choice
+disables GLX. The focused backend/launcher tests pass **21/21** using Python
+3.12.3. A fresh candidate was assembled from `git archive` at source commit
+`6b6d9265e2454598ef69340abc57e23526a5a6b9`; all seven Cython extensions were
+rebuilt with the packaged Python 3.12.15 runtime after an initial test setup
+used extensions with a mismatched NumPy ABI. The candidate launched and
+closed through the application's Escape handler under Linux x86_64 X11/Xvfb
+with Python 3.12.15, PyGObject 3.58.1, GTK 4.24.1, GLib 2.90.0 and Mesa 25.2.8
+llvmpipe; the selected environment was `PYOPENGL_PLATFORM=glx` and
+`GDK_DISABLE=egl`. This is local GTK 4.24 Linux evidence only. Candidate
+packages using GTK 4.8–4.22 and independently installed Windows/macOS
+packages remain **NOT TESTED**; EH4-304 remains unchecked.
 
 **Current focused result (2026-10-20): GTK 4.24/macOS full-app centering test
 passes.** Run [`39476612300`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/39476612300)
