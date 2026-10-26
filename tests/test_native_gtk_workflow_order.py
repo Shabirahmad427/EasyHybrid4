@@ -237,3 +237,14 @@ def test_native_gtk_source_builders_cache_only_compiler_outputs():
     assert "ccache=4.13.6" in macos_source
     assert "pacman -Q mingw-w64-ucrt-x86_64-gcc" in windows_source
     assert "xcrun clang --version" in macos_source
+
+
+def test_native_matrix_gate_needs_every_job():
+    """EH4-506: main's required check must cover every matrix job."""
+    import yaml
+
+    workflow = Path(__file__).resolve().parents[1] / ".github" / "workflows" / "native-gtk-matrix.yml"
+    jobs = yaml.safe_load(workflow.read_text(encoding="utf-8"))["jobs"]
+    gate = jobs["native-matrix-gate"]
+    assert gate["name"] == "Native matrix gate" and gate["if"] == "always()"
+    assert set(gate["needs"]) == set(jobs) - {"native-matrix-gate"}
