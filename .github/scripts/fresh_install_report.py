@@ -37,6 +37,25 @@ def declared_extensions(setup_text: str) -> list[str]:
     return re.findall(r'^\s*Extension\(\s*"([\w.]+)"', setup_text, re.M)
 
 
+def loaded_library_paths() -> list[str]:
+    """Paths of native images loaded in this process, on any supported OS."""
+    import psutil
+
+    process = psutil.Process()
+    if hasattr(process, "memory_maps"):  # Linux, Windows
+        return [mapping.path for mapping in process.memory_maps() if mapping.path]
+    if sys.platform == "darwin":  # psutil has no memory_maps() on macOS
+        import ctypes
+
+        dyld = ctypes.CDLL("/usr/lib/libSystem.B.dylib")
+        dyld._dyld_image_count.restype = ctypes.c_uint32
+        dyld._dyld_get_image_name.argtypes = [ctypes.c_uint32]
+        dyld._dyld_get_image_name.restype = ctypes.c_char_p
+        return [dyld._dyld_get_image_name(i).decode()
+                for i in range(dyld._dyld_image_count())]
+    raise RuntimeError("cannot list loaded native libraries on " + sys.platform)
+
+
 def report_linked_libraries() -> int:
     sys.path.insert(0, str(ROOT / "src" / "graphics_engine" / "src"))
     # The extensions setup.py declares; every one must import from this build.
@@ -53,12 +72,7 @@ def report_linked_libraries() -> int:
     from gi.repository import Gtk  # noqa: F401  (maps the GTK libraries)
     import pCore  # noqa: F401  (maps the pDynamo3 extensions)
 
-    import psutil
-
-    libraries = sorted({
-        mapping.path for mapping in psutil.Process().memory_maps()
-        if mapping.path and _native(mapping.path)
-    })
+    libraries = sorted(path for path in set(loaded_library_paths()) if _native(path))
     for path in libraries:
         print("FRESH_INSTALL_LIBRARY=" + path, flush=True)
     for marker in ("gtk-4", "glib-2.0", "epoxy"):
