@@ -190,6 +190,10 @@ def main() -> int:
         )
         _run([sys.executable, "install.py", "--ci"], cwd=source, env=environment)
         print("SOURCE_CHECKOUT_INSTALL=PASS", flush=True)
+        # EH4-600: linked native libraries and bundled sample data, read
+        # by the fresh install's own interpreter and paths.
+        _run([sys.executable, str(Path(__file__).resolve().with_name("fresh_install_report.py")),
+              str(source)], cwd=source, env=environment)
         _launch_and_close(source, environment)
     return 0
 
