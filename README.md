@@ -231,6 +231,16 @@ See the [consolidated development report](docs/EASYHYBRID4_REPORT.md). The
 permanent task queue is [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 
+## License
+
+EasyHybrid4's own application code is licensed under the GPL-3.0 (`LICENSE`).
+The VisMol graphics engine in `src/graphics_engine/` is licensed under
+**CC BY-NC 4.0** (`src/graphics_engine/LICENSE`), and EasyHybrid4 cannot run
+without it. EasyHybrid4 as distributed may therefore be used and redistributed
+for **non-commercial purposes only**; commercial use requires permission from
+the VisMol copyright holders. Bundled fonts and other components are listed in
+[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+
 # References
 pDynamo:
 
