@@ -1082,3 +1082,38 @@ jobs:
           name: gtk-${{ matrix.gtk }}-macos-arm64-results
           path: platform-results.txt
           if-no-files-found: warn
+
+  # EH4-506: the single required status check for main. A pull request or
+  # push passes only if every native cell succeeded; cells may be skipped
+  # only when the plan job decided no matrix is needed (Markdown-only change
+  # or a merge tree already tested) or for scoped manual dispatches.
+  native-matrix-gate:
+    name: Native matrix gate
+    needs: [plan, gtk-runtime, gtk-linux-distro, gtk-windows-msys2, gtk-macos-source]
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require every native cell to pass
+        env:
+          PLAN_RESULT: ${{ needs.plan.result }}
+          PLAN_RUN: ${{ needs.plan.outputs.run }}
+          EVENT: ${{ github.event_name }}
+          RESULTS: >-
+            ${{ needs.gtk-runtime.result }}
+            ${{ needs.gtk-linux-distro.result }}
+            ${{ needs.gtk-windows-msys2.result }}
+            ${{ needs.gtk-macos-source.result }}
+        run: |
+          echo "plan=$PLAN_RESULT run=$PLAN_RUN event=$EVENT cells=$RESULTS"
+          [ "$PLAN_RESULT" = success ] || { echo "plan job did not succeed"; exit 1; }
+          for result in $RESULTS; do
+            case "$result" in
+              success) ;;
+              skipped)
+                if [ "$PLAN_RUN" = true ] && [ "$EVENT" != workflow_dispatch ]; then
+                  echo "a native cell group was skipped although the plan required the matrix"; exit 1
+                fi ;;
+              *) echo "a native cell group ended as $result"; exit 1 ;;
+            esac
+          done
+          echo "NATIVE_MATRIX_GATE=PASS"
