@@ -942,6 +942,9 @@ class ImagePlot(Canvas):
             remaining sharp.
 
         """
+        # Invalidate the prior frame's transform before an empty-data early return.
+        self.factor_x = None
+        self.factor_y = None
         self.cr =  cr
         self.width = widget.get_width()   #widget dimentions
         self.height = widget.get_height() #widget dimentions
@@ -1037,6 +1040,8 @@ class ImagePlot(Canvas):
         else:
             return False
         x_on_plot, y_on_plot, x, y = self.get_i_and_j_from_click_event (event)
+        if x_on_plot is None or y_on_plot is None:
+            return False
         i = y_on_plot
         j = x_on_plot
         

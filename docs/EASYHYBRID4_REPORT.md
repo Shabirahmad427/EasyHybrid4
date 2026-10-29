@@ -1,6 +1,25 @@
 # EasyHybrid4 Development and Compatibility Report
 
-**Report date:** 2026-10-26
+**Report date:** 2026-10-29
+
+**EasyHybrid3 parity follow-up (EH4-406, 2026-10-29):** the existing GTK4
+plot callbacks now tolerate clicks/motion before a valid image transform is
+available, and 19 existing main-toolbar actions use their matching 32 px
+EasyHybrid3 color icons. Button IDs, labels and handlers remain intact. The
+EasyHybrid4 Cell and Symmetry action keeps its current icon because the
+same-position EasyHybrid3 asset depicts a different Edit and Build action.
+The change uses GTK4's existing `GtkImage.file` loading path; it adds no
+GTK3 APIs or toolbar actions. Static validation passed: the Glade XML parses,
+all image paths resolve, all 20 toolbar button definitions/handlers are
+unchanged, all 19 copied icons are 32×32, the changed Python modules compile,
+and `git diff --check` is clean. No tests or native GTK matrix have been run
+for this change, and icon provenance/licensing is still an open EH4-602 item.
+See EH4-406 in the roadmap.
+
+The separate EasyHybrid3 GPU4PySCF adapter was reviewed but not copied: the
+EasyHybrid4 UI delegates PySCF/GPU work to the shared pDynamo3 adapter. The
+matching periodic-system and restricted-open-shell behavior needs its own
+adapter-level audit before claiming parity; this is tracked as EH4-407.
 
 **EH4-600 fresh-install acceptance (2026-10-26):** the generic source-checkout
 workflow selected for EH4-304 is now verified on matrix run
