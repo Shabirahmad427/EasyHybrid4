@@ -16,7 +16,8 @@ and `git diff --check` is clean. A plot-guard regression test passed locally
 (GTK 4.14.5); full native matrix run `40924793256` passed all 30 cells
 plus the gate on PR #27 (EH4-406 accepted). Icon provenance: on
 2026-10-29 the maintainer confirmed that the EasyHybrid3 icons are the
-project's own work and may be redistributed.
+project's own work and may be redistributed; the maintainer extended this
+to every icon in `src/gui/icons/`, which closes EH4-602.
 See EH4-406 in the roadmap.
 
 The separate EasyHybrid3 GPU4PySCF adapter was reviewed but not copied: the
