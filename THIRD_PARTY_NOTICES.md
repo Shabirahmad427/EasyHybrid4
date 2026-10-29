@@ -23,7 +23,7 @@ conda-forge GTK 4.24.1 / Python 3.12.15 environment), not inferred.
 
 | Component | Version checked | License (from package metadata) |
 |---|---|---|
-| pDynamo3 | `6b28dd8` | GPL-3.0 (`gpl-3.0.txt` in pDynamo3) |
+| pDynamo3 (maintainer fork `Shabirahmad427/pDynamo3`) | `e007e44` (upstream `6b28dd8` + GPU4PySCF/PySCF adapter) | GPL-3.0 (`gpl-3.0.txt` in pDynamo3) |
 | GTK 4 | 4.24.1 | LGPL-2.0-or-later |
 | Pango | 1.58.2 | LGPL-2.1-or-later |
 | cairo | 1.18.6 | LGPL-2.1-only or MPL-1.1 |

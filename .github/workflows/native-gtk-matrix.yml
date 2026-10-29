@@ -24,10 +24,11 @@ permissions:
   contents: read
 
 env:
-  # Upstream pDynamo3 commit built in every cell for the full EasyHybrid
-  # application regression (tests/test_easyhybrid_full_app_smoke.py).
-  PDYNAMO3_REPOSITORY: pdynamo/pDynamo3
-  PDYNAMO3_REF: 6b28dd8958e1a705fcdca130f4ab862a8af8de82
+  # Maintainer pDynamo3 fork commit built in every cell for the full
+  # EasyHybrid application and scientific regressions. The fork carries the
+  # shared GPU4PySCF/PySCF adapter on top of upstream 6b28dd8 (EH4-407).
+  PDYNAMO3_REPOSITORY: Shabirahmad427/pDynamo3
+  PDYNAMO3_REF: e007e44ca4ccd5e24714adcae6194d04c1bc36be
 
 jobs:
   plan:

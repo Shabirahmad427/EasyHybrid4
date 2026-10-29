@@ -169,7 +169,9 @@ python setup.py build_ext --inplace
 cd ../..
 ```
 
-Install and compile pDynamo3 separately, then set `PDYNAMO3_HOME`,
+Install and compile pDynamo3 separately. CI builds the maintainer fork
+`https://github.com/Shabirahmad427/pDynamo3` (commit `e007e44`), which adds
+the GPU4PySCF/PySCF adapter on top of upstream pDynamo3. Then set `PDYNAMO3_HOME`,
 `PDYNAMO3_PARAMETERS` and `PDYNAMO3_SCRATCH` for that checkout. On Linux and
 macOS, add the repository and pDynamo3 checkout to `PYTHONPATH`; in PowerShell
 use semicolons between paths. For example, from the repository root:
