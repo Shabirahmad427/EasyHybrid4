@@ -27,10 +27,12 @@ guards are implemented once at that shared adapter boundary on the isolated
 pDynamo3 branch `eh4-407-gpu4pyscf-guards` (commit `e007e44`). Matching
 EasyHybrid4 regression coverage in commit `05ef5c7` confirms both unsupported
 inputs raise `QCModelError` before `CreateMole` is reached (2 passed, Python
-3.12, local pDynamo3 extensions). The checks ran in the host environment with
-GPU4PySCF available and an NVIDIA RTX 4060 Ti visible (`nvidia-smi`, driver
-595.99.02 / CUDA 13.2); they reject before GPU work. Five active `ash_pes2d`
-scans were left untouched. EH4-407 is complete.
+3.12, local pDynamo3 extensions). A three-atom water RHF/3-21G single point
+also converged through the isolated adapter on the RTX 4060 Ti at
+`-75.585404915553 Eh`. Runtime versions: Python 3.12.3, GPU4PySCF 1.9.0,
+PySCF 2.14.0, CuPy 13.6.0, CUDA runtime 12.9, driver 595.99.02 / CUDA 13.2.
+The five `ash_pes2d` scans had finished before this calculation. EH4-407 is
+complete.
 
 **EH4-600 fresh-install acceptance (2026-10-26):** the generic source-checkout
 workflow selected for EH4-304 is now verified on matrix run
