@@ -20,10 +20,15 @@ project's own work and may be redistributed; the maintainer extended this
 to every icon in `src/gui/icons/`, which closes EH4-602.
 See EH4-406 in the roadmap.
 
-The separate EasyHybrid3 GPU4PySCF adapter was reviewed but not copied: the
-EasyHybrid4 UI delegates PySCF/GPU work to the shared pDynamo3 adapter. The
-matching periodic-system and restricted-open-shell behavior needs its own
-adapter-level audit before claiming parity; this is tracked as EH4-407.
+The separate EasyHybrid3 GPU4PySCF adapter rejects periodic systems and
+restricted open-shell states before starting GPU4PySCF. EasyHybrid4 delegates
+GPU calculations to pDynamo3's shared `addOns/pySCF/QCModelPySCF.py`, so those
+guards are implemented once at that shared adapter boundary on the isolated
+pDynamo3 branch `eh4-407-gpu4pyscf-guards`. Matching EasyHybrid4 regression
+coverage confirms both unsupported inputs raise `QCModelError` before
+`CreateMole` is reached (2 passed, Python 3.12, local pDynamo3 extensions).
+The GPU runtime acceptance is still pending: five existing `ash_pes2d` scans
+are using the RTX 4060 Ti, and no GPU calculation was started. See EH4-407.
 
 **EH4-600 fresh-install acceptance (2026-10-26):** the generic source-checkout
 workflow selected for EH4-304 is now verified on matrix run
