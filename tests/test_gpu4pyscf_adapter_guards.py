@@ -12,6 +12,8 @@ pytestmark = pytest.mark.skipif(
 
 
 def _adapter_and_target(*, symmetry=None, restricted=False, multiplicity=1):
+    # QCModelPySCF.WithDefaults() raises NotInstalledError without PySCF.
+    pytest.importorskip("pyscf")
     pytest.importorskip("addOns.pySCF.QCModelPySCF")
     from addOns.pySCF.QCModelPySCF import QCModelPySCF
 
