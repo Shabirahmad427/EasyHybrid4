@@ -24,11 +24,13 @@ The separate EasyHybrid3 GPU4PySCF adapter rejects periodic systems and
 restricted open-shell states before starting GPU4PySCF. EasyHybrid4 delegates
 GPU calculations to pDynamo3's shared `addOns/pySCF/QCModelPySCF.py`, so those
 guards are implemented once at that shared adapter boundary on the isolated
-pDynamo3 branch `eh4-407-gpu4pyscf-guards`. Matching EasyHybrid4 regression
-coverage confirms both unsupported inputs raise `QCModelError` before
-`CreateMole` is reached (2 passed, Python 3.12, local pDynamo3 extensions).
-The GPU runtime acceptance is still pending: five existing `ash_pes2d` scans
-are using the RTX 4060 Ti, and no GPU calculation was started. See EH4-407.
+pDynamo3 branch `eh4-407-gpu4pyscf-guards` (commit `e007e44`). Matching
+EasyHybrid4 regression coverage in commit `05ef5c7` confirms both unsupported
+inputs raise `QCModelError` before `CreateMole` is reached (2 passed, Python
+3.12, local pDynamo3 extensions). The checks ran in the host environment with
+GPU4PySCF available and an NVIDIA RTX 4060 Ti visible (`nvidia-smi`, driver
+595.99.02 / CUDA 13.2); they reject before GPU work. Five active `ash_pes2d`
+scans were left untouched. EH4-407 is complete.
 
 **EH4-600 fresh-install acceptance (2026-10-26):** the generic source-checkout
 workflow selected for EH4-304 is now verified on matrix run
@@ -3084,9 +3086,9 @@ Python sources had become stale and caused API mismatches such as the missing
 
 ## `QCModelPySCF.py`: `useGPU` option
 
-`~/software/pDynamo3/addOns/pySCF/QCModelPySCF.py` (this file has no version
-control of its own on this machine — verified directly by reading it, not
-via diff):
+`~/software/pDynamo3/addOns/pySCF/QCModelPySCF.py` (tracked in the local
+pDynamo3 Git checkout; the user's checkout is kept separate from the
+EH4-407 task worktree):
 
 - `_GPU4PySCFFound = importlib.util.find_spec('gpu4pyscf') is not None` —
   availability check that does **not** execute the module (see "fork
