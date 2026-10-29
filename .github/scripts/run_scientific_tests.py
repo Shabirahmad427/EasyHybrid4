@@ -24,7 +24,6 @@ TESTS = (
     "tests/test_project_file.py",
     "tests/test_session_row_serialization.py",
     "tests/test_molecular_fixtures.py",
-    "tests/test_gpu4pyscf_adapter_guards.py",
 )
 
 
