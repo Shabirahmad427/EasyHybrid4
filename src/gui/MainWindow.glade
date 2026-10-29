@@ -4,7 +4,7 @@
   <object class="GtkImage" id="image1">
     <property name="visible">True</property>
     <property name="focusable">False</property>
-    <property name="file">icons/icon_new_project.png</property>
+    <property name="file">icons/eh_color/png/32/icon_new_project.png</property>
   </object>
   <object class="GtkImage" id="image10">
     <property name="visible">True</property>
@@ -14,92 +14,92 @@
   <object class="GtkImage" id="image12">
     <property name="visible">True</property>
     <property name="focusable">False</property>
-    <property name="file">icons/icon_normal_modes.png</property>
+    <property name="file">icons/eh_color/png/32/icon_normal_modes.png</property>
   </object>
   <object class="GtkImage" id="image13">
     <property name="visible">True</property>
     <property name="focusable">False</property>
-    <property name="file">icons/icon_molecular_dynamics_24x24.png</property>
+    <property name="file">icons/eh_color/png/32/icon_molecular_dynamics.png</property>
   </object>
   <object class="GtkImage" id="image14">
     <property name="visible">True</property>
     <property name="focusable">False</property>
-    <property name="file">icons/icon_single_point1.2.png</property>
+    <property name="file">icons/eh_color/png/32/icon_energy.png</property>
   </object>
   <object class="GtkImage" id="image15">
     <property name="visible">True</property>
     <property name="focusable">False</property>
-    <property name="file">icons/icon_minimization_24x24.png</property>
+    <property name="file">icons/eh_color/png/32/icon_geometry_optimization.png</property>
   </object>
   <object class="GtkImage" id="image2">
     <property name="visible">True</property>
     <property name="focusable">False</property>
-    <property name="file">icons/icon_open.png</property>
+    <property name="file">icons/eh_color/png/32/icon_open.png</property>
   </object>
   <object class="GtkImage" id="image20">
     <property name="visible">True</property>
     <property name="focusable">False</property>
-    <property name="file">icons/icon_terminal.png</property>
+    <property name="file">icons/eh_color/png/32/icon_terminal.png</property>
   </object>
   <object class="GtkImage" id="image21">
     <property name="visible">True</property>
     <property name="focusable">False</property>
-    <property name="file">icons/icon_player_play.png</property>
+    <property name="file">icons/eh_color/png/32/icon_trajectory_player.png</property>
   </object>
   <object class="GtkImage" id="image22">
     <property name="visible">True</property>
     <property name="focusable">False</property>
-    <property name="file">icons/icon_selection_list.png</property>
+    <property name="file">icons/eh_color/png/32/icon_selections.png</property>
   </object>
   <object class="GtkImage" id="image23">
     <property name="visible">True</property>
     <property name="focusable">False</property>
-    <property name="file">icons/icon_go_to_atom.png</property>
+    <property name="file">icons/eh_color/png/32/icon_go_to_atom.png</property>
   </object>
   <object class="GtkImage" id="image24">
     <property name="visible">True</property>
     <property name="focusable">False</property>
-    <property name="file">icons/icon_pDynamo_selections2.2.png</property>
+    <property name="file">icons/eh_color/png/32/icon_extend_selection.png</property>
   </object>
   <object class="GtkImage" id="image25">
     <property name="visible">True</property>
     <property name="focusable">False</property>
-    <property name="file">icons/icon_QCSetup1.3.png</property>
+    <property name="file">icons/eh_color/png/32/icon_qc_setup.png</property>
   </object>
   <object class="GtkImage" id="image3">
     <property name="visible">True</property>
     <property name="focusable">False</property>
-    <property name="file">icons/icon_save.png</property>
+    <property name="file">icons/eh_color/png/32/icon_save.png</property>
   </object>
   <object class="GtkImage" id="image4">
     <property name="visible">True</property>
     <property name="focusable">False</property>
-    <property name="file">icons/icon_save_as.png</property>
+    <property name="file">icons/eh_color/png/32/icon_save_as.png</property>
   </object>
   <object class="GtkImage" id="image5">
     <property name="visible">True</property>
     <property name="focusable">False</property>
-    <property name="file">icons/icon_scan_24x24.png</property>
+    <property name="file">icons/eh_color/png/32/icon_pes_scan.png</property>
   </object>
   <object class="GtkImage" id="image6">
     <property name="visible">True</property>
     <property name="focusable">False</property>
-    <property name="file">icons/icon_umbrella_sampling_24x24.png</property>
+    <property name="file">icons/eh_color/png/32/icon_umbrella_sampling.png</property>
   </object>
   <object class="GtkImage" id="image7">
     <property name="visible">True</property>
     <property name="focusable">False</property>
-    <property name="file">icons/icon_NEB_24x24.png</property>
+    <property name="file">icons/eh_color/png/32/icon_neb.png</property>
   </object>
   <object class="GtkImage" id="image8">
     <property name="visible">True</property>
     <property name="focusable">False</property>
-    <property name="file">icons/icon_save_image.png</property>
+    <property name="file">icons/eh_color/png/32/icon_export_image.png</property>
   </object>
   <object class="GtkImage" id="image9">
     <property name="visible">True</property>
     <property name="focusable">False</property>
-    <property name="file">icons/icon_process_manager.png</property>
+    <property name="file">icons/eh_color/png/32/icon_process_manager.png</property>
   </object>
   <object class="GtkLabel" id="label1">
     <property name="visible">True</property>
