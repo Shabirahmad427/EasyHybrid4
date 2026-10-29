@@ -12,8 +12,10 @@ The change uses GTK4's existing `GtkImage.file` loading path; it adds no
 GTK3 APIs or toolbar actions. Static validation passed: the Glade XML parses,
 all image paths resolve, all 20 toolbar button definitions/handlers are
 unchanged, all 19 copied icons are 32×32, the changed Python modules compile,
-and `git diff --check` is clean. No tests or native GTK matrix have been run
-for this change, and icon provenance/licensing is still an open EH4-602 item.
+and `git diff --check` is clean. A plot-guard regression test passed locally
+(GTK 4.14.5); the native GTK matrix runs on PR #27. Icon provenance: on
+2026-10-29 the maintainer confirmed that the EasyHybrid3 icons are the
+project's own work and may be redistributed.
 See EH4-406 in the roadmap.
 
 The separate EasyHybrid3 GPU4PySCF adapter was reviewed but not copied: the
