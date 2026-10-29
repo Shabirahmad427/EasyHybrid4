@@ -13,7 +13,8 @@ GTK3 APIs or toolbar actions. Static validation passed: the Glade XML parses,
 all image paths resolve, all 20 toolbar button definitions/handlers are
 unchanged, all 19 copied icons are 32×32, the changed Python modules compile,
 and `git diff --check` is clean. A plot-guard regression test passed locally
-(GTK 4.14.5); the native GTK matrix runs on PR #27. Icon provenance: on
+(GTK 4.14.5); full native matrix run `40924793256` passed all 30 cells
+plus the gate on PR #27 (EH4-406 accepted). Icon provenance: on
 2026-10-29 the maintainer confirmed that the EasyHybrid3 icons are the
 project's own work and may be redistributed.
 See EH4-406 in the roadmap.
