@@ -19,6 +19,15 @@ conda-forge GTK 4.24.1 / Python 3.12.15 environment), not inferred.
 | Bitstream Vera Sans / Sans Mono © 2003 Bitstream, Inc. | same folder | Bitstream Vera license | font name table; full text in `LICENSE-Bitstream-Vera.txt` |
 | Application icons (`src/gui/icons/`, 70 files incl. `eh_color/`) | `src/gui/icons/` | Project's own artwork, same license as EasyHybrid | maintainer confirmed 2026-10-29: original EasyHybrid artwork (including the EasyHybrid3 colour icons), redistributable |
 
+**VisMol attribution and maintenance (maintainer-confirmed 2026-10-30):**
+the graphics work and GTK4 port work are by Carlos Eduardo Sequeiros Borja
+(Casebor) and José Fernando Ruggiero Bachega. EasyHybrid4 maintains its
+GTK4-specific changes, and suitable fixes may also be contributed upstream to
+`Shabirahmad427/Vismol`. Keep the existing CC BY-NC 4.0 license and all source
+notices intact; this attribution does not change the license or permit
+commercial use. Conflicting package metadata is preserved and not adjudicated;
+do not change it or the source headers without rights-holder direction.
+
 ## Required at run time (installed separately, not bundled)
 
 | Component | Version checked | License (from package metadata) |

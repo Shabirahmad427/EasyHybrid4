@@ -80,9 +80,9 @@ which contributors own each file or resolve distribution compatibility.
 `.gitmodules` entry naming `https://github.com/casebor/graphics_engine` and
 branch `vismol_easyhybrid` is historical/stale metadata. The declared public
 branch head and the EasyHybrid3 submodule revision are not evidence of the
-vendored tree's base revision. Do not publish these graphics changes or
-convert the directory to a submodule before source ancestry and ownership are
-authoritatively reconciled.
+vendored tree's exact base revision. The restriction below on graphics
+publication and ownership was current at the 2026-10-20 audit and is
+superseded by the maintainer confirmation recorded on 2026-10-30.
 
 An additional GitHub API comparison on 2026-10-21 found public commit
 `2827f069355f990e3022fba41aac23239e0cda2e` (2022-07-15, “Moved to
@@ -102,8 +102,7 @@ The read-only EasyHybrid3 comparison checkout is
 `origin/dev`. Its pre-existing edits to seven tracked files and untracked
 `bin/` were preserved. Its graphics submodule points at
 `6a25a2eaf27c7627dba171104fc7fc8a4c9295fd`; that comparison SHA does not
-establish the EasyHybrid4 vendored source SHA. EH4-000 remains open for this
-unresolved graphics ancestry and contributor/license ownership evidence.
+establish the EasyHybrid4 vendored source SHA. The exact graphics ancestry remains unresolved; attribution and maintenance policy are recorded under EH4-200. EH4-000 inventory acceptance is complete.
 
 ### Repository-state re-audit (2026-10-21)
 
@@ -225,16 +224,20 @@ The 12 differing files against `8360a71` (EasyHybrid4 added/removed lines):
 Characterisation: every difference is a GTK3 -> GTK4 port edit (or removal of
 GTK3-only assets) present in the EasyHybrid4 import; none was identified as a
 later upstream feature missing from EasyHybrid4 (only the diff headlines above
-were reviewed, not every hunk). Who wrote those port edits, and where they
-were developed before `c2668e2`, is **not recorded in Git**: the import is a
-single commit by Shabirjan427, and no earlier history of the GTK4 port was
-found in either repository. All 26 later commits touching `src/graphics_engine`
-on `origin/main` are by Shabirjan427. Upstream authorship of the base is
-ferbachega (Fernando Bachega, the EasyHybrid maintainer named in source
-headers) on top of earlier casebor history. License, as decided by the
-maintainer: VisMol stays CC BY-NC 4.0, documented as-is in
-`THIRD_PARTY_NOTICES.md`; EasyHybrid4 as distributed is non-commercial only
-and must not be described as GPL-only.
+were reviewed, not every hunk). Git does not record who wrote those port edits
+or where they were developed before `c2668e2`; the import is a single commit
+by Shabirjan427, and no earlier GTK4 port history was found in either
+repository. **Maintainer confirmation (2026-10-30):** the VisMol graphics work
+and GTK4 port work are by Carlos Eduardo Sequeiros Borja (Casebor) and José
+Fernando Ruggiero Bachega. EasyHybrid4 maintains its GTK4-specific changes;
+suitable fixes may also be contributed upstream to `Shabirahmad427/Vismol`.
+This is maintainer-provided attribution, not author metadata inferred from
+Git. All 26 later commits touching `src/graphics_engine` on `origin/main` are
+by Shabirjan427. The base history includes ferbachega (Fernando Bachega, the
+EasyHybrid maintainer named in source headers) and earlier Casebor history.
+Preserve the existing CC BY-NC 4.0 license file, source notices and metadata;
+do not relicense the graphics engine. EasyHybrid4 as distributed remains
+non-commercial only and must not be described as GPL-only.
 
 ### Current-state baseline (2026-10-29)
 
