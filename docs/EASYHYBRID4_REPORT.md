@@ -2,6 +2,16 @@
 
 **Report date:** 2026-10-29
 
+**EH4-603 release support table refresh (2026-10-29):** [`SUPPORT_TABLE.md`](SUPPORT_TABLE.md)
+was regenerated from native matrix run
+[`40971524127`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40971524127),
+on merged tree `83434e6` (PR head `b0f33ab`) with pDynamo3 fork commit
+`e007e44`. The newest artifact per cell was selected. All 30 rows pass, each
+records five full-app cycles and 31 scientific tests, and exact loaded
+OS/architecture, Python, PyGObject, GTK, GLib and GL renderer values. The
+table omits unsupported combinations and explicitly leaves physical GPUs,
+Wayland, Retina/HiDPI, physical trackpads and screen readers **NOT TESTED**.
+
 **EasyHybrid3 parity follow-up (EH4-406, 2026-10-29):** the existing GTK4
 plot callbacks now tolerate clicks/motion before a valid image transform is
 available, and 19 existing main-toolbar actions use their matching 32 px
