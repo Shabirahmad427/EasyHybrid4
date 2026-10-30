@@ -1264,9 +1264,15 @@ after rerunning its initially aborted Windows GTK 4.24 full-suite job.
 
 - EH4-001 through EH4-005 are complete for their documented inventory,
   baseline, parity, compatibility, and contributor/report deliverables.
-  EH4-000 remains incomplete because vendored graphics ancestry and
-  contributor/license ownership remain unresolved; the parent remote and
-  current repository state are now verified. EH4-100 is complete for its defined
+  EH4-000 is complete (2026-10-29): the current baseline and the graphics
+  fork root are recorded in `ARCHITECTURE.md`. The vendored engine imported
+  in `c2668e2` best matches `Shabirahmad427/Vismol` commit `8360a71`
+  (79/91 files identical, 0 missing); the 12 differing files are GTK3 -> GTK4
+  port edits. EH4-200 stays open only because nobody has recorded who wrote
+  those port edits or which repository owns graphics fixes (maintainer
+  decision). VisMol stays CC BY-NC 4.0; EasyHybrid4 as distributed is
+  non-commercial only. (Superseded: "EH4-000 remains incomplete because
+  vendored graphics ancestry ... remain unresolved".) EH4-100 is complete for its defined
   architecture/import-boundary acceptance: scientific workflows, session
   state, plotting math, and startup OS policy have tested separations; remaining
   pDynamo/GTK and graphics coupling is documented. EH4-101 is complete:
