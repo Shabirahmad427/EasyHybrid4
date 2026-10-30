@@ -65,7 +65,7 @@ jobs:
     name: GTK ${{ matrix.gtk }} / ${{ matrix.os }}
     needs: plan
     if: needs.plan.outputs.run == 'true' && inputs.scope != 'compiler-cache'
-    runs-on: ${{ matrix.os == 'linux-x86_64' && 'ubuntu-24.04' || matrix.os == 'windows-x86_64' && 'windows-2022' || matrix.os == 'macos-x86_64' && 'macos-15-intel' || 'macos-14' }}
+    runs-on: ${{ matrix.os == 'linux-x86_64' && 'ubuntu-24.04' || matrix.os == 'windows-x86_64' && 'windows-2022' || matrix.os == 'macos-x86_64' && 'macos-15-intel' || 'macos-15' }}
     timeout-minutes: 45
     strategy:
       fail-fast: true
@@ -845,7 +845,7 @@ jobs:
     name: GTK ${{ matrix.gtk }} / macos-arm64 (source ${{ matrix.version }})
     needs: plan
     if: needs.plan.outputs.run == 'true' && inputs.scope != 'linux-gtk48' && inputs.scope != 'windows-legacy' && inputs.scope != 'windows' && inputs.scope != 'windows-gtk420' && inputs.scope != 'macos-gtk424'
-    runs-on: macos-14
+    runs-on: macos-15
     env:
       CCACHE_COMPILERCHECK: content
       CCACHE_MAXSIZE: 1G
