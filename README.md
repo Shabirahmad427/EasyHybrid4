@@ -224,8 +224,9 @@ Use `python .\install.py` and `python .\easyhybrid.py` in PowerShell. The
 installer's `--ci` mode performs non-interactive dependency checks and builds
 extensions without installing Python packages or writing to pDynamo/user
 settings; native CI uses the already provisioned GTK and pDynamo3 runtimes.
-There are no app bundles or platform-specific release packages in this
-distribution flow.
+The distribution flow does not create app bundles or platform-specific
+installers. A source-only GitHub release archive is in scope; see the release
+readiness checklist in [`docs/ROADMAP.md`](docs/ROADMAP.md#phase-6--release-qualification-and-maintenance).
 
 ## Development and compatibility status
 

@@ -59,10 +59,13 @@ reproduction procedure is documented in [`FRESH_INSTALL.md`](FRESH_INSTALL.md).
 These hosted software-renderer results do not establish physical GPU, Linux
 Wayland, Retina/HiDPI, trackpad, or user-specific scientific-library support.
 
-**EH4-304 distribution decision and result (2026-10-25/26):** the maintainer
-selected a generic source-checkout flow for Linux, Windows and macOS using the
-platform's native GTK4 and pDynamo3 setup; app bundles, relocated runtimes and
-GitHub release packages are out of scope. PR #22 merged the installer and
+**EH4-304 distribution decision and result (2026-10-25/26; scope clarified
+2026-10-30):** the maintainer selected a generic source-checkout flow for
+Linux, Windows and macOS using each platform's native GTK4 and pDynamo3 setup.
+App bundles and relocated runtimes are out of scope. The maintainer later
+confirmed that a source-only GitHub release archive is in scope; it must use a
+tested source commit and reproducible release notes after the EH4-200, EH4-203
+and EH4-505 evidence gates are satisfied. PR #22 merged the installer and
 native launch/close work. The initial Xvfb quit failure and the subsequent
 Windows cp1252 Unicode output failure were fixed before the accepted matrix.
 The latest full acceptance is the run cited above; earlier EH4-304 matrix
