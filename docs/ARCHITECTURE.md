@@ -167,3 +167,97 @@ EasyHybrid4 root license is GPL-3.0; the vendored engine license file says CC
 BY-NC 4.0, while its package metadata also includes an MIT classifier and
 `setup.py` declares CC BY-NC. No license or contributor ownership conclusion
 is inferred from these conflicting notices.
+
+**Superseded (2026-10-29):** the statements above that the vendored graphics
+base revision is not identifiable, and that the `casebor/Vismol` candidates
+are the closest evidence, are superseded by the base-revision match below. The
+"no tags" and branch-count statements describe the 2026-10-20/21 state only.
+
+### Graphics engine base revision (2026-10-29)
+
+Method (read-only on EasyHybrid3; nothing was checked out or modified there):
+the vendored tree added by EasyHybrid4 commit
+`c2668e2bfe71ead802caaac7356db52bf5f41bb1` ("Initial EasyHybrid4 baseline",
+committer Shabirjan427, 2026-10-17; 91 files under `src/graphics_engine`) was
+compared by path and blob ID (`git ls-tree -r`) with every commit reachable in
+the EasyHybrid3 graphics submodule
+`/home/shabir/software/EasyHybrid3/src/graphics_engine` (remote
+`https://github.com/Shabirahmad427/Vismol`, 162 commits). For each candidate,
+total changed lines were counted with `git diff --no-index --numstat` between
+the exported candidate tree and the exported EasyHybrid4 import tree.
+EasyHybrid3's `.gitmodules` still names
+`https://github.com/casebor/graphics_engine`, branch `vismol_easyhybrid`; the
+checkout's actual remote is `Shabirahmad427/Vismol`.
+
+| Candidate | Author / date | Identical files (of 91) | Imported files missing | Candidate-only files | Changed lines |
+|---|---|---|---|---|---|
+| `8360a7131d5a19464929a03d1583a6d457ae29e7` "macOS port: glViewport resize_window _zoom_view" | ferbachega, 2026-08-29 18:47 -0300 | 79 | 0 | 6 | 3562 (minimum) |
+| `bb51688953779543eb3621523c89e4b763fb0985` "representations.py vismol_glcore.py" | ferbachega, 2026-09-08 | 79 | 0 | 6 | 3608 |
+| `ea14fbce26067792e2094cf420fcb3202b4399d2` "label bug fixed" | ferbachega, 2026-08-29 11:14 -0300 | 79 | 0 | 6 | 3704 |
+
+`8360a71` is the direct child of `ea14fbc`; `bb51688` is a later descendant.
+All three are contained in `origin/vismol_easyhybrid`,
+`origin/macos-trackpad-black-screen` and `origin/builder-tools-wip` of that
+Vismol repository. No commit matched more than 79 files. **Best-supported base
+revision: `8360a7131d5a19464929a03d1583a6d457ae29e7`** (fewest changed lines,
+maximum identical files). This is a content match, not a recorded import
+pointer: `c2668e2` does not name its source commit.
+
+The six candidate-only files are GTK3 widgets absent from EasyHybrid4
+(`src/vismol/gui/gtk_widgets/{MainTreeview.glade, VisMolPlayer.glade,
+main_treeview.glade, main_treeview.py, player.py, player2.py}`, 1388 lines).
+The 12 differing files against `8360a71` (EasyHybrid4 added/removed lines):
+
+| File | +/- | Nature |
+|---|---|---|
+| `MANIFEST.in` | 0/1 | drop GTK3 `.glade` include |
+| `setup.py` | 0/2 | drop GTK3 `.glade` package data |
+| `scripts/vismol_simple.py`, `scripts/vismol_simple_local_installation.py` | 22/13 each | GTK 4.0 `Gtk.Application` demo |
+| `src/vismol/__main__.py` | 2/2 | `Gtk 4.0`, toolkit `Gtk_4.0` |
+| `src/vismol/core/vismol_session.py` | 3/3 | toolkit check `Gtk_3.0` -> `Gtk_4.0` |
+| `src/vismol/core/vismol_object.py` | 3/4 | GTK3 `TreeIter` fields -> GTK4 row fields |
+| `src/vismol/gui/filechooser.py` | 17/17 | GTK3 `FileChooserDialog` -> GTK4 chooser |
+| `src/vismol/gui/vismol_gtkwidget.py` | 319/387 | GTK4 `GLArea`/event controllers; upstream GTK3 macOS GLFW offscreen workaround absent |
+| `src/vismol/gui/vismol_tools.py` | 331/811 | GTK4 controllers/widgets |
+| `src/vismol/libgl/vismol_glcore.py` | 82/118 | GTK4 event/scroll handling |
+| `src/vismol/libgl/representations.py` | 1/1 | comment path `/home/fernando/...` -> `~/...` |
+
+Characterisation: every difference is a GTK3 -> GTK4 port edit (or removal of
+GTK3-only assets) present in the EasyHybrid4 import; none was identified as a
+later upstream feature missing from EasyHybrid4 (only the diff headlines above
+were reviewed, not every hunk). Who wrote those port edits, and where they
+were developed before `c2668e2`, is **not recorded in Git**: the import is a
+single commit by Shabirjan427, and no earlier history of the GTK4 port was
+found in either repository. All 26 later commits touching `src/graphics_engine`
+on `origin/main` are by Shabirjan427. Upstream authorship of the base is
+ferbachega (Fernando Bachega, the EasyHybrid maintainer named in source
+headers) on top of earlier casebor history. License, as decided by the
+maintainer: VisMol stays CC BY-NC 4.0, documented as-is in
+`THIRD_PARTY_NOTICES.md`; EasyHybrid4 as distributed is non-commercial only
+and must not be described as GPL-only.
+
+### Current-state baseline (2026-10-29)
+
+Verified on this date with Git (Linux 6.8.0-147-generic x86_64, docs only):
+
+- `origin` = `https://github.com/Shabirahmad427/EasyHybrid4.git`;
+  `origin/main` = `83434e60d032677f2de71414af4ef4d00c2dfc42`.
+  `git ls-remote --heads origin` also listed `eh4-603-support-table`
+  (`4c3540a6`), an in-progress task branch, so `main` was not the only GitHub
+  branch at this check.
+- Local branches in the shared repository: `main`, `eh4-603-support-table`,
+  this task branch `eh4-000-200-provenance`, and agent worktree branches.
+  30 local `archive/*` tags (not pushed) preserve deleted superseded branches.
+- No submodules: `git submodule status` is empty. `src/graphics_engine` is an
+  ordinary tree (current object `281fc190482a248cd22a6340d8f9831759e12620`).
+- **Stale metadata, documented and kept:** root `.gitmodules` still exists on
+  `origin/main` and declares `graphics_engine` ->
+  `https://github.com/casebor/graphics_engine` branch `vismol_easyhybrid`. It
+  has no matching gitlink, so Git ignores it; the actual base revision is the
+  `Shabirahmad427/Vismol` commit above.
+- pDynamo3 dependency: maintainer fork `https://github.com/Shabirahmad427/pDynamo3`
+  commit `e007e44ca4ccd5e24714adcae6194d04c1bc36be` (upstream pdynamo/pDynamo3
+  `6b28dd8` plus GPU4PySCF adapter), pinned as `PDYNAMO3_REF` in
+  `.github/workflows/native-gtk-matrix.yml`.
+- EasyHybrid3 reference checkout `/home/shabir/software/EasyHybrid3` was read
+  only; no files, refs or submodule state there were changed.
