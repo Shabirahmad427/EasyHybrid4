@@ -46,3 +46,17 @@ def test_cells_without_runtime_record_are_not_listed(tmp_path):
     assert support_table.collect(tmp_path) == []
     text = support_table.render([], run="1", commit="abc")
     assert "NOT TESTED" in text and "0 of 0 tested cells pass." in text
+
+
+def test_pdynamo3_source_and_restrictions_are_stated():
+    workflow = "env:\n  PDYNAMO3_REPOSITORY: Shabirahmad427/pDynamo3\n  PDYNAMO3_REF: e007e44ca4ccd5e24714adcae6194d04c1bc36be\n"
+    source = support_table.pdynamo3_source(workflow)
+    assert source == "Shabirahmad427/pDynamo3@e007e44ca4ccd5e24714adcae6194d04c1bc36be"
+    assert support_table.pdynamo3_source("env: {}\n") is None
+    text = support_table.render([], run="1", commit="abc", pdynamo3=source)
+    assert "`%s`" % source in text
+    assert "**unknown**" in support_table.render([])
+    for claim in ("Wayland", "physical GPUs", "Retina/HiDPI", "trackpads", "cross-process clipboard",
+                  "COM file-chooser", "RTX 4060 Ti", "CC BY-NC 4.0"):
+        assert claim in text
+    assert "GPL-only" not in text
