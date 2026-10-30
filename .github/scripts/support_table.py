@@ -101,7 +101,38 @@ def download_latest(run, destination, repo="Shabirahmad427/EasyHybrid4"):
     return len(newest)
 
 
-def render(rows, run=None, commit=None):
+WORKFLOW = ".github/workflows/native-gtk-matrix.yml"
+PDYNAMO3_ENV = re.compile(r"^\s*PDYNAMO3_(REPOSITORY|REF):\s*(\S+)\s*$", re.M)
+
+RESTRICTIONS = [
+    "## Restrictions and known issues",
+    "",
+    "- **NOT TESTED:** Linux Wayland; physical GPUs; physical Retina/HiDPI panels; trackpads.",
+    "- **NOT TESTED:** cross-process clipboard on Windows and macOS (only same-process checks run there).",
+    "- **NOT TESTED:** the native Windows COM file-chooser policy (the tested in-process chooser is used).",
+    "- GPU4PySCF guards are verified only locally on an NVIDIA RTX 4060 Ti; hosted runners have no PySCF/GPU.",
+    "- Licence: the VisMol graphics engine is CC BY-NC 4.0, so EasyHybrid4 as distributed is non-commercial.",
+]
+
+
+def pdynamo3_source(workflow_text):
+    """Return ``repo@ref`` of the pDynamo3 build pinned in the matrix workflow, or None."""
+    found = dict(PDYNAMO3_ENV.findall(workflow_text or ""))
+    if "REPOSITORY" in found and "REF" in found:
+        return "%s@%s" % (found["REPOSITORY"], found["REF"])
+    return None
+
+
+def workflow_at(commit):
+    """Read the matrix workflow as it was at *commit* (the tested tree)."""
+    try:
+        return subprocess.run(["git", "show", "%s:%s" % (commit, WORKFLOW)],
+                              capture_output=True, text=True, check=True).stdout
+    except (OSError, subprocess.CalledProcessError):
+        return None
+
+
+def render(rows, run=None, commit=None, pdynamo3=None):
     header = [
         "# Tested support table (EH4-603)",
         "",
@@ -110,6 +141,7 @@ def render(rows, run=None, commit=None):
         "Only combinations with an artifact are listed; anything else is **NOT TESTED**.",
         "Hosted runners use software renderers; physical GPUs, Retina/HiDPI panels, trackpads,",
         "Wayland and screen readers are covered by the manual procedure (docs/MANUAL_VALIDATION.md).",
+        "pDynamo3 built by every cell: " + ("`%s`" % pdynamo3 if pdynamo3 else "**unknown** (not recorded)") + ".",
         "",
         "| Result | Cell | GTK (loaded) | Provider | OS | Arch | Python | PyGObject | GLib | GL renderer | Full-app cycles | Scientific tests |",
         "|---|---|---|---|---|---|---|---|---|---|---|---|",
@@ -120,7 +152,7 @@ def render(rows, run=None, commit=None):
         for row in rows
     ]
     passed = sum(row["result"] == "PASS" for row in rows)
-    footer = ["", "%d of %d tested cells pass." % (passed, len(rows))]
+    footer = ["", "%d of %d tested cells pass." % (passed, len(rows)), ""] + RESTRICTIONS
     return "\n".join(header + lines + footer) + "\n"
 
 
@@ -131,6 +163,8 @@ def main(argv=None):
     parser.add_argument("--run")
     parser.add_argument("--commit")
     parser.add_argument("--output")
+    parser.add_argument("--pdynamo3", metavar="REPO@REF",
+                        help="pDynamo3 source; default: PDYNAMO3_* in the workflow at --commit")
     args = parser.parse_args(argv)
     if args.download:
         args.artifacts = tempfile.mkdtemp(prefix="eh4-support-")
@@ -141,7 +175,8 @@ def main(argv=None):
     rows = collect(args.artifacts)
     if not rows:
         sys.exit("no platform-results.txt artifacts found")
-    text = render(rows, args.run, args.commit)
+    pdynamo3 = args.pdynamo3 or (pdynamo3_source(workflow_at(args.commit)) if args.commit else None)
+    text = render(rows, args.run, args.commit, pdynamo3)
     if args.output:
         Path(args.output).write_text(text, encoding="utf-8")
     else:
