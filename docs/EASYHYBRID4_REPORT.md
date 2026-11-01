@@ -1,6 +1,6 @@
 # EasyHybrid4 Development and Compatibility Report
 
-**Report date:** 2026-10-30
+**Report date:** 2026-10-31
 
 **EH4-200 attribution and maintenance decision (2026-10-30):** the maintainer
 confirms that the VisMol graphics work and GTK4 port work are by Carlos
@@ -273,6 +273,23 @@ Commit `f57cf86` builds graphics extensions before widget-pattern tests in all
 four workflow configurations; its static ordering guard passes locally.
 EH4-203 remains unchecked pending physical macOS trackpad review, which is
 **NOT TESTED** by the hosted synthetic-event tests.
+
+**EH4-203 EasyHybrid3 safety follow-up (2026-10-31; implementation in progress):** the
+EasyHybrid3 `dev` graphics fix at `32fbc35` (EasyHybrid3 `dev` commit
+`7189d76`) caps a single normalized scroll event at four steps, bounds the
+camera clipping slab to 1000 Å, recovers invalid/non-finite clipping values,
+guards unusable resize allocations, and keeps fog planes finite and ordered.
+Those safety measures are adapted to EasyHybrid4's GTK4 VisMol implementation;
+its existing wheel/surface unit conversion and fractional accumulation remain
+in place. No custom EasyHybrid3 fog-setting API was ported because EasyHybrid4
+does not expose one. Focused regressions passed **5/5** on Linux Mint 22.3
+x86_64 with Python 3.12.3, PyGObject 3.48.2, GTK 4.14.5, and GLib 2.80.0.
+The full `tests/test_gtk4_widget_patterns.py` file passed under Xvfb (**68
+passed, 7 skipped**), with one PyGObject warning in the existing GTK 4.8
+color-chooser cancellation test. The focused camera/scroll regressions used
+synthetic inputs and no GL context. The full 30-cell native matrix and physical
+macOS trackpad review remain pending; actual macOS input is **NOT TESTED**, so
+EH4-203 remains unchecked.
 
 **EH4-204 selection-state correction (2026-10-22; partial):** viewing
 selection clear now resets `Atom.selected`, `selected_objects`, and the

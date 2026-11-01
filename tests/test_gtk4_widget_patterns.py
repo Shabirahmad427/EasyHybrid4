@@ -9,6 +9,7 @@ tests avoid both and check the portable helpers instead.
 
 import ast
 import io
+import math
 import os
 import re
 import subprocess
@@ -748,6 +749,119 @@ def test_vismol_scroll_handler_uses_reported_event_units(monkeypatch):
     monkeypatch.setattr(widget_module, "_HAS_SCROLL_UNIT_API", False)
     handle(widget, SimpleNamespace(), 0.0, 1.0)
     assert core.actions[-1] == (-1, False, False)
+
+    # Bound fast gestures after normalizing both event units. Excess movement
+    # from one event is discarded; the next event starts with a clean fraction.
+    monkeypatch.setattr(widget_module, "_HAS_SCROLL_UNIT_API", True)
+    start = len(core.actions)
+    handle(widget, wheel_down, 0.0, 18.25)
+    assert core.actions[start:] == [(-1, False, False)] * 4
+    assert widget._scroll_remainder == pytest.approx(0.0)
+
+    start = len(core.actions)
+    surface_up = Controller(Gdk.ScrollUnit.SURFACE)
+    handle(widget, surface_up, 0.0, -300.0)
+    assert core.actions[start:] == [(1, False, False)] * 4
+    assert widget._scroll_remainder == pytest.approx(0.0)
+
+
+def test_vismol_camera_clipping_and_fog_recover_invalid_ranges():
+    engine_path = str(PROJECT_ROOT / "src" / "graphics_engine" / "src")
+    if engine_path not in sys.path:
+        sys.path.insert(0, engine_path)
+    from vismol.libgl.glcamera import GLCamera, normalize_clipping_planes
+
+    assert normalize_clipping_planes(2.0, 12.0, 10.0) == (2.0, 12.0)
+    near, far = normalize_clipping_planes(-20.0, 1980.0, 30.0)
+    assert near == pytest.approx(480.0)
+    assert far - near == pytest.approx(1000.0)
+    near, far = normalize_clipping_planes(-2.0, 7.0, 10.0)
+    assert near == pytest.approx(0.1)
+    assert far == pytest.approx(9.1)
+    assert normalize_clipping_planes(float("nan"), float("inf"), 10.0) == (
+        pytest.approx(5.5), pytest.approx(14.5)
+    )
+    assert normalize_clipping_planes(9.0, 2.0, 10.0) == (
+        pytest.approx(5.5), pytest.approx(14.5)
+    )
+
+    camera = GLCamera()
+    camera.z_near = float("nan")
+    camera.z_far = float("inf")
+    camera.update_fog()
+    assert all(math.isfinite(value) for value in (
+        camera.z_near, camera.z_far, camera.fog_start, camera.fog_end
+    ))
+    assert camera.z_near < camera.z_far
+    assert camera.fog_start < camera.fog_end
+
+
+def test_vismol_mouse_scroll_caps_camera_clipping_slab(monkeypatch):
+    from types import SimpleNamespace
+
+    engine_path = str(PROJECT_ROOT / "src" / "graphics_engine" / "src")
+    if engine_path not in sys.path:
+        sys.path.insert(0, engine_path)
+    from vismol.libgl import vismol_glcore as core_module
+    from vismol.libgl.glcamera import GLCamera
+    from vismol.libgl.vismol_glcore import VismolGLCore
+
+    core = object.__new__(VismolGLCore)
+    core.ctrl = False
+    core.shift = False
+    core.glcamera = GLCamera()
+    core.dist_cam_zrp = 10.0
+    core.scroll = 100000.0
+    core.parent_widget = SimpleNamespace(queue_draw=lambda: None)
+    monkeypatch.setattr(
+        core_module.mop,
+        "my_glPerspectivef",
+        lambda fov, aspect, near, far: (near, far),
+    )
+
+    core.mouse_scroll(1)
+    assert math.isfinite(core.glcamera.z_near)
+    assert math.isfinite(core.glcamera.z_far)
+    assert core.glcamera.z_near < core.glcamera.z_far
+    assert core.glcamera.z_far - core.glcamera.z_near <= 1000.0
+
+
+def test_vismol_resize_ignores_zero_or_nonfinite_allocations(monkeypatch):
+    engine_path = str(PROJECT_ROOT / "src" / "graphics_engine" / "src")
+    if engine_path not in sys.path:
+        sys.path.insert(0, engine_path)
+    from vismol.libgl.vismol_glcore import VismolGLCore
+
+    core = object.__new__(VismolGLCore)
+    core.width = 640.0
+    core.height = 420.0
+    core.right = 640.0 / 420.0
+    core.left = -core.right
+    core.center_x = 320.0
+    core.center_y = 210.0
+    core.resize_window(0, 420)
+    core.resize_window(float("inf"), 420)
+    assert (core.width, core.height) == (640.0, 420.0)
+
+    from vismol.libgl import vismol_glcore as core_module
+    from vismol.libgl.glcamera import GLCamera
+
+    camera = GLCamera()
+    camera.z_near = float("nan")
+    camera.z_far = float("inf")
+    core.glcamera = camera
+    core.dist_cam_zrp = 10.0
+    projections = []
+    monkeypatch.setattr(
+        core_module.mop,
+        "my_glPerspectivef",
+        lambda fov, aspect, near, far: projections.append((near, far)) or (near, far),
+    )
+    core.resize_window(800, 600)
+    assert math.isfinite(camera.z_near)
+    assert math.isfinite(camera.z_far)
+    assert camera.z_far > camera.z_near
+    assert projections[-1] == (camera.z_near, camera.z_far)
 
 
 # --------------------------------------------------------------------------- #
