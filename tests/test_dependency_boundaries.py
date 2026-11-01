@@ -70,7 +70,7 @@ assert sys.modules['gi'] is None
     subprocess.run([sys.executable, "-c", code], cwd=repo_root, env=env, check=True)
 
 
-def test_pdynamo_session_keeps_legacy_state_attributes_without_display():
+def test_pdynamo_session_keeps_legacy_state_attributes_with_display_variables_unset():
     """Ensure the GTK-facing facade preserves the old state API."""
     if importlib.util.find_spec("pCore") is None:
         pytest.skip("pDynamo3 is not configured in this Python environment")
@@ -86,6 +86,7 @@ def test_pdynamo_session_keeps_legacy_state_attributes_without_display():
         env.pop(display_variable, None)
     code = """
 import gi
+import sys
 gi.require_version('Gtk', '4.0')
 gi.require_version('Gdk', '4.0')
 from gi.repository import Gdk
@@ -100,6 +101,9 @@ session.active_id = 7
 assert session.get_system() is session.psystem[7]
 session.changed = True
 assert session.state.changed is True
-assert Gdk.Display.get_default() is None
+# Quartz provides a native display without DISPLAY/WAYLAND_DISPLAY. Other
+# backends should remain headless after those display variables are removed.
+if sys.platform != 'darwin':
+    assert Gdk.Display.get_default() is None
 """
     subprocess.run([sys.executable, "-c", code], cwd=repo_root, env=env, check=True)
