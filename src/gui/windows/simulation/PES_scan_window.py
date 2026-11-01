@@ -35,6 +35,7 @@ import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
 from gui.message_dialogs import show_message
+from gui.scan_validation import has_positive_step_counts
 from gui.gtk4_builder import connect_builder_signals, load_builder_file, load_builder_string
 #from GTKGUI.gtkWidgets.filechooser import FileChooser
 #from easyhybrid.pDynamoMethods.pDynamo2Vismol import *
@@ -185,6 +186,13 @@ class PotentialEnergyScanWindow:
         parameters = self.get_parameters()
         pprint.pprint(parameters)
 
+        if not self._has_valid_step_counts(parameters):
+            self.run_dialog(
+                text="Number of scan steps is required",
+                secondary_text="Enter a positive number of steps for each reaction coordinate.",
+            )
+            return
+
         if not os.path.exists(parameters["folder"]):
             self.run_dialog()
             return
@@ -201,6 +209,16 @@ class PotentialEnergyScanWindow:
         self.last_parameters = parameters.copy()
 
         self.p_session.run_simulation(parameters=parameters)
+
+    @staticmethod
+    def _has_valid_step_counts(parameters: dict) -> bool:
+        """Return whether each active reaction coordinate has scan steps."""
+        reaction_coordinates = [parameters["RC1"]]
+        if parameters["RC2"] is not None:
+            reaction_coordinates.append(parameters["RC2"])
+        return has_positive_step_counts(
+            *(rc.get("nsteps") for rc in reaction_coordinates)
+        )
 
     def get_parameters(self) -> dict:
         """Extract user-defined PES scan parameters from GUI."""
