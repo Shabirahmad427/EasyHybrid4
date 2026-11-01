@@ -1,6 +1,19 @@
 # EasyHybrid4 Development and Compatibility Report
 
-**Report date:** 2026-10-29
+**Report date:** 2026-10-30
+
+**EH4-200 attribution and maintenance decision (2026-10-30):** the maintainer
+confirms that the VisMol graphics work and GTK4 port work are by Carlos
+Eduardo Sequeiros Borja (Casebor) and José Fernando Ruggiero Bachega.
+EasyHybrid4 maintains its GTK4-specific changes, and suitable fixes may also
+be contributed upstream to `Shabirahmad427/Vismol`. Preserve the existing
+CC BY-NC 4.0 license, source notices and metadata without relicensing. The
+best-supported upstream base remains the content match `8360a71`, not a
+recorded import pointer. EH4-200 is complete: a clean recursive clone built
+and imported all seven graphics extensions, and matrix run
+[`41133325444`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/41133325444)
+passed all 30 platform/GTK cells and the native matrix gate. The exact loaded
+runtime versions are in the run artifacts.
 
 **EH4-603 release support table refresh (2026-10-29):** [`SUPPORT_TABLE.md`](SUPPORT_TABLE.md)
 was regenerated from native matrix run
@@ -109,12 +122,14 @@ scientific-library configurations remain **NOT TESTED**.
 
 **EH4-303 reproducible installation: PASS for clean-runner provisioning (2026-10-25).** PR #19 matrix run [40196735291](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40196735291) passed 31/31 jobs. I audited all 30 runtime artifacts: exact OS/architecture, Python, PyGObject, GTK patch, GLib and renderer are recorded; each has five full-app native pointer/pick/render/close cycles, five molecular scene cycles, render validation at scales 1 and 2, and 31 scientific tests passed. The workflow created clean Linux, Windows and macOS environments; GTK 4.16/4.18 use Linux distro packages, Windows MSYS2 builds and macOS source builds. README now covers the Linux x86_64 exact lock, Windows PowerShell and macOS arm64 GTK 4.24.1 baselines, Micromamba shell hooks, compilers and separate pDynamo3 setup. **NOT TESTED:** independent manual Windows/macOS installs following README and complete transitive locks for those platforms. EH4-304 tracks generic source-checkout installation and native launch acceptance.
 
-**Current roadmap pointer:** EH4-301 and EH4-302 are complete for their
-hosted-runner acceptance. PR #17 (window-minimum fix) merged as 770e666 after
-native matrix 40161896666 passed 31/31. Codex audited all 30 artifacts. EH4-602 partial merged in PR #18 (`bd6e846`), EH4-303 passed in PR #19 (matrix `40196735291`, 31/31), EH4-304 passed in PR #22 (matrix `40233041116`, 31/31), and EH4-600 passed in PR #23 (matrix `40343882287`, 31/31). Check `.agents/CLAIMS.md` before starting the next unclaimed task. Claude is handling EH4-505. EH4-000/200
-provenance and licensing, EH4-203 physical trackpad
-review, and EH4-506 branch protection remain open pending upstream or user
-evidence.
+**Current roadmap pointer (2026-10-30):** EH4-200 attribution and maintenance
+ownership are confirmed by the maintainer and its clean-clone/build plus
+30-cell matrix acceptance is complete. EH4-203 still needs physical macOS
+trackpad review; EH4-505 still needs dated, signed native reports for Windows,
+Linux X11 and Wayland, and macOS (Intel where available). EH4-604 is scoped to
+a source-only GitHub release; its notes template is ready, but tagging waits
+for those manual evidence gates. Standalone application bundles and platform
+installers remain out of scope.
 
 **Latest native GTK matrix (2026-10-25): PASS, 30/30 cells.** PR #17 run
 [40161896666](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/40161896666)
@@ -1034,16 +1049,22 @@ imported all seven graphics extensions on Linux x86_64 (Python 3.12.3,
 NumPy 1.26.4, Cython 3.0.8). Native matrix run `39485989866` also built the
 extensions in all OS/version cells and passed five renderer/pick cycles per
 cell. The graphics `LICENSE` says CC BY-NC 4.0 while package metadata carries
-an MIT classifier; the root project is GPLv3. EH4-200 remains unchecked pending
-authoritative source ancestry and license/ownership review. No graphics source
-or submodule pointer was changed, and no conclusion about distribution rights
-is made here.
+an MIT classifier; the root project is GPLv3. The maintainer confirmed the
+VisMol and GTK4 port attribution and EasyHybrid4 maintenance responsibility on
+2026-10-30. The conflicting package metadata is preserved and not adjudicated;
+the existing CC BY-NC 4.0 license and source notices remain unchanged. This
+closes EH4-200 clone/build and maintenance acceptance, but does not establish
+an exact upstream base pointer or resolve the metadata conflict. No graphics
+source or submodule pointer was changed.
 
 The 2026-10-21 public-history follow-up found candidate commit
 [`2827f069`](https://github.com/casebor/Vismol/commit/2827f069355f990e3022fba41aac23239e0cda2e)
 with four exact top-level file blob matches. Its source subtree does not match
 the original vendored baseline, so the candidate cannot establish the base
-revision or authorship. EH4-200 stays partial; see the roadmap evidence log.
+revision or Git authorship. Maintainer confirmation on 2026-10-30 resolves
+the project attribution and maintenance policy; see the completed EH4-200
+evidence row in the roadmap. The base revision remains a content match, not a
+recorded import pointer.
 
 EH4-300 moved preferences and transient autosaves out of the installed source
 tree into platform-standard per-user config/cache directories. Existing
@@ -1271,10 +1292,12 @@ after rerunning its initially aborted Windows GTK 4.24 full-suite job.
   fork root are recorded in `ARCHITECTURE.md`. The vendored engine imported
   in `c2668e2` best matches `Shabirahmad427/Vismol` commit `8360a71`
   (79/91 files identical, 0 missing); the 12 differing files are GTK3 -> GTK4
-  port edits. EH4-200 stays open only because nobody has recorded who wrote
-  those port edits or which repository owns graphics fixes (maintainer
-  decision). VisMol stays CC BY-NC 4.0; EasyHybrid4 as distributed is
-  non-commercial only. (Superseded: "EH4-000 remains incomplete because
+  port edits. EH4-200 is complete (2026-10-30): the maintainer attributes the
+  graphics work and GTK4 port to Casebor and Bachega, assigns local maintenance
+  of the GTK4 changes to EasyHybrid4, and permits suitable fixes to be
+  contributed upstream. This is recorded in `ARCHITECTURE.md` and
+  `THIRD_PARTY_NOTICES.md`. VisMol stays CC BY-NC 4.0; EasyHybrid4 as
+  distributed is non-commercial only. (Superseded: "EH4-000 remains incomplete because
   vendored graphics ancestry ... remain unresolved".) EH4-100 is complete for its defined
   architecture/import-boundary acceptance: scientific workflows, session
   state, plotting math, and startup OS policy have tested separations; remaining
@@ -1331,8 +1354,9 @@ The current graphics tree object is `e2dd787a9b1f20d1e47ccba3bd484c45573bef73`
 but still does not identify its source commit. `git submodule status --recursive`
 is empty in EasyHybrid4. EasyHybrid3 remains at its previously recorded dirty
 `dev` checkout; no files there were modified. Parent/reference identities,
-licenses and Git state are recorded; exact graphics ancestry and contributor
-ownership remain unavailable, so EH4-000 stays unchecked.
+licenses and Git state are recorded. The exact graphics ancestry remains
+unavailable; maintainer-confirmed attribution and maintenance policy are
+recorded under EH4-200, so EH4-000 inventory acceptance is complete.
 
 The public upstream audit found a historical candidate commit
 `2827f069355f990e3022fba41aac23239e0cda2e` in `casebor/Vismol`. Four top-level
@@ -1917,14 +1941,16 @@ the direct Git results above are the current baseline.
 - GTK4 migration, trackpad, and PySCF/GPU history reports are retained as
   topic sections in Section 11 of this report.
 
-## EH4-000 remaining blockers
+## EH4-000 provenance status
 
-EH4-000 remains **in progress, not complete**. The current parent branch, commit,
-clean state and owner-supplied `origin` are verified. The declared graphics
-submodule has no gitlink or checked-out Git metadata. Its public branch head is
-known, but the exact vendored source base and contributor/license ownership
-remain unresolved. Do not infer the graphics base SHA from EasyHybrid3 or the
-current upstream branch head.
+EH4-000 repository and vendored-tree inventory is complete for this checkout.
+The declared graphics submodule has no gitlink or checked-out Git metadata. The
+best-supported upstream content match is recorded in the EH4-200 evidence, but
+the exact vendored source base is not established. The maintainer confirmed
+attribution and maintenance policy; Git history does not independently
+establish authorship. Conflicting package license metadata is preserved and
+not adjudicated. Do not infer an import pointer from EasyHybrid3 or the current
+upstream branch head.
 
 
 ## 11.2 Package and dependency inventory
