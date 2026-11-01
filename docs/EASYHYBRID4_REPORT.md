@@ -12,13 +12,17 @@ substituted and scan calculations are unchanged. With the smallest local
 pDynamo pickle (`waterTrimer_OPLS.pkl`, 9 atoms), actual spawned workers
 passed Verlet, LeapFrog and Langevin MD, standard 1D PES, and advanced 2D PES
 (2×2 points). The focused regression, existing exported sample calculations
-and worker error/spawn tests passed locally (6 passed). The first matrix run
+and worker error/spawn tests passed locally (6 passed). Both scan windows
+reject blank step counts before launching a worker. The first matrix run
 [`41318828334`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/41318828334)
 was canceled after GTK 4.24 Linux test collection failed: the regression
 imported the GUI window module before pDynamo3 was installed in that workflow
 stage, raising `ModuleNotFoundError: pBabel`. The test now imports the pure
-`gui.scan_validation` helper. A fresh full native matrix is required before
-acceptance; see EH4-409 in the roadmap.
+`gui.scan_validation` helper. Corrected full native run
+[`41319653439`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/41319653439)
+passed **32/32**, including the `Native matrix gate`, on code head `11f71c0`.
+The documentation follow-up also awaits a full matrix before merge; see
+EH4-409 in the roadmap.
 
 **EH4-507 macOS Quartz display-boundary correction (2026-10-31):** the
 full local suite initially had one failure in
@@ -35,8 +39,11 @@ launcher had consequently forced the unavailable X11 backend. It now selects
 X11 only off macOS, reuses an already activated pDynamo3 Python, and the
 `chem312/bin/easyhybrid4` command points to the repository's path-resolving
 launcher. `tests/test_source_checkout_script.py` passed (**4 passed**) and the
-CLI opened the EasyHybrid 4.0.0 Beta window on the same runtime. The full native
-matrix and gate remain pending before merge.
+CLI opened the EasyHybrid 4.0.0 Beta window on the same runtime. Full native
+matrix run [`41262481883`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/41262481883)
+passed **32/32**, including the `Native matrix gate`, on PR #36 head `f47e4ce`,
+merged as `fb10ee0`. Exact runtime versions are in the per-cell artifacts.
+EH4-507 is complete; see the roadmap entry.
 
 **EH4-408 simulation worker spawn failure (2026-11-01):** a macOS Molecular
 Dynamics launch failed synchronously in `Process.start()` because the spawned
