@@ -57,9 +57,9 @@ def test_vismol_render_validation_at_scale_1_and_2():
     base = run_scene(1)
     hidpi = run_scene(2)
 
-    if not hidpi["scale_applied"]:
-        # Some backends (macOS Quartz) ignore GDK_SCALE; the scale-2 run
-        # then repeats 1x and HiDPI stays NOT TESTED in that cell.
+    if hidpi["framebuffer"] == base["framebuffer"]:
+        # A Retina display can provide a 2x backing framebuffer for both
+        # runs even when the backend ignores GDK_SCALE=2.
         assert os.environ.get("EASYHYBRID_REQUIRE_HIDPI_RENDER") != "1", (
             "GDK_SCALE=2 did not enlarge the GL framebuffer", hidpi["framebuffer"])
         print("EASYHYBRID_RENDER_HIDPI=NOT_APPLIED", flush=True)
