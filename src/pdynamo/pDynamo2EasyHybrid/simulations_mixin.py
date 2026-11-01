@@ -114,14 +114,37 @@ from pdynamo.LogFileWriter import LogFileReader
 
 from gui.windows.setup.windows_and_dialogs import call_message_dialog
 
+
+def _start_process_without_gui_rows(process, system):
+    """Start a child without serializing GTK model rows attached to a system."""
+    missing = object()
+    row_attributes = {}
+    for attribute in ("tree_row", "system_choice_row"):
+        value = getattr(system, attribute, missing)
+        row_attributes[attribute] = value
+        if value is not missing:
+            setattr(system, attribute, None)
+    try:
+        process.start()
+    finally:
+        for attribute, value in row_attributes.items():
+            if value is missing:
+                try:
+                    delattr(system, attribute)
+                except AttributeError:
+                    pass
+            else:
+                setattr(system, attribute, value)
+
+
 class pSimulations:
     """Class responsible for managing and running molecular simulations 
     using multiprocessing and GUI integration with EasyHybrid.
     """
-    #MSG_RESULT  = "RESULT"
-    #MSG_ERROR   = "ERROR"
-    #MSG_DONE    = "DONE"
-    #MSG_RUNNING = "RUNNING"
+    MSG_RESULT  = "RESULT"
+    MSG_ERROR   = "ERROR"
+    MSG_DONE    = "DONE"
+    MSG_RUNNING = "RUNNING"
     
     def __init__(self):
         """Class initializer."""
@@ -419,14 +442,15 @@ class pSimulations:
     # SIMULATION PROCESS
     # ========================================================================
 
-    def _target_process(self, parameters):
+    @staticmethod
+    def _target_process(parameters):
         """Target function executed inside a separate process.
 
         Runs the selected simulation type and communicates results back 
         to the parent process via a multiprocessing.Queue.
         """
         queue = parameters['queue']
-        queue.put( self.MSG_RUNNING)  # Notify parent process that job started
+        queue.put(pSimulations.MSG_RUNNING)  # Notify parent process that job started
 
         # Map simulation type to class
         simulation_classes = {
@@ -449,7 +473,7 @@ class pSimulations:
                 raise ValueError("Unknown simulation type: {}".format(sim_type))
 
             # Instantiate simulation class only after validating dispatch.
-            self.target_process = cls()
+            target_process = cls()
 
             # Special flags for specific simulation types
             if sim_type == 'Energy_Single_Point':
@@ -460,7 +484,7 @@ class pSimulations:
 
             # Avoid passing queue object to child processes inside parameters
             parameters['queue'] = None
-            self.target_process.run(parameters)
+            target_process.run(parameters)
             results = {
                 'new_vobject': parameters.get('new_vobject', True),
                 'energy': parameters.get('energy', False),
@@ -472,8 +496,8 @@ class pSimulations:
                 #'backup_parameters': backup_parameters,
                 'step_counter':parameters['system'].e_step_counter
             }
-            queue.put((self.MSG_RESULT, results))
-            queue.put(self.MSG_DONE)
+            queue.put((pSimulations.MSG_RESULT, results))
+            queue.put(pSimulations.MSG_DONE)
             
         except Exception as exc:
             dprint(f"Error {sim_type}: {exc}")
@@ -492,7 +516,7 @@ class pSimulations:
                 #'backup_parameters': backup_parameters,
                 'step_counter':parameters['system'].e_step_counter
             }
-            queue.put((self.MSG_ERROR, results))
+            queue.put((pSimulations.MSG_ERROR, results))
         
     def run_simulation(self, parameters):
         """
@@ -505,12 +529,6 @@ class pSimulations:
           4. Creates a subprocess and registers it in the process manager.
  
         """
-        # --- constants for messages
-        self.MSG_RESULT  = "RESULT"
-        self.MSG_ERROR   = "ERROR"
-        self.MSG_DONE    = "DONE"
-        self.MSG_RUNNING = "RUNNING"
-        
         # Validate active system
         if self.active_id not in self.psystem:
             self.main.simple_dialog.error(
@@ -586,7 +604,9 @@ class pSimulations:
         status = 'Queued'
         
         
-        process.start()
+        # GTK rows are parent-only UI state. Restore them immediately after
+        # spawn serializes the child arguments.
+        _start_process_without_gui_rows(process, system)
         message = f"{parameters['simulation_type']} {system.e_step_counter} - Running..."
         
         #try:

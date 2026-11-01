@@ -20,6 +20,21 @@ launcher. `tests/test_source_checkout_script.py` passed (**4 passed**) and the
 CLI opened the EasyHybrid 4.0.0 Beta window on the same runtime. The full native
 matrix and gate remain pending before merge.
 
+**EH4-408 simulation worker spawn failure (2026-10-31):** a macOS Molecular
+Dynamics launch failed synchronously in `Process.start()` because the spawned
+worker could not pickle the `SystemChoiceRow` attached to the live pDynamo
+system. The process target was also a bound GUI-session method, which would
+capture additional GUI state under `spawn`. The in-progress fix makes the
+worker target static and detaches the two parent-only GTK row references only
+for process-start serialization, restoring them in `finally`. The focused
+regression starts a real multiprocessing `spawn` child with
+deliberately unpickleable parent GTK row objects, verifies the worker error
+message and clean exit, and confirms both rows are restored in the parent.
+Together with the existing worker-error test, it passes locally (2 passed) on macOS 27.2 arm64, Python
+3.12.15, PyGObject 3.58.1, GTK 4.24.1 and GLib 2.90.1. The native backend is
+not available in the test shell, and the full native matrix is pending; this
+issue is not yet accepted for merge. See EH4-408 in the roadmap.
+
 **EH4-200 attribution and maintenance decision (2026-10-30):** the maintainer
 confirms that the VisMol graphics work and GTK4 port work are by Carlos
 Eduardo Sequeiros Borja (Casebor) and José Fernando Ruggiero Bachega.
