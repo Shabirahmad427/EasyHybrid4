@@ -1,6 +1,6 @@
 # EasyHybrid4 Development and Compatibility Report
 
-**Report date:** 2026-10-31
+**Report date:** 2026-11-01
 
 **EH4-507 macOS Quartz display-boundary correction (2026-10-31):** the
 full local suite initially had one failure in
@@ -20,20 +20,24 @@ launcher. `tests/test_source_checkout_script.py` passed (**4 passed**) and the
 CLI opened the EasyHybrid 4.0.0 Beta window on the same runtime. The full native
 matrix and gate remain pending before merge.
 
-**EH4-408 simulation worker spawn failure (2026-10-31):** a macOS Molecular
+**EH4-408 simulation worker spawn failure (2026-11-01):** a macOS Molecular
 Dynamics launch failed synchronously in `Process.start()` because the spawned
 worker could not pickle the `SystemChoiceRow` attached to the live pDynamo
-system. The process target was also a bound GUI-session method, which would
-capture additional GUI state under `spawn`. The in-progress fix makes the
-worker target static and detaches the two parent-only GTK row references only
-for process-start serialization, restoring them in `finally`. The focused
-regression starts a real multiprocessing `spawn` child with
-deliberately unpickleable parent GTK row objects, verifies the worker error
-message and clean exit, and confirms both rows are restored in the parent.
-Together with the existing worker-error test, it passes locally (2 passed) on macOS 27.2 arm64, Python
-3.12.15, PyGObject 3.58.1, GTK 4.24.1 and GLib 2.90.1. The native backend is
-not available in the test shell, and the full native matrix is pending; this
-issue is not yet accepted for merge. See EH4-408 in the roadmap.
+system. The process target was also a bound GUI-session method, which could
+capture additional GUI state under `spawn`. PR #38 makes the target static and
+detaches the parent-only GTK row references only for process-start
+serialization, restoring them in `finally`. Its regression starts a real
+`spawn` child with deliberately unpickleable GUI row objects, serializes the
+complete parameters dictionary, checks error-queue delivery and clean exit,
+and confirms that both rows are restored in the parent. The focused tests
+passed locally (2 passed) on macOS 27.2 arm64, Python 3.12.15, PyGObject
+3.58.1, GTK 4.24.1 and GLib 2.90.1. Full native run
+[`41264696220`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/41264696220)
+passed 32/32 on PR #38 head `d59307e` (merged as `32c4d92`): 30 platform/GTK
+jobs, plan and `Native matrix gate`. Scientific-test steps, including the
+spawn regression, passed in the native matrix. Exact OS, architecture,
+Python, PyGObject, GTK, GLib and backend versions are in the per-cell
+artifacts. EH4-408 is complete; see the roadmap evidence row.
 
 **EH4-200 attribution and maintenance decision (2026-10-30):** the maintainer
 confirms that the VisMol graphics work and GTK4 port work are by Carlos
