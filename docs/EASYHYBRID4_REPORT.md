@@ -2,6 +2,17 @@
 
 **Report date:** 2026-11-01
 
+**EH4-409 relaxed-scan step validation (2026-11-01):** a macOS scan launch
+reached the worker but failed in `surface_scan.write_header()` because the
+reaction-coordinate entry was blank (`nsteps=None`); the scan loop also
+requires this value as its actual iteration count. The PES window now checks
+that every active coordinate has a positive integer step count, reports an
+input error, and returns before starting a worker. This does not supply a
+default or change scan calculations. A focused regression was added. Local
+pytest collection is currently blocked because this `chem312` runtime has no
+Quartz GDK backend and its GUI import lacks `pBabel`; native matrix evidence
+is pending. See EH4-409 in the roadmap.
+
 **EH4-507 macOS Quartz display-boundary correction (2026-10-31):** the
 full local suite initially had one failure in
 `test_pdynamo_session_keeps_legacy_state_attributes_without_display`. The
