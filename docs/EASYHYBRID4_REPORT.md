@@ -2,7 +2,7 @@
 
 **Report date:** 2026-10-31
 
-**EH4-507 macOS Quartz display-boundary test correction (2026-10-31):** the
+**EH4-507 macOS Quartz display-boundary correction (2026-10-31):** the
 full local suite initially had one failure in
 `test_pdynamo_session_keeps_legacy_state_attributes_without_display`. The
 test removed `DISPLAY`, `WAYLAND_DISPLAY` and `GDK_BACKEND`, then expected
@@ -11,8 +11,14 @@ without those variables, so the assertion was invalid on macOS; all session
 state assertions passed. The test now keeps those state checks on every OS,
 but only asserts the absence of a default display outside macOS. On macOS 27.2
 arm64 with Python 3.12.15, PyGObject 3.58.1, GTK 4.24.1 and GLib 2.90.1, the
-focused corrected test passed (**1 passed**). The full native matrix and gate
-remain pending before merge.
+focused corrected test passed (**1 passed**). A launch follow-up found that
+XQuartz may set `DISPLAY` even though Homebrew GTK uses native Quartz; the
+launcher had consequently forced the unavailable X11 backend. It now selects
+X11 only off macOS, reuses an already activated pDynamo3 Python, and the
+`chem312/bin/easyhybrid4` command points to the repository's path-resolving
+launcher. `tests/test_source_checkout_script.py` passed (**4 passed**) and the
+CLI opened the EasyHybrid 4.0.0 Beta window on the same runtime. The full native
+matrix and gate remain pending before merge.
 
 **EH4-200 attribution and maintenance decision (2026-10-30):** the maintainer
 confirms that the VisMol graphics work and GTK4 port work are by Carlos
