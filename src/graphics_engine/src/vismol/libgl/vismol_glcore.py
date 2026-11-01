@@ -31,7 +31,7 @@ from gi.repository import GLib
 from OpenGL import GL
 from logging import getLogger
 from vismol.libgl.glaxis import GLAxis
-from vismol.libgl.glcamera import GLCamera
+from vismol.libgl.glcamera import GLCamera, normalize_clipping_planes
 from vismol.libgl.vismol_font import VismolFont
 from vismol.libgl.vismol_font import resolve_font_path, list_available_fonts
 from vismol.libgl.vismol_font import DEFAULT_FONT_FILE, DEFAULT_FONT_SIZE
@@ -243,6 +243,16 @@ class VismolGLCore:
             width -- Actual width of the window
             height -- Actual height of the window
         """
+        try:
+            width = float(width)
+            height = float(height)
+        except (TypeError, ValueError, OverflowError):
+            return
+        if (not np.isfinite(width) or not np.isfinite(height)
+                or width <= 0 or height <= 0
+                or width > np.finfo(np.float32).max
+                or height > np.finfo(np.float32).max):
+            return
         self.width = np.float32(width)
         self.height = np.float32(height)
         self.right = self.width / self.height
@@ -252,6 +262,14 @@ class VismolGLCore:
         if not hasattr(self, "glcamera"):
             return
         self.glcamera.viewport_aspect_ratio = self.width / self.height
+        self.glcamera.z_near, self.glcamera.z_far = normalize_clipping_planes(
+            self.glcamera.z_near,
+            self.glcamera.z_far,
+            self.dist_cam_zrp,
+            self.glcamera.min_znear,
+            self.glcamera.min_zfar,
+        )
+        self.glcamera.update_fog()
         _proj_mat = mop.my_glPerspectivef(self.glcamera.field_of_view,
                                           self.glcamera.viewport_aspect_ratio,
                                           self.glcamera.z_near, self.glcamera.z_far)
@@ -998,7 +1016,13 @@ class VismolGLCore:
                     
                     
         else:
-            pos_z = self.glcamera.get_position()[2]
+            self.glcamera.z_near, self.glcamera.z_far = normalize_clipping_planes(
+                self.glcamera.z_near,
+                self.glcamera.z_far,
+                self.dist_cam_zrp,
+                self.glcamera.min_znear,
+                self.glcamera.min_zfar,
+            )
             if up:
                 self.glcamera.z_near -= self.scroll
                 self.glcamera.z_far += self.scroll
@@ -1008,16 +1032,19 @@ class VismolGLCore:
                         self.glcamera.z_near += self.scroll
                         self.glcamera.z_far -= self.scroll
             
-            if (self.glcamera.z_near >= self.glcamera.min_znear):
-                self.glcamera.set_projection_matrix(mop.my_glPerspectivef(self.glcamera.field_of_view,
-                        self.glcamera.viewport_aspect_ratio, self.glcamera.z_near, self.glcamera.z_far))
-            else:
-                if self.glcamera.z_far < (self.glcamera.min_zfar + self.glcamera.min_znear):
-                    self.glcamera.z_near -= self.scroll
-                    self.glcamera.z_far = self.glcamera.min_clip + self.glcamera.min_znear
-                self.glcamera.set_projection_matrix(mop.my_glPerspectivef(self.glcamera.field_of_view,
-                                                    self.glcamera.viewport_aspect_ratio,
-                                                    self.glcamera.min_znear, self.glcamera.z_far))
+            self.glcamera.z_near, self.glcamera.z_far = normalize_clipping_planes(
+                self.glcamera.z_near,
+                self.glcamera.z_far,
+                self.dist_cam_zrp,
+                self.glcamera.min_znear,
+                self.glcamera.min_zfar,
+            )
+            self.glcamera.set_projection_matrix(mop.my_glPerspectivef(
+                self.glcamera.field_of_view,
+                self.glcamera.viewport_aspect_ratio,
+                self.glcamera.z_near,
+                self.glcamera.z_far,
+            ))
             self.glcamera.update_fog()
         self.parent_widget.queue_draw()
 

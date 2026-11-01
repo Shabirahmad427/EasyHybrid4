@@ -364,14 +364,21 @@ class VismolGTKWidget(_WidgetBase):
         steps, self._scroll_remainder = scroll_delta_to_steps(
             dy, surface=surface, remainder=self._scroll_remainder
         )
-        if steps:
+        # A single fast trackpad event can contain many detents. Applying
+        # every one synchronously widens the camera slab repeatedly and can
+        # stall GTK. Bound this event after unit normalization; fractional
+        # deltas below the limit remain accumulated as before.
+        applied_steps = max(-4, min(steps, 4))
+        if applied_steps != steps:
+            self._scroll_remainder = 0.0
+        if applied_steps:
             # GDK's positive vertical delta means down. VisMol's legacy
             # direction convention uses -1 for down and +1 for up.
-            direction = -1 if steps > 0 else 1
+            direction = -1 if applied_steps > 0 else 1
             saved_ctrl, saved_shift = self.vm_glcore.ctrl, self.vm_glcore.shift
             self.vm_glcore.ctrl, self.vm_glcore.shift = ctrl, shift
             try:
-                for _ in range(abs(steps)):
+                for _ in range(abs(applied_steps)):
                     self.vm_glcore.mouse_scroll(direction)
             finally:
                 self.vm_glcore.ctrl, self.vm_glcore.shift = saved_ctrl, saved_shift
