@@ -26,9 +26,10 @@ permissions:
 env:
   # Maintainer pDynamo3 fork commit built in every cell for the full
   # EasyHybrid application and scientific regressions. The fork carries the
-  # shared GPU4PySCF/PySCF adapter on top of upstream 6b28dd8 (EH4-407).
+  # shared GPU4PySCF/PySCF adapter on top of upstream 6b28dd8 (EH4-407)
+  # and the xTB empty-input guard (pDynamo3 PR #2).
   PDYNAMO3_REPOSITORY: Shabirahmad427/pDynamo3
-  PDYNAMO3_REF: e007e44ca4ccd5e24714adcae6194d04c1bc36be
+  PDYNAMO3_REF: 08f73f5bb59be6046d3260d4930fce7757256c0c
 
 jobs:
   plan:
