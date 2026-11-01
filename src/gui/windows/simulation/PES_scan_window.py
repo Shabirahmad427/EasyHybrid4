@@ -35,6 +35,7 @@ import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
 from gui.message_dialogs import show_message
+from gui.scan_validation import has_positive_step_counts
 from gui.gtk4_builder import connect_builder_signals, load_builder_file, load_builder_string
 #from GTKGUI.gtkWidgets.filechooser import FileChooser
 #from easyhybrid.pDynamoMethods.pDynamo2Vismol import *
@@ -215,9 +216,8 @@ class PotentialEnergyScanWindow:
         reaction_coordinates = [parameters["RC1"]]
         if parameters["RC2"] is not None:
             reaction_coordinates.append(parameters["RC2"])
-        return all(
-            type(rc.get("nsteps")) is int and rc["nsteps"] > 0
-            for rc in reaction_coordinates
+        return has_positive_step_counts(
+            *(rc.get("nsteps") for rc in reaction_coordinates)
         )
 
     def get_parameters(self) -> dict:

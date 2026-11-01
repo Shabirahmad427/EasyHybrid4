@@ -5,13 +5,20 @@
 **EH4-409 relaxed-scan step validation (2026-11-01):** a macOS scan launch
 reached the worker but failed in `surface_scan.write_header()` because the
 reaction-coordinate entry was blank (`nsteps=None`); the scan loop also
-requires this value as its actual iteration count. The PES window now checks
-that every active coordinate has a positive integer step count, reports an
-input error, and returns before starting a worker. This does not supply a
-default or change scan calculations. A focused regression was added. Local
-pytest collection is currently blocked because this `chem312` runtime has no
-Quartz GDK backend and its GUI import lacks `pBabel`; native matrix evidence
-is pending. See EH4-409 in the roadmap.
+requires this value as its actual iteration count. The standard PES window
+now checks parsed values, and the advanced PES window checks entry text before
+conversion; both report an input error before worker startup. No default is
+substituted and scan calculations are unchanged. With the smallest local
+pDynamo pickle (`waterTrimer_OPLS.pkl`, 9 atoms), actual spawned workers
+passed Verlet, LeapFrog and Langevin MD, standard 1D PES, and advanced 2D PES
+(2×2 points). The focused regression, existing exported sample calculations
+and worker error/spawn tests passed locally (6 passed). The first matrix run
+[`41318828334`](https://github.com/Shabirahmad427/EasyHybrid4/actions/runs/41318828334)
+was canceled after GTK 4.24 Linux test collection failed: the regression
+imported the GUI window module before pDynamo3 was installed in that workflow
+stage, raising `ModuleNotFoundError: pBabel`. The test now imports the pure
+`gui.scan_validation` helper. A fresh full native matrix is required before
+acceptance; see EH4-409 in the roadmap.
 
 **EH4-507 macOS Quartz display-boundary correction (2026-10-31):** the
 full local suite initially had one failure in

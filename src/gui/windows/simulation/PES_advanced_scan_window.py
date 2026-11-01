@@ -35,6 +35,7 @@ import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gdk, Gio
 from gui.message_dialogs import show_message
+from gui.scan_validation import has_positive_step_counts
 from src.gtk4_compat import GTK_INVALID_LIST_POSITION
 from gui.gtk4_builder import connect_builder_signals, load_builder_file, load_builder_string
 #from GTKGUI.gtkWidgets.filechooser import FileChooser
@@ -193,6 +194,16 @@ class AdvancedPotentialEnergyScanWindow:
 
     def run_scan(self, button: Gtk.Button) -> None:
         """Collect parameters and launch PES scan."""
+        step_counts = [self.RC_box1.entry_nsteps.get_text()]
+        if self.builder.get_object("label_check_button_reaction_coordinate2").get_active():
+            step_counts.append(self.RC_box2.entry_nsteps.get_text())
+        if not has_positive_step_counts(*step_counts):
+            self.run_dialog(
+                text="Number of scan steps is required",
+                secondary_text="Enter a positive number of steps for each reaction coordinate.",
+            )
+            return
+
         parameters = self.get_parameters()
         if parameters is None:
             return
