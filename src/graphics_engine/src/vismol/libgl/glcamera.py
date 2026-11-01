@@ -30,6 +30,71 @@ from logging import getLogger
 logger = getLogger(__name__)
 
 
+def normalize_clipping_planes(z_near, z_far, camera_distance,
+                              min_znear=0.1, min_zfar=9.0,
+                              max_slab_width=1000.0):
+    """Return finite, ordered clipping planes with a bounded slab width.
+
+    A corrupt camera state is recovered around its last known distance. Very
+    wide slabs are recentered and limited so a large smooth-scroll burst
+    cannot make the molecular scene numerically unusable.
+    """
+    try:
+        near = float(z_near)
+        far = float(z_far)
+        center = float(camera_distance)
+        min_near = float(min_znear)
+        min_span = float(min_zfar)
+        max_width = float(max_slab_width)
+    except (TypeError, ValueError, OverflowError):
+        near = far = float("nan")
+        center = float("nan")
+        min_near, min_span, max_width = 0.1, 9.0, 1000.0
+
+    if not math.isfinite(min_near) or min_near <= 0.0:
+        min_near = 0.1
+    if not math.isfinite(min_span) or min_span <= 0.0:
+        min_span = 9.0
+    if not math.isfinite(max_width) or max_width < min_span:
+        max_width = max(1000.0, min_span)
+    min_span = min(min_span, max_width)
+
+    def reset_planes():
+        fallback_center = center
+        if not math.isfinite(fallback_center):
+            fallback_center = min_near + min_span
+        fallback_center = min(
+            max(fallback_center, min_near + min_span / 2.0),
+            1.0e6 - min_span / 2.0,
+        )
+        fallback_near = max(min_near, fallback_center - min_span / 2.0)
+        return fallback_near, fallback_near + min_span
+
+    width = far - near
+    if (not math.isfinite(near) or not math.isfinite(far)
+            or not math.isfinite(width) or width <= 0.0
+            or abs(near) > 1.0e6 or abs(far) > 1.0e6):
+        return reset_planes()
+
+    if width > max_width:
+        center = near / 2.0 + far / 2.0
+        if not math.isfinite(center) or abs(center) > 1.0e6:
+            return reset_planes()
+        near = center - max_width / 2.0
+        far = center + max_width / 2.0
+
+    if near < min_near:
+        shift = min_near - near
+        near += shift
+        far += shift
+    if far <= near + 0.005:
+        far = near + max(min_span, 0.005)
+    if abs(near) > 1.0e6 or abs(far) > 1.0e6:
+        return reset_planes()
+
+    return near, far
+
+
 class GLCamera():
     """ The GLCamera object creates a "camera" to be used in OpenGL.
         It automatically creates a viewing and projection matrices with the
@@ -240,8 +305,16 @@ class GLCamera():
             Returns:
                 True
         """
-        self.fog_end = self.z_far
-        self.fog_start = self.fog_end - self.min_zfar 
+        self.z_near, self.z_far = normalize_clipping_planes(
+            self.z_near, self.z_far, np.linalg.norm(self.get_position()),
+            self.min_znear, self.min_zfar,
+        )
+        fog_span = self.min_zfar if math.isfinite(float(self.min_zfar)) else 9.0
+        fog_span = max(float(fog_span), 0.005)
+        self.fog_end = np.float32(self.z_far)
+        self.fog_start = np.float32(max(self.z_near, self.fog_end - fog_span))
+        if not np.isfinite(self.fog_start) or self.fog_start >= self.fog_end:
+            self.fog_start = np.nextafter(self.fog_end, np.float32(-np.inf))
         return True
     
     def print_parms(self):
