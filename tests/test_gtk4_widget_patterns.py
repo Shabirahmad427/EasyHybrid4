@@ -1808,3 +1808,28 @@ def test_main_window_status_line_is_portable():
         window = builder.get_object(name)
         if isinstance(window, Gtk.Window):
             window.destroy()
+
+
+@needs_display
+def test_about_dialog_builds_with_gtk4_logo_and_system_report():
+    """Help -> About must open on GTK4 (EH4-510).
+
+    It previously passed a GdkPixbuf to set_logo (GTK4 needs a Gdk.Paintable)
+    and connected the GTK3-only "response" signal, so the dialog never opened.
+    """
+    from gui.about_dialog import LOGO_RELATIVE_PATH, build_about_dialog
+
+    assert (PROJECT_ROOT / LOGO_RELATIVE_PATH).is_file()
+    parent = Gtk.Window()
+    dialog = build_about_dialog(parent, str(PROJECT_ROOT))
+    try:
+        assert isinstance(dialog.get_logo(), Gdk.Texture)
+        assert "GTK" in dialog.get_system_information()
+        assert GObject.signal_lookup("response", Gtk.AboutDialog) == 0
+        dialog.present()
+        context = GLib.MainContext.default()
+        while context.pending():
+            context.iteration(False)
+    finally:
+        dialog.destroy()
+        parent.destroy()

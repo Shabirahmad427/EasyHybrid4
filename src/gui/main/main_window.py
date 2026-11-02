@@ -1559,35 +1559,12 @@ class MainWindow:
         
         
         elif menuitem == self._ui('menuitem_about'):
-            dialog = Gtk.AboutDialog(transient_for=self.window, modal=True)
-            dialog.set_program_name('EasyHybrid')
-            dialog.set_version('4.0.0 Beta')
-            dialog.set_comments(
-                'EasyHybrid is a molecular modeling environment based on pDynamo3, '
-                'with a focus on QC/MM hybrid simulations.'
-            )
-            dialog.set_website('https://github.com/ferbachega/EasyHybrid3')
-            dialog.set_website_label('EasyHybrid - project page on GitHub')
-            dialog.set_authors([
-                'Fernando Bachega (main developer)',
-                'Carlos Cerqueiros',
-                'Luis Fernando S. Timmers',
-                'Martin John Field',
-            ])
-            dialog.set_license_type(Gtk.License.GPL_3_0)
-            # "System" tab: runtime/GL/pDynamo versions for bug reports. The
-            # collector never raises, even without a realized GL context.
-            from src.os_integration.diagnostics import collect_diagnostics, format_diagnostics
+            from gui.about_dialog import build_about_dialog
 
-            dialog.set_system_information(format_diagnostics(collect_diagnostics(
-                app_home=self.home,
+            build_about_dialog(
+                self.window, self.home,
                 gl_area=getattr(self.vm_session, "vm_widget", None),
-            )))
-            logo_path = os.path.join(self.home, 'src/gui/icons/easyhybrid_solo_100x100.png')
-            if os.path.isfile(logo_path):
-                dialog.set_logo(GdkPixbuf.Pixbuf.new_from_file(logo_path))
-            dialog.connect("response", lambda current_dialog, _response: current_dialog.destroy())
-            dialog.present()
+            ).present()
 
     def gtk_save_as_file(self, button, on_saved=None):
         """Save the current EasyHybrid session using a GTK4 file chooser."""
