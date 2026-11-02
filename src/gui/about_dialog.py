@@ -22,7 +22,7 @@ def build_about_dialog(parent, app_home, gl_area=None):
     """Return a configured, unpresented About dialog transient for parent."""
     dialog = Gtk.AboutDialog(transient_for=parent, modal=True)
     dialog.set_program_name('EasyHybrid')
-    dialog.set_version('4.0.0 Beta')
+    dialog.set_version('4.0.0')
     dialog.set_comments(
         'EasyHybrid is a molecular modeling environment based on pDynamo3, '
         'with a focus on QC/MM hybrid simulations.'
